@@ -158,7 +158,7 @@ button { cursor: pointer; touch-action: manipulation; }
 }
 body:not([data-view="map"]) .for-map, body:not([data-view="natal"]) .for-natal,
 body[data-view="tools"] .for-partner, body[data-view="natal"]:not([data-natmode="synastry"]) .for-partner,
-body:not([data-natmode="solar"]) .for-solar, body:not([data-natmode="lunar"]) .for-lunar, body:not([data-natmode="horary"]) .for-horary, body[data-view="tools"] .not-tools { display: none !important; }
+body:not([data-natmode="solar"]) .for-solar, body:not([data-natmode="lunar"]) .for-lunar, body:not([data-natmode="stars"]) .for-stars, body:not([data-natmode="horary"]) .for-horary, body[data-view="tools"] .not-tools { display: none !important; }
 body[data-view="map"] .for-partner { order: 5; }
 body[data-view="sport"] .panel { display: none !important; }
 body[data-natmode="horary"] .for-natal { display: none !important; }
@@ -516,6 +516,19 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .lun-list button small { color: var(--muted); font-size: 12px; }
 .lun-list button[aria-pressed="true"] { border-color: var(--brass); background: color-mix(in srgb, var(--brass) 14%, transparent); }
 .lun-list button:hover { border-color: var(--brass); }
+.star-ctl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+@media (min-width: 900px) { .star-ctl { grid-template-columns: minmax(0, 1fr) auto; } .star-ctl .star-cats, .star-ctl .star-list, .star-ctl .bal-note { grid-column: 1 / -1; } }
+.star-ctl .star-sort { align-self: end; }
+.star-ctl .star-cats { flex-wrap: wrap; }
+.star-list { max-height: min(380px, 52vh); overflow-y: auto; overscroll-behavior: contain; }
+.star-list li[aria-current="true"], .like-list li:focus-visible { background: color-mix(in srgb, var(--brass) 12%, transparent); }
+.star-list li[aria-current="true"] .bl-city { color: var(--brass); }
+.star-ctl .bal-note { margin: 0; }
+.star-card .bl-chips { margin: 4px 0 10px; }
+.star-card h3 span#starPct { font-family: var(--f-display); font-size: 22px; color: var(--brass); letter-spacing: 0; text-transform: none; }
+.star-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.star-btns .pill { min-height: 44px; }
+.like-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .nat-h4, .tool-out h4 { margin: 18px 0 8px; font-size: 12.5px; font-weight: 600; color: var(--fg); }
 .muted { color: var(--muted); }
 .sol-now { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
@@ -905,6 +918,7 @@ details.more[open] summary { margin-bottom: 8px; }
           <button type="button" data-m="lunar">Лунар</button>
           <button type="button" data-m="synastry">Совместимость</button>
           <button type="button" data-m="horary">Хорар</button>
+          <button type="button" data-m="stars">Звёзды</button>
         </div>
         <div class="seg" id="natSyn" role="group" aria-label="Вид совместимости" hidden>
           <button type="button" data-s="syn">Синастрия</button>
@@ -932,6 +946,17 @@ details.more[open] summary { margin-bottom: 8px; }
         <button type="button" class="pill" id="lunHere">Где я</button>
         <button type="button" class="pill" id="lunHome">Место рождения</button>
         <p class="layer-hint" id="lunHereNote"></p>
+      </div>
+      <div class="sol-ctl star-ctl for-stars">
+        <div class="field star-q"><label for="starQ">Найти по имени</label><input class="inp" type="search" id="starQ" placeholder="Например: Монро или Пугачёва" autocomplete="off" spellcheck="false"></div>
+        <div class="seg star-sort" id="starSort" role="group" aria-label="Порядок">
+          <button type="button" data-s="like">По сходству</button>
+          <button type="button" data-s="name">По имени</button>
+          <button type="button" data-s="date">По году</button>
+        </div>
+        <div class="seg star-cats" id="starCats" role="group" aria-label="Категория"></div>
+        <ol class="best-list star-list" id="starList"></ol>
+        <p class="bal-note" id="starNote"></p>
       </div>
       <div class="hor-ctl for-horary">
         <div class="field hor-q"><label for="horQ">Вопрос</label><input class="inp" type="text" id="horQ" maxlength="140" placeholder="Например: получу ли я эту работу?" autocomplete="off"></div>
@@ -970,6 +995,12 @@ details.more[open] summary { margin-bottom: 8px; }
         <ul class="hor-warn" id="horWarn"></ul>
         <p class="bal-note">Метод Джона Фроули («Учебник хорарной астрологии»): карта на момент, когда вопрос задан и понят, на место, где вы находитесь. Дома Региомонтана, семь планет без Урана, Нептуна и Плутона, достоинства по таблице Лилли (термы Птолемея, Марс управляет водным триплицитетом днём и ночью). Ответ «да» — если сигнификаторы приходят к точному аспекту до смены знака; учитываются запрет, рефранация, перенос и сбор света. Планета в пределах 5° до куспида читается в следующем доме. Парс Фортуны — ASC + Луна − Солнце днём и ночью.</p>
       </section>
+      <section class="nat-card star-card" id="natStarCard" hidden>
+        <h3>Сходство с вашей картой <span id="starPct"></span></h3>
+        <div class="bl-chips" id="starWhy"></div>
+        <p class="bal-note" id="starSrc"></p>
+        <div class="star-btns"><button type="button" class="pill" id="starSyn">Сравнить со мной: синастрия</button><button type="button" class="pill" id="starBack">Моя карта</button></div>
+      </section>
       <div class="natal-grid top">
         <figure class="wheel-box">
           <svg id="wheel" viewBox="-62 -62 1124 1124" role="img" aria-label="Колесо натальной карты"></svg>
@@ -981,6 +1012,11 @@ details.more[open] summary { margin-bottom: 8px; }
           <section class="nat-card"><h3>Дома</h3><div class="nat-scroll"><table class="nat-table" id="natHouses"></table></div></section>
         </div>
       </div>
+      <section class="nat-card" id="natLikeCard" hidden>
+        <div class="like-head"><h3>На кого из звёзд похожа ваша карта <span>совпадения Солнца, Луны, Асцендента и личных планет</span></h3><button type="button" class="pill" id="likeAll">Все звёзды →</button></div>
+        <ol class="best-list like-list" id="likeList"></ol>
+        <p class="bal-note">Сравниваются только люди с подтверждённым временем рождения: по свидетельству о рождении, их собственным словам или биографии. Больше всего весят одинаковые знаки Солнца, Луны и Асцендента, затем MC и личные планеты и то, насколько близко точки стоят в градусах; немного — похожий баланс стихий и крестов. Уран, Нептун и Плутон не учитываются: они одинаковы у всех ровесников.</p>
+      </section>
       <section class="nat-card" id="natSolarCard" hidden>
         <h3>Оценка соляра <span>чем выше, тем удачнее место</span></h3>
         <div id="natSolarScore"></div>
@@ -1225,6 +1261,7 @@ details.more[open] summary { margin-bottom: 8px; }
 <script src="js/features.js?v=20261104p"></script>
 <script src="js/horary.js?v=20261104p"></script>
 <script src="js/interpret.js?v=20261104p"></script>
+<script src="js/celebs.js?v=20261104p"></script>
 <script src="js/natal-view.js?v=20261104p"></script>
 <script src="js/cycles.js?v=20261104p"></script>
 <script src="js/tools-view.js?v=20261104p"></script>

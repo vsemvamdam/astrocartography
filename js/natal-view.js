@@ -1,8 +1,9 @@
-/* Natal chart view: natal, solar and lunar returns, compatibility (synastry, composite) and horary.
+/* Natal chart view: natal, solar and lunar returns, compatibility (synastry, composite), horary and
+   well-known people's charts ("Звёзды") with the ones closest to yours.
    SVG wheel and tables. Reads the shared app state via the object passed to init(). */
 (function () {
   'use strict';
-  const ACG = window.ACG, N = window.NATAL, F = window.FEAT, H = window.HORARY;
+  const ACG = window.ACG, N = window.NATAL, F = window.FEAT, H = window.HORARY, CL = window.CELEBS;
   const $ = (id) => document.getElementById(id);
   const VS = '︎';
   const g = (s) => s + VS;
@@ -25,7 +26,7 @@
   let natal = null;     // the chart drawn as the main wheel (natal, solar or composite)
   let outer = null;     // partner's points in the outer ring (synastry)
   let cross = [];       // synastry aspects
-  let hl = null, app = null, solarInfo = null, lunarInfo = null, natB = null, natBase = null, horInfo = null, horCache = null;
+  let hl = null, app = null, solarInfo = null, lunarInfo = null, starInfo = null, likes = null, natB = null, natBase = null, horInfo = null, horCache = null;
 
   // the options object is filled in place, so a toggle written through one call is seen by the next
   const fill = (o, defs) => { for (const k in defs) if (!(k in o)) o[k] = defs[k]; return o; };
@@ -36,6 +37,10 @@
   function solarOpts() {
     const st = app.state;
     return fill(st.solar || (st.solar = {}), { year: null, place: null });
+  }
+  function starsOpts() {
+    const st = app.state;
+    return fill(st.stars || (st.stars = {}), { id: null, cat: 'all', q: '', sort: 'like' });
   }
   // lunar return: `at` is the moment whose lunar return is shown (null: now)
   function lunarOpts() {
@@ -359,6 +364,91 @@
     });
   }
 
+  /* -------------------------------- stars -------------------------------- */
+  const SIGN_LOC = ['Овне', 'Тельце', 'Близнецах', 'Раке', 'Льве', 'Деве', 'Весах', 'Скорпионе', 'Стрельце', 'Козероге', 'Водолее', 'Рыбах'];
+  const PT_RU = { Sun: 'Солнце', Moon: 'Луна', Mercury: 'Меркурий', Venus: 'Венера', Mars: 'Марс', Jupiter: 'Юпитер', Saturn: 'Сатурн', ASC: '', MC: '' };
+  const ptGlyph = (id) => (id === 'ASC' || id === 'MC' ? id : g(BODY[id].glyph));
+  const ptColor = (id) => (BODY[id] ? BODY[id].color : 'var(--brass)');
+  const youPoints = (nat) => {
+    const P = { ASC: nat.asc, MC: nat.mc };
+    for (const p of nat.points) if (p.planet || p.id === 'Sun' || p.id === 'Moon') P[p.id] = p.lon;
+    return P;
+  };
+  // why two charts are alike, as short chips
+  function whyChips(like, max) {
+    const out = like.parts.slice(0, max).map((x) => {
+      const t = x.same ? `в ${SIGN_LOC[x.sign]}${x.d < 8 ? ` (±${Math.round(x.d)}°)` : ''}` : `рядом (±${Math.round(x.d)}°)`;
+      return `<span class="lc-chip" style="--c:${ptColor(x.id)}"><i>${ptGlyph(x.id)}</i>${PT_RU[x.id] ? PT_RU[x.id] + ' ' : ''}${t}</span>`;
+    });
+    if (like.el >= 0.85 && out.length < max + 1) out.push('<span class="lc-chip" style="--c:var(--brass)"><i>△</i>похожий баланс стихий</span>');
+    return out.join('');
+  }
+  const pctBar = (v, best) => `<span class="bl-score"><b>${v}%</b><i style="width:${Math.max(6, Math.round(v / Math.max(1, best) * 100))}%"></i></span>`;
+  const dateRu = (d) => { const [y, m, dd] = d.split('-').map(Number); return `${dd} ${MONTHS[m - 1]} ${y}`; };
+  // after picking someone, bring their chart into view (on a phone the list is above it)
+  const toHead = () => $('natH').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  function openStar(id) { const so = starsOpts(); so.id = id; opts().mode = 'stars'; hl = null; syncSeg(); changed(); toHead(); }
+
+  function renderStarsCtl() {
+    if (opts().mode !== 'stars') return;
+    const so = starsOpts();
+    $('starCats').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.c === so.cat)));
+    $('starSort').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.s === so.sort)));
+    if (document.activeElement !== $('starQ')) $('starQ').value = so.q || '';
+    if (!likes) {
+      $('starList').innerHTML = `<li class="par-empty muted">${CL && CL.failed() ? 'Не удалось загрузить список. Проверьте интернет и обновите страницу.' : 'Загружаем список…'}</li>`;
+      $('starNote').textContent = '';
+      return;
+    }
+    const q = (so.q || '').trim().toLowerCase().replace(/ё/g, 'е');
+    let list = likes.filter((x) => (so.cat === 'all' || x.c.cat === so.cat) && (!q || (x.c.ru + ' ' + x.c.en + ' ' + x.c.who).toLowerCase().replace(/ё/g, 'е').includes(q)));
+    if (so.sort === 'name') list = list.slice().sort((a, b) => a.c.ru.localeCompare(b.c.ru, 'ru'));
+    else if (so.sort === 'date') list = list.slice().sort((a, b) => a.c.utc - b.c.utc);
+    const best = likes[0].score, cur = starInfo && starInfo.c.id;
+    $('starList').innerHTML = list.length ? list.map((x, i) => `<li data-id="${x.c.id}" tabindex="0"${x.c.id === cur ? ' aria-current="true"' : ''}><span class="bl-n">${so.sort === 'like' ? i + 1 : ''}</span>
+      <span class="bl-main"><span class="bl-city">${esc(x.c.ru)}<small>${esc(x.c.who)} · ${dateRu(x.c.d)}</small></span><span class="bl-chips">${whyChips(x, 3)}</span></span>${pctBar(x.score, best)}</li>`).join('')
+      : '<li class="par-empty muted">Никого не нашли. Попробуйте другое имя или категорию.</li>';
+    $('starNote').textContent = `${list.length} из ${likes.length}. Процент — насколько ваша карта похожа на карту этого человека.`;
+  }
+  function renderStarCard() {
+    const card = $('natStarCard');
+    card.hidden = opts().mode !== 'stars' || !starInfo;
+    if (card.hidden) return;
+    const { c, like } = starInfo;
+    $('starPct').textContent = `${like.score}%`;
+    $('starWhy').innerHTML = whyChips(like, 6) || '<span class="muted">Общих черт почти нет: тем интереснее сравнить.</span>';
+    $('starSrc').innerHTML = `Время рождения ${c.t}: ${esc(c.src)}. Рейтинг точности Лоис Родден: ${esc(CL.RATING[c.r] || c.r)}. Данные — <a href="${esc(c.url)}" target="_blank" rel="noopener">Astrotheme</a> (Astro-Databank).${c.lmt ? ' До введения поясного времени: использовано местное среднее время места рождения.' : ''}`;
+    const p = app.state.partner;
+    $('starSyn').textContent = p && p.name && p.name !== c.ru ? 'Сравнить со мной (вместо партнёра)' : 'Сравнить со мной: синастрия';
+  }
+  function renderLikeCard() {
+    const card = $('natLikeCard');
+    card.hidden = opts().mode !== 'natal' || !likes;
+    if (card.hidden) return;
+    const top = likes.slice(0, 5), best = top[0].score;
+    $('likeList').innerHTML = top.map((x, i) => `<li data-id="${x.c.id}" tabindex="0"><span class="bl-n">${i + 1}</span>
+      <span class="bl-main"><span class="bl-city">${esc(x.c.ru)}<small>${esc(x.c.who)}</small></span><span class="bl-chips">${whyChips(x, 3)}</span></span>${pctBar(x.score, best)}</li>`).join('');
+  }
+  function initStarControls() {
+    $('starCats').innerHTML = CL.CATS.map(([k, t]) => `<button type="button" data-c="${k}">${t}</button>`).join('');
+    $('starCats').addEventListener('click', (e) => { const b = e.target.closest('button[data-c]'); if (b) { starsOpts().cat = b.dataset.c; app.save(); renderStarsCtl(); } });
+    $('starSort').addEventListener('click', (e) => { const b = e.target.closest('button[data-s]'); if (b) { starsOpts().sort = b.dataset.s; app.save(); renderStarsCtl(); } });
+    $('starQ').addEventListener('input', (e) => { starsOpts().q = e.target.value.slice(0, 60); app.save(); renderStarsCtl(); });
+    const pickRow = (e) => { const li = e.target.closest('li[data-id]'); if (li) openStar(li.dataset.id); };
+    for (const id of ['starList', 'likeList']) {
+      $(id).addEventListener('click', pickRow);
+      $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickRow(e); } });
+    }
+    $('likeAll').addEventListener('click', () => { opts().mode = 'stars'; starsOpts().id = null; hl = null; syncSeg(); changed(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    $('starBack').addEventListener('click', () => { opts().mode = 'natal'; hl = null; syncSeg(); changed(); });
+    $('starSyn').addEventListener('click', () => {
+      if (!starInfo) return;
+      const c = starInfo.c, [city, country] = c.place.split(', ');
+      app.setPartner({ name: c.ru, date: c.d, time: c.t, place: { name: city, country: country || '', lat: c.lat, lon: c.lon, tz: c.tz }, manualOffset: c.lmt ? c.off : undefined });
+      opts().mode = 'synastry'; opts().syn = 'syn'; hl = null; syncSeg(); changed(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
   /* ------------------- evolutionary axis and asteroids ------------------- */
   // Steven Forrest and Jeffrey Wolf Green: the lunar nodes and the Pluto polarity point
   const HTHEME = [null, 'своя воля, самостоятельность, собственный путь', 'своё: ресурсы, ценности, самодостаточность', 'знания, слова, общение, близкое окружение',
@@ -447,6 +537,7 @@
     let secs = null, title = '', sub = '';
     try {
       if (I && o.mode === 'natal') { secs = I.natal(natal); title = 'Расшифровка натальной карты'; sub = 'характер, планеты в знаках и домах, аспекты'; }
+      else if (I && o.mode === 'stars' && starInfo) { secs = I.natal(natal); title = `Расшифровка карты: ${starInfo.c.ru}`; sub = 'тексты обращены к владельцу карты — читайте их как его портрет'; }
       else if (I && o.mode === 'solar' && solarInfo) { secs = I.solar(natal, natBase); title = `Расшифровка соляра ${solarInfo.year}`; sub = 'на год от дня рождения до дня рождения'; }
       else if (I && o.mode === 'lunar' && lunarInfo) { secs = I.lunar(natal, natBase); title = 'Расшифровка лунара'; sub = `на месяц: ${localTime(lunarInfo.utc, lunarInfo.place.tz).text.replace(/, \d\d:\d\d$/, '')} — ${localTime(lunarInfo.next, lunarInfo.place.tz).text.replace(/, \d\d:\d\d$/, '')}`; }
       else if (I && o.mode === 'synastry' && natB && outer) { secs = I.synastry(natBase, natB, cross, partnerName()); title = 'Расшифровка синастрии'; sub = `вы и ${partnerName()}`; }
@@ -470,7 +561,7 @@
     const list = secs.filter((sec) => sec.items.length);
     const block = (sec, head) => `<section class="rd-sec">${head ? `<h4 class="nat-h4">${esc(sec.title)}</h4>` : ''}${sec.note ? `<p class="bal-note">${esc(sec.note)}</p>` : ''}<div class="soul">${sec.items.map(row).join('')}</div></section>`;
     // the natal reading is long, so it is split into tabs; the others fit on one screen in two columns
-    if (o.mode === 'natal') {
+    if (o.mode === 'natal' || o.mode === 'stars') {
       const tab = list.find((sec) => sec.key === o.readTab) || list[0];
       $('natReadTabs').hidden = false;
       $('natReadTabs').innerHTML = list.map((sec) => `<button type="button" data-k="${sec.key}" aria-pressed="${sec === tab}">${esc(sec.title)}</button>`).join('');
@@ -620,6 +711,10 @@
       const P = solarInfo.place, lt = localTime(solarInfo.utc, P.tz), sp = pos(solarInfo.sunLon);
       title = `Соляр ${solarInfo.year} · ${P.name}`;
       sub = `Солнце возвращается в ${sp.text}${pad(sp.sec)}″ ${sp.name}: ${lt.text} (${offText(lt.off)}) · ${fmtLat(P.lat)} · ${fmtLon(P.lon)} · дома: ${sys.ru}`;
+    } else if (mode === 'stars' && starInfo) {
+      const c = starInfo.c;
+      title = `${c.ru} — ${c.who}`;
+      sub = `${dateRu(c.d)}, ${c.t} (${c.lmt ? 'местное среднее время' : offText(c.off)}) · ${c.place} · ${fmtLat(c.lat)} · ${fmtLon(c.lon)} · дома: ${sys.ru}`;
     } else if (mode === 'lunar' && lunarInfo) {
       const P = lunarInfo.place, lt = localTime(lunarInfo.utc, P.tz), mp = pos(lunarInfo.moonLon);
       title = `Лунар ${lt.text.replace(/, \d\d:\d\d$/, '')} · ${P.name}`;
@@ -632,10 +727,11 @@
       const P = st.place, conv = app.conv, u = new Date(conv.utc);
       sub = `${fmtLat(P.lat)} · ${fmtLon(P.lon)} · UTC ${pad(u.getUTCHours())}:${pad(u.getUTCMinutes())} (${offText(conv.offset)}) · дома: ${sys.ru}`;
     }
-    $('natH').textContent = mode === 'solar' ? 'Соляр' : mode === 'lunar' ? 'Лунар' : mode === 'synastry' ? 'Совместимость' : mode === 'horary' ? 'Хорар' : 'Натальная карта';
+    $('natH').textContent = mode === 'solar' ? 'Соляр' : mode === 'lunar' ? 'Лунар' : mode === 'stars' ? 'Звёзды' : mode === 'synastry' ? 'Совместимость' : mode === 'horary' ? 'Хорар' : 'Натальная карта';
     $('natTitle').textContent = title;
     $('natSub').textContent = sub;
-    const note = mode === 'synastry' && !natB ? 'Добавьте данные партнёра в панели слева (на телефоне — ниже), чтобы увидеть синастрию и композит.' : mode === 'horary' ? '' : natal.note;
+    const note = mode === 'synastry' && !natB ? 'Добавьте данные партнёра в панели слева (на телефоне — ниже), чтобы увидеть синастрию и композит.'
+      : mode === 'stars' && !starInfo ? (CL && CL.failed() ? 'Не удалось загрузить карты звёзд. Проверьте интернет и обновите страницу.' : 'Загружаем карты звёзд…') : mode === 'horary' ? '' : natal.note;
     $('natNote').textContent = note || '';
     $('natNote').hidden = !note;
   }
@@ -646,6 +742,15 @@
     $('solYear').value = so.year || '';
     $('solPlace').value = so.place ? app.placeLabel(so.place) : '';
   }
+  function syncSeg() {
+    const q = opts();
+    $('natAspMode').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.m === 'minor') === !!q.minor)));
+    $('natPts').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(!!q[b.dataset.p])));
+    $('natMode').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === q.mode)));
+    $('natSyn').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.s === q.syn)));
+    $('natSyn').hidden = q.mode !== 'synastry';
+    document.body.dataset.natmode = q.mode;
+  }
   function initControls() {
     const o = opts();
     const nodeSel = $('natNode');
@@ -655,15 +760,6 @@
     sel.innerHTML = N.HOUSE_SYSTEMS.map((s) => `<option value="${s.id}">${s.ru}</option>`).join('');
     sel.value = o.house;
     sel.addEventListener('change', () => { opts().house = sel.value; changed(); });
-    const syncSeg = () => {
-      const q = opts();
-      $('natAspMode').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.m === 'minor') === !!q.minor)));
-      $('natPts').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(!!q[b.dataset.p])));
-      $('natMode').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === q.mode)));
-      $('natSyn').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.s === q.syn)));
-      $('natSyn').hidden = q.mode !== 'synastry';
-      document.body.dataset.natmode = q.mode;
-    };
     syncSeg();
     $('natAspMode').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; opts().minor = b.dataset.m === 'minor'; syncSeg(); changed(); });
     $('natPts').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.p; const o = opts(); o[k] = !o[k]; syncSeg(); if (k === 'asteroids2' && o[k] && !app.needExtraAsteroids()) { app.save(); return; } changed(); });
@@ -675,6 +771,7 @@
     $('natSyn').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; opts().syn = b.dataset.s; hl = null; syncSeg(); changed(); });
     if (H) initHoraryControls();
     initLunarControls();
+    if (CL) initStarControls();
     // solar return controls
     syncSolarControls();
     $('solYear').addEventListener('change', (e) => { const v = parseInt(e.target.value, 10); solarOpts().year = v >= 1800 && v <= 2100 ? v : null; changed(); syncSolarControls(); });
@@ -699,9 +796,14 @@
     if (!app || !app.chart || $('natalView').hidden) return;
     const o = opts(), P = app.state.place;
     const natOpts = { house: o.house, minor: o.minor, points: visible, anglesAspects: o.angles };
-    outer = null; cross = []; solarInfo = null; lunarInfo = null; natB = null; horInfo = null;
+    outer = null; cross = []; solarInfo = null; lunarInfo = null; starInfo = null; natB = null; horInfo = null; likes = null;
     const natA = N.computeNatal(app.chart, P.lat, P.lon, natOpts);
     natal = natA; natBase = natA;
+    // the people closest to your chart: for the "Звёзды" mode and the card under the natal chart
+    if (CL && (o.mode === 'natal' || o.mode === 'stars')) {
+      if (CL.ready()) likes = CL.compare(youPoints(natA));
+      else CL.load(() => update());
+    }
     if (o.mode === 'horary' && H) {
       horInfo = horaryChart();
       natal = horInfo.nat;
@@ -714,6 +816,12 @@
       natal = N.computeNatal(chart, place.lat, place.lon, natOpts);
       solarInfo = { year, utc, place, chart, sunLon, score: F.scoreSolarPlace(chart, place.lat, place.lon, o.house) };
       $('solYear').placeholder = String(year);
+    } else if (o.mode === 'stars' && likes && likes.length) {
+      const so = starsOpts(), c = (so.id && CL.byId(so.id)) || likes[0].c;
+      const chart = ACG.computeChart(c.utc, { node: app.state.nodeMode });
+      chart.bodies.forEach((b) => { if (b.id === 'Node') b.retro = b.speed < 0.005; });
+      natal = N.computeNatal(chart, c.lat, c.lon, natOpts);
+      starInfo = { c, like: likes.find((x) => x.c === c) };
     } else if (o.mode === 'lunar') {
       const lo = lunarOpts(), place = lo.place || P;
       const moonLon = app.chart.bodies.find((b) => b.id === 'Moon').elon;
@@ -736,11 +844,11 @@
     }
     if (hl && !natal.points.some((p) => p.id === hl) && !(outer && outer.some((p) => p.id === hl))) hl = null;
     $('natBalanceCard').hidden = !!outer || o.mode === 'horary';
-    renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard(); renderLunarCard(); renderHoraryCard(); renderSoulCards(); renderReading();
+    renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard(); renderLunarCard(); renderStarsCtl(); renderStarCard(); renderLikeCard(); renderHoraryCard(); renderSoulCards(); renderReading();
   }
 
   window.NatalView = {
-    init(a) { app = a; opts(); solarOpts(); lunarOpts(); initControls(); },
+    init(a) { app = a; opts(); solarOpts(); lunarOpts(); starsOpts(); initControls(); },
     update,
   };
 })();
