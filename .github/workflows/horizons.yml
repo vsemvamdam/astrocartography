@@ -1,0 +1,34 @@
+# Fetches small-body state vectors from JPL Horizons for tools/build_tables.js and publishes them
+# to the `horizons-data` branch. Run by hand (Actions → Horizons states → Run workflow).
+name: Horizons states
+
+on:
+  workflow_dispatch:
+    inputs:
+      bodies:
+        description: 'name=number pairs'
+        default: 'Eros=433,Psyche=16,Amor=1221,Hygiea=10,Proserpina=26'
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: site
+          sparse-checkout: tools
+      - name: Fetch from JPL Horizons
+        run: mkdir out && node site/tools/fetch_horizons.js "${{ inputs.bodies }}" out/horizons-new.json
+      - name: Publish to the horizons-data branch
+        run: |
+          cd out
+          git init -q -b horizons-data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Horizons states $(date -u +%Y-%m-%d)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" horizons-data
