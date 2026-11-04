@@ -371,24 +371,39 @@
     const card = $('natReadCard'), o = opts(), I = window.INTERP;
     let secs = null, title = '', sub = '';
     try {
-      if (I && o.mode === 'solar' && solarInfo) { secs = I.solar(natal, natBase); title = `Расшифровка соляра ${solarInfo.year}`; sub = 'на год от дня рождения до дня рождения'; }
+      if (I && o.mode === 'natal') { secs = I.natal(natal); title = 'Расшифровка натальной карты'; sub = 'характер, планеты в знаках и домах, аспекты'; }
+      else if (I && o.mode === 'solar' && solarInfo) { secs = I.solar(natal, natBase); title = `Расшифровка соляра ${solarInfo.year}`; sub = 'на год от дня рождения до дня рождения'; }
       else if (I && o.mode === 'synastry' && natB && outer) { secs = I.synastry(natBase, natB, cross, partnerName()); title = 'Расшифровка синастрии'; sub = `вы и ${partnerName()}`; }
       else if (I && o.mode === 'synastry' && natB) { secs = I.composite(natal); title = 'Расшифровка композита'; sub = 'отношения как отдельная карта'; }
     } catch (e) { secs = null; }
     card.hidden = !secs;
+    $('natReadJump').hidden = !secs;
     if (!secs) return;
     $('natReadTitle').firstChild.textContent = title + ' ';
     $('natReadSub').textContent = sub;
     const gl = (id, partner) => {
       if (id === 'ASC' || id === 'MC') return `<span class="rd-ang">${id}</span>`;
+      if (typeof id === 'number') return `<span style="color:${EL_COLOR[id]}">●</span>`;
       const b = BODY[id];
       return b ? `<span style="color:${b.color}"${partner ? ' class="rd-b"' : ''}>${g(b.glyph)}</span>` : '';
     };
     // aspect rows carry the aspect's glyph in its colour, the others the planet's glyph
-    const row = (it) => `<div class="soul-row"><span class="tg">${it.asp ? `<span class="ag-${it.asp.kind}">${g(it.asp.glyph)}</span>` : gl(it.id, it.partner)}</span><div>
+    const row = (it) => `<div class="soul-row"><span class="tg">${it.asp ? `<span class="ag-${it.asp.kind}">${g(it.asp.glyph)}</span>` : gl(it.mark != null ? it.mark : it.id, it.partner)}</span><div>
         <b>${esc(it.head)}</b>
         <p>${esc(it.text)}</p></div></div>`;
-    $('natRead').innerHTML = secs.filter((sec) => sec.items.length).map((sec) => `<section class="rd-sec"><h4 class="nat-h4">${esc(sec.title)}</h4>${sec.note ? `<p class="bal-note">${esc(sec.note)}</p>` : ''}<div class="soul">${sec.items.map(row).join('')}</div></section>`).join('');
+    const list = secs.filter((sec) => sec.items.length);
+    const block = (sec, head) => `<section class="rd-sec">${head ? `<h4 class="nat-h4">${esc(sec.title)}</h4>` : ''}${sec.note ? `<p class="bal-note">${esc(sec.note)}</p>` : ''}<div class="soul">${sec.items.map(row).join('')}</div></section>`;
+    // the natal reading is long, so it is split into tabs; the others fit on one screen in two columns
+    if (o.mode === 'natal') {
+      const tab = list.find((sec) => sec.key === o.readTab) || list[0];
+      $('natReadTabs').hidden = false;
+      $('natReadTabs').innerHTML = list.map((sec) => `<button type="button" data-k="${sec.key}" aria-pressed="${sec === tab}">${esc(sec.title)}</button>`).join('');
+      $('natReadTabs').onclick = (e) => { const b = e.target.closest('button[data-k]'); if (b) { opts().readTab = b.dataset.k; app.save(); renderReading(); } };
+      $('natRead').innerHTML = block(tab, false);
+    } else {
+      $('natReadTabs').hidden = true;
+      $('natRead').innerHTML = list.map((sec) => block(sec, true)).join('');
+    }
   }
 
   /* -------------------------------- horary -------------------------------- */
@@ -591,6 +606,7 @@
     for (const id of ['natPlanets', 'natPartner']) $(id).addEventListener('click', (e) => { const tr = e.target.closest('tr[data-id]'); if (tr) pick(tr.dataset.id); });
   }
   function changed() { app.save(); update(); }
+  document.addEventListener('click', (e) => { if (e.target.closest('#natReadJump')) $('natReadCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 
   /* -------------------------------- update -------------------------------- */
   function defaultSolarYear() {
