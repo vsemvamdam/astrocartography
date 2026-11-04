@@ -2,7 +2,7 @@
    every 5 years from 1800 to 2100, plus geocentric ecliptic longitudes at check dates to validate the
    tables built from them. Runs in GitHub Actions (.github/workflows/horizons.yml), because Horizons is
    not reachable from every network.
-   Usage: node tools/fetch_horizons.js "Eros=433,Psyche=16" out.json   (Node 18+) */
+   Usage: [GRID="Eros=433,Amor=1221"] node tools/fetch_horizons.js "Psyche=16,Hygiea=10" out.json   (Node 18+) */
 'use strict';
 const fs = require('fs');
 const API = 'https://ssd.jpl.nasa.gov/api/horizons.api';
@@ -30,7 +30,7 @@ async function horizons(params) {
 const tlist = (jds) => jds.map((x) => `'${x}'`).join(' ');
 
 (async () => {
-  const want = (process.argv[2] || 'Eros=433,Psyche=16,Amor=1221,Hygiea=10,Proserpina=26').split(',').map((s) => s.split('='));
+  const want = (process.argv[2] || '').split(',').filter(Boolean).map((s) => s.split('='));
   const out = { source: `JPL Horizons API, heliocentric (500@10) ICRF state vectors, AU and AU/day, TDB Julian dates, every ${STEP} days; check: geocentric ecliptic longitude (quantity 31); retrieved ${new Date().toISOString().slice(0, 10)}`, bodies: {}, check: {}, numbers: {} };
   const jds = Array.from({ length: N }, (_, k) => JD0 + k * STEP);
   for (const [name, num] of want) {
@@ -42,5 +42,16 @@ const tlist = (jds) => jds.map((x) => `'${x}'`).join(' ');
     console.log(name, out.bodies[name].length, 'states,', out.check[name].length, 'checks');
     await sleep(1500);
   }
-  fs.writeFileSync(process.argv[3] || 'horizons-new.json', JSON.stringify(out, null, 1));
+  // near-Earth bodies: positions straight from Horizons on a 10-day grid, no integration needed
+  const grid = (process.env.GRID || '').split(',').filter(Boolean).map((s) => s.split('='));
+  if (grid.length) out.grid = {};
+  for (const [name, num] of grid) {
+    const rows = await horizons({ COMMAND: `'${num};'`, EPHEM_TYPE: 'VECTORS', CENTER: "'500@10'", REF_PLANE: 'FRAME', REF_SYSTEM: 'ICRF', VEC_TABLE: '1', OUT_UNITS: 'AU-D', VEC_LABELS: 'NO',
+      START_TIME: "'1799-11-21'", STOP_TIME: "'2100-02-10'", STEP_SIZE: "'10 d'" });
+    out.grid[name] = { jd0: +rows[0][0], step: 10, n: rows.length, xyz: rows.map((r) => [+r[2], +r[3], +r[4]].map((v) => Math.round(v * 1e8))).flat() };
+    out.numbers[name] = num;
+    console.log(name, rows.length, 'grid points');
+    await sleep(1500);
+  }
+  fs.writeFileSync(process.argv[3] || 'horizons-new.json', JSON.stringify(out));
 })().catch((e) => { console.error(e); process.exit(1); });

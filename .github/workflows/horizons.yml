@@ -6,8 +6,13 @@ on:
   workflow_dispatch:
     inputs:
       bodies:
-        description: 'name=number pairs'
-        default: 'Eros=433,Psyche=16,Amor=1221,Hygiea=10,Proserpina=26'
+        description: 'state vectors every 5 years: name=number pairs'
+        default: ''
+        required: false
+      grid:
+        description: 'positions every 10 days (near-Earth bodies): name=number pairs'
+        default: 'Eros=433,Amor=1221'
+        required: false
 
 permissions:
   contents: write
@@ -22,6 +27,8 @@ jobs:
           path: site
           sparse-checkout: tools
       - name: Fetch from JPL Horizons
+        env:
+          GRID: ${{ inputs.grid }}
         run: mkdir out && node site/tools/fetch_horizons.js "${{ inputs.bodies }}" out/horizons-new.json
       - name: Publish to the horizons-data branch
         run: |
