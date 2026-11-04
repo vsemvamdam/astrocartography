@@ -25,21 +25,20 @@
   let cross = [];       // synastry aspects
   let hl = null, app = null, solarInfo = null, natB = null, natBase = null, horInfo = null, horCache = null;
 
+  // the options object is filled in place, so a toggle written through one call is seen by the next
+  const fill = (o, defs) => { for (const k in defs) if (!(k in o)) o[k] = defs[k]; return o; };
   function opts() {
     const st = app.state;
-    st.natal = Object.assign({}, DEFAULTS, st.natal || {});
-    return st.natal;
+    return fill(st.natal || (st.natal = {}), DEFAULTS);
   }
   function solarOpts() {
     const st = app.state;
-    st.solar = Object.assign({ year: null, place: null }, st.solar || {});
-    return st.solar;
+    return fill(st.solar || (st.solar = {}), { year: null, place: null });
   }
   const HOR_POINTS = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Node', 'SNode', 'Fortune'];
   function horOpts() {
     const st = app.state;
-    st.horary = Object.assign({ date: null, time: null, place: null, q: '', base: 1, rel: 7 }, st.horary || {});
-    return st.horary;
+    return fill(st.horary || (st.horary = {}), { date: null, time: null, place: null, q: '', base: 1, rel: 7 });
   }
   const visible = (id) => {
     const o = opts();
@@ -586,7 +585,7 @@
     };
     syncSeg();
     $('natAspMode').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; opts().minor = b.dataset.m === 'minor'; syncSeg(); changed(); });
-    $('natPts').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.p; opts()[k] = !opts()[k]; syncSeg(); changed(); });
+    $('natPts').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.p; const o = opts(); o[k] = !o[k]; syncSeg(); changed(); });
     $('natMode').addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.m === 'horary' && opts().mode !== 'horary' && !horOpts().date) setHoraryNow(false);

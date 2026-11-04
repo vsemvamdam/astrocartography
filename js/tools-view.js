@@ -49,8 +49,9 @@
   let app = null;
   const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
   function opts() {
-    app.state.tools = Object.assign({ tool: 'hours', date: null, place: null, classic: false, modern: false, year: null, mars: false, name: '' }, app.state.tools || {});
-    return app.state.tools;
+    const o = app.state.tools || (app.state.tools = {}), defs = { tool: 'hours', date: null, place: null, classic: false, modern: false, year: null, mars: false, name: '' };
+    for (const k in defs) if (!(k in o)) o[k] = defs[k];
+    return o;
   }
   const place = () => opts().place || app.state.place;
   const dateParts = () => { const [y, m, d] = (opts().date || todayISO()).split('-').map(Number); return { y, m, d }; };
