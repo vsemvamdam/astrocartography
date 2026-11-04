@@ -310,12 +310,15 @@
     if (document.activeElement !== $('cityPlace')) $('cityPlace').value = o.place ? app.placeLabel(o.place) : '';
     $('cityLayers').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(!!o[b.dataset.k])));
     $('cityCenter').disabled = !o.home;
+    // with no city chosen the tab shows the birthplace: say so, otherwise people take it for the only choice
+    $('cityNote').hidden = !!o.place;
+    $('cityBirth').disabled = !o.place;
   }
   function refresh(recenter) {
     if (!app || !app.chart || $('cityView').hidden) return;
     const c = cityPlace();
     rays = computeRays();
-    $('cityTitle').textContent = `${c.name}${c.country ? ', ' + c.country : ''}`;
+    $('cityTitle').textContent = `${c.name}${c.country ? ', ' + c.country : ''}${opts().place ? '' : ' · город рождения'}`;
     const h = homePt();
     $('citySub').textContent = `Дом: ${num(h.lat, 4)}°, ${num(h.lon, 4)}° · лучи — направления планет в момент вашего рождения, как их видно из этой точки`;
     syncControls();

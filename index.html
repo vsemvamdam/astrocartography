@@ -534,6 +534,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .city-ctl .pill { min-height: 46px; }
 .city-ctl .layer-hint { flex: 1 1 100%; margin: 0; }
 .city-ctl .layer-hint:empty { display: none; }
+.city-ctl .city-note { flex: 1 1 100%; margin: 0; font-size: 13px; line-height: 1.45; color: var(--brass); }
 .city-map-card { padding: 0; overflow: hidden; }
 .city-map-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px; padding: 12px 14px; }
 .city-map-top h3 { margin: 0; }
@@ -1669,12 +1670,13 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <section class="natal city" id="cityView" hidden aria-labelledby="cityH">
     <div class="natal-inner">
       <div class="city-ctl">
-        <div class="field city-where"><label for="cityPlace">Город</label>
-          <div class="place-box"><input class="inp" type="text" id="cityPlace" placeholder="Место рождения" spellcheck="false" autocapitalize="words"><ul class="suggest" id="citySuggest" role="listbox" hidden></ul></div>
+        <div class="field city-where"><label for="cityPlace">Город, где вы живёте или куда собираетесь</label>
+          <div class="place-box"><input class="inp" type="text" id="cityPlace" placeholder="Введите город, например Москва" spellcheck="false" autocapitalize="words"><ul class="suggest" id="citySuggest" role="listbox" hidden></ul></div>
         </div>
         <button type="button" class="pill" id="cityHere">Где я</button>
-        <button type="button" class="pill" id="cityBirth">Место рождения</button>
+        <button type="button" class="pill" id="cityBirth">Город рождения</button>
         <button type="button" class="pill" id="cityToWorld">На карте мира</button>
+        <p class="city-note" id="cityNote" hidden>Сейчас показан город рождения. Чтобы посмотреть город, где вы живёте, введите его в поле выше или нажмите «Где я».</p>
         <p class="layer-hint" id="cityHereNote"></p>
       </div>
       <header class="natal-head">
@@ -1936,7 +1938,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/natal-view.js?v=20261104u"></script>
 <script src="js/cycles.js?v=20261104u"></script>
 <script src="js/tools-view.js?v=20261104u"></script>
-<script src="js/city-view.js?v=20261104u"></script>
+<script src="js/city-view.js?v=20261104cn"></script>
 <script src="js/sport.js?v=20261104fc"></script>
 <script src="js/sport-view.js?v=20261104u"></script>
 <script src="js/firebase-config.js?v=20261104u"></script>
