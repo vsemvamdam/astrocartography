@@ -13,7 +13,8 @@
   let app = null, matches = null, loading = false, loadError = null, selected = null, squadsCache = new Map(), judged = new Map();
 
   function opts() {
-    app.state.sport = Object.assign({ league: 'all', fav: {}, place: {} }, app.state.sport || {});
+    app.state.sport = Object.assign({ league: 'all', fav: {}, place: {}, extra: {} }, app.state.sport || {});
+    app.state.sport.extra = app.state.sport.extra || {};
     return app.state.sport;
   }
   const dayKey = (ms) => { const d = new Date(ms); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
@@ -27,6 +28,7 @@
   const hm = (ms) => { const d = new Date(ms); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
   const atVenue = (ms, tz) => { const off = ACG.tzOffsetMin(tz || 'UTC', ms), d = new Date(ms + off * 60000); return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`; };
   const pct = (x) => `${Math.round(x * 100)}%`;
+  const ASP_LONG = { 60: 'секстиль', 90: 'квадрат', 120: 'трин', 180: 'оппозиция' };
   const num = (x) => (x > 0 ? '+' : '') + (Math.round(x * 10) / 10).toString().replace('.', ',').replace('-', '−');
   const ru = (t) => String(t).replace(/(\d)\.(\d)/g, '$1,$2');
   const leagueOf = (id) => S.LEAGUES.find((l) => l.id === id) || { ru: id, long: id };
@@ -42,17 +44,17 @@
   }
   function placeOf(m) { return opts().place[m.id] || S.venuePlace(m, app.cities); }
   function judgeOf(m) {
-    const f = favSide(m), pl = placeOf(m), key = `${m.id}|${f.side}|${pl.lat}|${pl.lon}`;
+    const f = favSide(m), pl = placeOf(m), extra = opts().extra[m.id] || 0, key = `${m.id}|${f.side}|${pl.lat}|${pl.lon}|${extra}`;
     if (judged.has(key)) return judged.get(key);
-    const J = S.judge(m, pl, f.side);
-    J.fav = f; J.place = pl;
+    const J = S.judge(m, pl, f.side, { extra });
+    J.fav = f; J.place = pl; J.extra = extra;
     judged.set(key, J);
     return J;
   }
   function verdictChip(m) {
     let J;
     try { J = judgeOf(m); } catch (e) { return '<span class="vc">—</span>'; }
-    if (J.verdict.v === 'draw') return '<span class="vc draw">равно</span>';
+    if (J.verdict.v === 'draw') return '<span class="vc draw">ничья</span>';
     const t = J.verdict.side === 'home' ? m.home : m.away;
     return `<span class="vc ${J.verdict.v}" title="${esc(J.verdict.text)}">${esc(t.abbr || t.short)} · ${J.verdict.strength === 'явный' ? 'явно' : 'умеренно'}</span>`;
   }
@@ -107,6 +109,11 @@
     const favName = J.fav.side === 'home' ? m.home.short : m.away.short;
     const src = J.fav.src === 'odds' ? `по коэффициентам${o.provider ? ' ' + esc(o.provider) : ''}` : J.fav.src === 'manual' ? 'выбран вручную' : 'коэффициентов нет — взяты хозяева поля';
     const vcls = J.verdict.v === 'draw' ? 'warn' : 'good';
+    const scoreHome = J.fav.side === 'home' ? J.verdict.score.fav : J.verdict.score.dog, scoreAway = J.fav.side === 'home' ? J.verdict.score.dog : J.verdict.score.fav;
+    const warn = [];
+    if (o && Math.abs(o.home - o.away) < 0.04 && J.fav.src !== 'manual') warn.push('Коэффициенты команд почти равны: по Фроули без явного фаворита этот метод не работает. Выберите фаворита сами, если знаете, кого считают сильнее.');
+    const same = matches.filter((x) => x.id !== m.id && Math.abs(x.date - m.date) <= 10 * 60000).length;
+    if (same) warn.push(`В это же время начинаются ещё ${same} ${same === 1 ? 'матч' : same < 5 ? 'матча' : 'матчей'}: их карты почти одинаковы, и Фроули предупреждает, что для таких матчей метод работает хуже всего. Лучше всего — для финалов и одиночных матчей.`);
     const E = J.E, cuspRow = (lab, lon, h) => `<tr><td class="hs">${lab}</td><td class="ps">${zod(lon)}</td><td>${h === 1 || h === 10 ? 'фаворит' : 'аутсайдер'}</td></tr>`;
     box.innerHTML = `
       <button type="button" class="link-btn sp-back" id="spBack">← Все матчи</button>
@@ -121,11 +128,14 @@
         <div class="field sp-where"><label for="spPlace">Место карты <span class="muted">${pl.approx ? 'город стадиона не найден, взят примерно' : 'по городу стадиона'}</span></label>
           <div class="place-box"><input class="inp" id="spPlace" type="text" spellcheck="false" autocapitalize="words"><ul class="suggest" id="spSuggest" role="listbox" hidden></ul></div></div>
       </div>
-      <div class="hv ${vcls}"><b>${J.verdict.v === 'draw' ? 'Равная игра' : esc(J.verdict.side === 'home' ? m.home.name : m.away.name)}</b><span>${J.verdict.v === 'draw' ? esc(J.verdict.text) : `${J.verdict.strength === 'явный' ? 'Явный' : 'Умеренный'} перевес${J.verdict.v === 'dog' ? ' аутсайдера' : ' фаворита'} по свидетельствам карты матча.`} Счёт: фаворит ${num(J.score.fav)}, аутсайдер ${num(J.score.dog)}.</span></div>
+      <div class="sp-ctl2"><label>Сколько может длиться матч <span class="muted">окно аспектов Луны</span></label>
+        <div class="seg" id="spExtra"><button type="button" data-x="0" aria-pressed="${J.extra === 0}">90 минут · 5°</button><button type="button" data-x="1" aria-pressed="${J.extra === 1}">с доп. временем · 6°</button><button type="button" data-x="2" aria-pressed="${J.extra === 2}">до пенальти · 7°</button></div></div>
+      ${warn.length ? `<div class="sp-warn">${warn.map((w) => `<p>${w}</p>`).join('')}</div>` : ''}
+      <div class="hv ${vcls}"><b>${J.verdict.v === 'draw' ? 'Ничья' : esc(J.verdict.side === 'home' ? m.home.name : m.away.name)}</b><span>${J.verdict.v === 'draw' ? esc(J.verdict.text) : `${J.verdict.strength === 'явный' ? 'Явный' : 'Умеренный'} перевес${J.verdict.v === 'dog' ? ' аутсайдера' : ' фаворита'} по свидетельствам карты матча.`} Сумма свидетельств: фаворит ${num(J.score.fav)}, аутсайдер ${num(J.score.dog)}. Ориентир счёта: <b class="sp-guess">${esc(m.home.short)} ${scoreHome}:${scoreAway} ${esc(m.away.short)}</b></span></div>
       <div class="sp-teams2">${teamBox(J, 'fav', m)}${teamBox(J, 'dog', m)}</div>
       ${J.notes.length ? `<p class="muted">${J.notes.map(esc).join(' ')}</p>` : ''}
       <div class="sp-cols">
-        <section><h4 class="nat-h4">Луна</h4><p>${J.moonAsp.length ? 'Сходящиеся аспекты в пределах 6°: ' + J.moonAsp.map((x) => `${x.asp === 0 ? 'соединение' : x.asp === 60 ? 'секстиль' : x.asp === 90 ? 'квадрат' : x.asp === 120 ? 'трин' : 'оппозиция'} — ${esc(x.to.label)} (${x.deg.toFixed(1).replace('.', ',')}°)`).join(', ') + '. Последний из них Фроули считает обычно решающим.' : 'В пределах 6° Луна не делает аспектов к сигнификаторам и Фортуне.'}</p>
+        <section><h4 class="nat-h4">Путь Луны</h4><p>${J.walked.length ? `В пределах ${J.window}° и до конца знака: ` + J.walked.map((x) => `${x.asp === 0 ? 'соединение с ' + esc(x.to.ins) : ASP_LONG[x.asp] + ' к ' + esc(x.to.dat)} (${ru(x.deg.toFixed(1))}°)`).join(' → ') + '. Заключительный аспект указывает на победителя; аспект к Фортуне и телесное соединение — всегда последние.' : `В пределах ${J.window}° Луна не аспектирует ни управителей, ни Фортуну.`}</p>
           <h4 class="nat-h4">Углы карты матча</h4>
           <table class="nat-table"><tbody>${cuspRow('ASC', E.nat.asc, 1)}${cuspRow('MC', E.nat.mc, 10)}${cuspRow('DSC', E.cusps[7], 7)}${cuspRow('IC', E.cusps[4], 4)}<tr><td class="hs">⊗</td><td class="ps">${zod(J.fortune)}</td><td class="muted">Фортуна</td></tr></tbody></table>
           <p class="bal-note">Карта на ${atVenue(m.date, pl.tz)} по расписанию, ${esc(pl.name)}. Задержка начала на 4–5 минут сдвигает Асцендент примерно на градус.</p>
@@ -140,9 +150,10 @@
       </div>
       <h4 class="nat-h4">Составы</h4>
       <div id="spSquads"><p class="muted">Загружаем составы…</p></div>
-      <p class="bal-note">Метод Джона Фроули («Спортивная астрология») в изложении его учеников: карта на момент стартового свистка на месте матча, дома Плацидуса. Фаворит по ставкам получает I и X дома, аутсайдер — VII и IV; свидетельства — управители углов на куспидах (своих — сила, сразу за куспидом соперника — слабость), Луна и Фортуна на куспидах и их антисции, сходящееся соединение с Фортуной, узлы, сожжение, Плутон на куспиде, последний аспект Луны в пределах 6°. Орбы — до 5°. Это астрологический прогноз для интереса, а не гарантия результата; не используйте его как основание для ставок.</p>`;
+      <p class="bal-note">Метод Джона Фроули, «Спортивная астрология», глава 2 «Карта события» и её памятка: карта на стартовый свисток на месте матча, дома Плацидуса. Фаворит по ставкам получает I и X дома, аутсайдер — VII и IV. Учитываются только управители этих домов на куспидах или в 2–3° за ними (планета на куспиде господствует над домом, внутри дома — в его власти), Луна у куспидов, антисция Фортуны у Асцендента и Десцендента, заключительный аспект Луны в пределах 5° (6° с доп. временем, 7° до пенальти), аспекты Фортуны с управителями и её диспозитором, тесные соединения с узлами, сожжение до 2°, Плутон и Уран, Сатурн-вредитель. Эссенциальные и акцидентальные достоинства и рецепции здесь не работают. Фроули называет свидетельства «весомыми» или «незначительными»; числа — наш перевод этих слов. На шести футбольных примерах из книги расчёт даёт те же исходы, что и у Фроули. Это прогноз для интереса, не гарантия результата; не используйте его как основание для ставок.</p>`;
     $('spBack').onclick = () => { selected = null; renderAll(); window.scrollTo({ top: 0 }); };
     $('spFav').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; opts().fav[m.id] = b.dataset.f; app.save(); renderAll(); };
+    $('spExtra').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; opts().extra[m.id] = +b.dataset.x; app.save(); renderAll(); };
     const inp = $('spPlace');
     app.makePlaceSearch(inp, $('spSuggest'), () => placeOf(m), (p) => { opts().place[m.id] = p; app.save(); renderAll(); });
     loadSquads(m, J);

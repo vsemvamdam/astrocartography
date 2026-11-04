@@ -1,9 +1,8 @@
 /* Football matches and their astrological judgement.
    Data: ESPN's public JSON (fixtures, venues, odds, squads, lineups), fetched from the browser.
-   Judgement: event chart for the kickoff at the venue, after John Frawley's "Sports Astrology" as
-   his students describe it: the favourite has the 1st and 10th houses, the underdog the 7th and 4th;
-   testimonies are their rulers on cusps, the Moon and Fortuna, the nodes, combustion, Pluto on a cusp,
-   and the Moon's last aspect. The player index is our own experiment, not Frawley's.
+   Judgement: event chart for the kickoff at the venue, after John Frawley's "Sports Astrology"
+   (chapter 2, "The event chart", and its checklist): the favourite has the 1st and 10th houses, the
+   underdog the 7th and 4th. The player index is our own experiment, not Frawley's.
    Depends on Astronomy, ACG, NATAL, HORARY. */
 (function (root) {
   'use strict';
@@ -194,14 +193,13 @@
   /* -------------------------------- judgement ------------------------------ */
   const DOMICILE = ['Mars', 'Venus', 'Mercury', 'Moon', 'Sun', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Saturn', 'Jupiter'];
   const RU = { Sun: 'Солнце', Moon: 'Луна', Mercury: 'Меркурий', Venus: 'Венера', Mars: 'Марс', Jupiter: 'Юпитер', Saturn: 'Сатурн', Uranus: 'Уран', Neptune: 'Нептун', Pluto: 'Плутон' };
-  const GEN = { Sun: 'Солнца', Moon: 'Луны', Mercury: 'Меркурия', Venus: 'Венеры', Mars: 'Марса', Jupiter: 'Юпитера', Saturn: 'Сатурна', Fortune: 'Фортуны', FortuneA: 'антисции Фортуны' };
+  const GEN = { Sun: 'Солнца', Moon: 'Луны', Mercury: 'Меркурия', Venus: 'Венеры', Mars: 'Марса', Jupiter: 'Юпитера', Saturn: 'Сатурна', Uranus: 'Урана', Neptune: 'Нептуна', Pluto: 'Плутона', Fortune: 'Фортуны', FortuneA: 'антисции Фортуны' };
   const DAT = { Sun: 'Солнцу', Moon: 'Луне', Mercury: 'Меркурию', Venus: 'Венере', Mars: 'Марсу', Jupiter: 'Юпитеру', Saturn: 'Сатурну', Fortune: 'Фортуне', FortuneA: 'антисции Фортуны' };
   const INS = { Sun: 'Солнцем', Moon: 'Луной', Mercury: 'Меркурием', Venus: 'Венерой', Mars: 'Марсом', Jupiter: 'Юпитером', Saturn: 'Сатурном', Fortune: 'Фортуной', FortuneA: 'антисцией Фортуны' };
   const NAT_PREP = { Sun: 'натальном Солнце', Mars: 'натальном Марсе', Jupiter: 'натальном Юпитере' };
   const NAT_DAT = { Sun: 'натальному Солнцу', Mars: 'натальному Марсу' };
   const ASP_IN = { 0: 'соединении', 60: 'секстиле', 90: 'квадрате', 120: 'трине', 180: 'оппозиции' };
   const RN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-  const ORB = 5;                    // "anything more than five degrees away is too far for football"
   const anti = (lon) => n360(180 - lon);   // antiscion: mirror over the Cancer–Capricorn axis
   const signOf = (lon) => Math.floor(n360(lon) / 30);
   const ASPECTS = [0, 60, 90, 120, 180];
@@ -224,115 +222,246 @@
     return { nat, P, fortune, cusps: nat.cusps };
   }
 
-  /* fav: 'home' | 'away'. Returns testimonies for both teams and a verdict. */
-  function judge(m, place, fav, house) {
-    const E = eventChart(m.date, place, house);
+  /* Judgement of an event chart after John Frawley, "Sports Astrology", chapter 2 and its checklist.
+     fav: 'home' | 'away'; opts.extra: 0 — 90 minutes (the Moon's aspects within 5°), 1 — extra time possible (6°),
+     2 — a final that may go to penalties (7°, "the absolute limit for football").
+     Frawley names testimonies "strong" or "minor" in words; the numbers below are our reading of that. */
+  const CUSP_ORB = 3;                 // "on the cusp or a couple of degrees from it"; 3° is the limit, 5° too far
+  const near = (d) => (Math.abs(d) <= 1 ? 1 : Math.max(0, 1 - 0.3 * (Math.abs(d) - 1)));   // 1 … 0.4 at 3°
+  const SEVEN_PL = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
+  const ALL_PL = SEVEN_PL.concat(['Uranus', 'Neptune', 'Pluto']);
+  const HNAME = { 1: 'I', 2: 'II', 4: 'IV', 7: 'VII', 10: 'X' };
+  const CUSP_RU = { 1: 'Асцендента', 2: 'II дома', 4: 'IC', 7: 'Десцендента', 10: 'MC' };
+  const HOUSE_IN = { 1: 'в I доме', 4: 'в IV доме', 7: 'в VII доме', 10: 'в X доме' };
+  const OWNER = { 1: 'fav', 10: 'fav', 7: 'dog', 4: 'dog' };
+
+  // does a planet moving from its place reach `target` (a fixed point) within `maxDeg` before turning back?
+  function reaches(id, t0, target, maxDeg) {
+    const H = root.HORARY, v = H.lonAt(id, t0 + 0.05 * DAY) - H.lonAt(id, t0 - 0.05 * DAY);
+    const d0 = n180(target - H.lonAt(id, t0));
+    if (Math.abs(d0) > maxDeg || Math.sign(d0) !== Math.sign(n180(v)) || !v) return null;
+    const vAbs = Math.abs(n180(v)) / 0.1, step = Math.max(1 / 24, Math.min(2, 0.25 / Math.max(vAbs, 0.01))) * DAY;
+    let t = t0, prev = d0;
+    for (let i = 0; i < 3000 && t < t0 + 400 * DAY; i++) {
+      t += step;
+      const d = n180(target - H.lonAt(id, t));
+      if ((d < 0) !== (prev < 0) && Math.abs(d) < 10) return t;        // crossed the point
+      if (Math.abs(d) > Math.abs(prev) + 1e-6 && Math.abs(prev) < Math.abs(d0)) return null;   // turned back first
+      prev = d;
+    }
+    return null;
+  }
+  // a slower planet that the significator meets first prohibits its aspect to Fortuna
+  function prohibitedBefore(id, t0, tEnd, P) {
+    const H = root.HORARY, v = Math.abs(P[id].speed);
+    for (const x of ALL_PL) {
+      if (x === id || x === 'Moon' || Math.abs(P[x].speed) >= v) continue;
+      const r = H.scanPair(id, x, t0, tEnd, 1);
+      if (r && r.t && r.t < tEnd) return { x, asp: r.asp };
+    }
+    return null;
+  }
+
+  function judge(m, place, fav, opts) {
+    opts = opts || {};
+    const E = eventChart(m.date, place, 'P');
     const { P, cusps, fortune } = E;
+    const fA = anti(fortune), t0 = m.date;
+    const favSide = fav, dogSide = fav === 'home' ? 'away' : 'home';
     const teams = {
-      fav: { side: fav, own: [1, 10], opp: [7, 4], name: fav === 'home' ? m.home.name : m.away.name },
-      dog: { side: fav === 'home' ? 'away' : 'home', own: [7, 4], opp: [1, 10], name: fav === 'home' ? m.away.name : m.home.name },
+      fav: { side: favSide, own: [1, 10], name: favSide === 'home' ? m.home.name : m.away.name },
+      dog: { side: dogSide, own: [7, 4], name: dogSide === 'home' ? m.home.name : m.away.name },
     };
-    // significators: the rulers of each team's two angles; the Moon is the flow of events, so her dispositor stands in
     const notes = [];
-    const claim = {};
-    for (const k of ['fav', 'dog']) {
-      const T = teams[k];
-      T.sigs = [];
-      for (const h of T.own) {
-        let r = DOMICILE[signOf(cusps[h])], via = null;
-        if (r === 'Moon') { via = r; r = DOMICILE[signOf(P.Moon.lon)]; }
-        T.sigs.push({ id: r, house: h, via });
+    // the lords of I, VII, X and IV; the Moon shows the flow of events and is nobody's
+    const ruler = (h) => DOMICILE[signOf(cusps[h])];
+    const L = {};
+    for (const h of [1, 7]) {
+      let r = ruler(h), via = false;
+      if (r === 'Moon') { r = DOMICILE[signOf(P.Moon.lon)]; via = true; if (r === 'Moon') { r = null; notes.push(`Луна управляет ${HNAME[h]} домом и стоит в Раке: у ${h === 1 ? 'фаворита' : 'аутсайдера'} нет главного сигнификатора.`); } }
+      L[h] = r ? { id: r, h, via, main: true } : null;
+      if (via && r) notes.push(`${HNAME[h]} домом управляет Луна, поэтому её роль играет диспозитор Луны — ${RU[r]}.`);
+    }
+    for (const h of [10, 4]) {
+      const r = ruler(h);
+      if (r === 'Moon') { L[h] = null; notes.push(`Луна управляет ${HNAME[h]} домом: обходимся без этого управителя.`); continue; }
+      if ((L[1] && L[1].id === r) || (L[7] && L[7].id === r)) { L[h] = null; notes.push(`${RU[r]} уже служит управителем ${L[1] && L[1].id === r ? 'I' : 'VII'} дома, поэтому без управителя ${HNAME[h]}.`); continue; }
+      L[h] = { id: r, h, via: false, main: false };
+    }
+    const lords = [1, 10, 7, 4].map((h) => L[h]).filter(Boolean).map((s) => Object.assign(s, { team: OWNER[s.h] }));
+    teams.fav.sigs = lords.filter((s) => s.team === 'fav').map((s) => ({ id: s.id, house: s.h, via: s.via }));
+    teams.dog.sigs = lords.filter((s) => s.team === 'dog').map((s) => ({ id: s.id, house: s.h, via: s.via }));
+    const other = (k) => (k === 'fav' ? 'dog' : 'fav');
+    const T = [];
+    const add = (k, w, text, kind) => { if (w > 0.05) T.push({ team: k, w: Math.round(w * 10) / 10, text, kind: kind || 'other' }); };
+    const lordName = (s) => `${RU[s.id]} (управитель ${HNAME[s.h]}${s.via ? ', за Луну' : ''})`;
+    const deg = (x) => `${Math.abs(x).toFixed(1)}°`;
+
+    // 1. house position of the four lords: on a cusp it rules that house, just inside it is in that house's power
+    for (const s of lords) {
+      const p = P[s.id], base = s.main ? 3 : 2;
+      for (const [lon, isAnti] of [[p.lon, false], [anti(p.lon), true]]) {
+        const k0 = isAnti ? 0.5 : 1, who = isAnti ? `Антисция ${GEN[s.id] || RU[s.id]} (управитель ${HNAME[s.h]})` : lordName(s);
+        for (const h of [1, 10, 7, 4]) {
+          const d = n180(lon - cusps[h]);
+          if (Math.abs(d) > CUSP_ORB) continue;
+          const onCusp = d < 0.34, owner = OWNER[h];
+          if (owner === s.team) {
+            add(s.team, (s.main ? 2 : 1.5) * near(d) * k0, `${who} ${onCusp ? 'на куспиде' : 'сразу за куспидом'} ${CUSP_RU[h]} (${deg(d)}): своя команда крепче`, 'cusp');
+          } else if (onCusp) {
+            const retro = !isAnti && p.retro ? 0.6 : 1;
+            add(s.team, base * near(d) * k0 * retro, `${who} на куспиде ${CUSP_RU[h]} соперника (${deg(d)}): господствует над его домом${retro < 1 ? ', но ретроградный — слабее' : ''}`, 'cusp');
+          } else {
+            add(owner, base * near(d) * k0, `${who} сразу за куспидом ${CUSP_RU[h]} (${deg(d)}): команда во власти соперника`, 'cusp');
+          }
+        }
       }
     }
-    for (const k of ['fav', 'dog']) for (const s of teams[k].sigs) (claim[s.id] = claim[s.id] || new Set()).add(k);
-    for (const k of ['fav', 'dog']) {
-      const T = teams[k];
-      T.sigs = T.sigs.filter((s, i, a) => {
-        if (s.via && s.id === 'Moon') return false;
-        if (claim[s.id].size > 1) { if (!notes.some((n) => n.includes(RU[s.id]))) notes.push(`${RU[s.id]} управляет углами обеих команд и не считается ни за одну.`); return false; }
-        return a.findIndex((x) => x.id === s.id) === i;
-      });
+    // 2. the Moon and her antiscion near the cusps of I and X (favourite) or VII and IV (underdog)
+    for (const [lon, isAnti] of [[P.Moon.lon, false], [anti(P.Moon.lon), true]]) {
+      for (const h of [1, 10, 7, 4]) {
+        const d = n180(lon - cusps[h]);
+        if (Math.abs(d) <= CUSP_ORB) add(OWNER[h], (isAnti ? 1.5 : 2) * near(d), `${isAnti ? 'Антисция Луны' : 'Луна'} ${d < 0 ? 'подходит к куспиду' : 'у куспида'} ${CUSP_RU[h]} (${deg(d)}): поток событий на стороне команды`, 'moon');
+      }
     }
-    const T = [];       // testimonies
-    const add = (k, w, text, kind) => T.push({ team: k, w, text, kind: kind || 'other' });
-    const cuspDist = (lon, h) => n180(lon - cusps[h]);      // > 0: inside the house that begins at the cusp
-    const cname = (h) => ({ 1: 'Асцендента', 10: 'MC', 7: 'Десцендента', 4: 'IC' }[h]);
-    for (const k of ['fav', 'dog']) {
-      const me = teams[k];
-      for (const s of me.sigs) {
-        const p = P[s.id], role = `${RU[s.id]} (управитель ${RN[s.house]}${s.via ? ', вместо Луны' : ''})`;
-        for (const h of me.own) {
-          const d = cuspDist(p.lon, h);
-          if (Math.abs(d) <= ORB) add(k, 2, `${role} на куспиде ${cname(h)} (${Math.abs(d).toFixed(1)}°): команда в силе на своём углу`, 'cusp');
-          else { const da = n180(anti(p.lon) - cusps[h]); if (Math.abs(da) <= ORB) add(k, 1, `Антисция ${GEN[s.id] || RU[s.id]} на куспиде ${cname(h)} (${Math.abs(da).toFixed(1)}°)`, 'cusp'); }
-        }
-        for (const h of me.opp) {
-          const d = cuspDist(p.lon, h);
-          if (d < 0 && d >= -ORB) add(k, 1.5, `${role} перед куспидом ${cname(h)} соперника (${(-d).toFixed(1)}°): давит на чужой угол`, 'cusp');
-          if (d >= 0 && d <= ORB) add(k, -2, `${role} внутри дома соперника, сразу за куспидом ${cname(h)} (${d.toFixed(1)}°): во власти соперника`, 'cusp');
-        }
-        // Fortuna: an applying conjunction helps, an applying opposition hurts. Fortuna runs forward with the
-        // Ascendant, so it applies to planets ahead of it; its antiscion runs backward and applies to planets behind it
-        for (const [pt, nm, w, dir] of [[fortune, 'Фортуной', 1, 1], [anti(fortune), 'антисцией Фортуны', 0.5, -1]]) {
-          const c = n180(p.lon - pt), o = n180(p.lon - pt - 180);
-          if (Math.abs(c) <= ORB && c * dir > 0) add(k, 2 * w, `${RU[s.id]} в сходящемся соединении с ${nm} (${Math.abs(c).toFixed(1)}°)`, 'fortuna');
-          if (Math.abs(o) <= ORB && o * dir > 0) add(k, -1.5 * w, `${RU[s.id]} в сходящейся оппозиции с ${nm} (${Math.abs(o).toFixed(1)}°)`, 'fortuna');
-        }
-        const nn = P.Node && Math.abs(n180(p.lon - P.Node.lon)), sn = P.Node && Math.abs(n180(p.lon - P.Node.lon - 180));
-        if (nn != null && nn <= 3) add(k, 1, `${RU[s.id]} на северном узле (${nn.toFixed(1)}°): прибавляет`, 'node');
-        if (sn != null && sn <= 3) add(k, -1, `${RU[s.id]} на южном узле (${sn.toFixed(1)}°): отнимает`, 'node');
-        if (s.id !== 'Sun') {
-          const ds = Math.abs(n180(p.lon - P.Sun.lon));
-          if (ds <= 17 / 60) add(k, 1, `${RU[s.id]} в сердце Солнца (кацими)`, 'sun');
-          else if (ds <= 2) add(k, -1.5, `${RU[s.id]} сожжён Солнцем (${ds.toFixed(1)}°)`, 'sun');
-        }
-      }
-      // the Moon and Fortuna on the team's own cusps
-      for (const h of me.own) {
-        const dm = Math.abs(cuspDist(P.Moon.lon, h));
-        if (dm <= ORB) add(k, 2, `Луна на куспиде ${cname(h)} (${dm.toFixed(1)}°)`, 'moon');
-        else { const da = Math.abs(n180(anti(P.Moon.lon) - cusps[h])); if (da <= ORB) add(k, 1, `Антисция Луны на куспиде ${cname(h)} (${da.toFixed(1)}°)`, 'moon'); }
-        const nearNew = Math.abs(n180(P.Moon.lon - P.Sun.lon)) < 15;      // then Fortuna sits on the Ascendant anyway
-        const df = Math.abs(cuspDist(fortune, h)), dfa = Math.abs(n180(anti(fortune) - cusps[h]));
-        if (df <= ORB && !nearNew) add(k, 1, `Фортуна на куспиде ${cname(h)} (${df.toFixed(1)}°)`, 'fortuna');
-        if (dfa <= ORB) add(k, 1, `Антисция Фортуны на куспиде ${cname(h)} (${dfa.toFixed(1)}°)`, 'fortuna');
-        if (P.Pluto) { const dp = Math.abs(cuspDist(P.Pluto.lon, h)); if (dp <= 3) add(k, -2, `Плутон на куспиде ${cname(h)} (${dp.toFixed(1)}°): тяжёлое поражение угла`, 'pluto'); }
-      }
+    // 3. Fortuna's place counts by its antiscion only, near the Ascendant or the Descendant
+    for (const h of [1, 7]) {
+      const d = n180(fA - cusps[h]);
+      if (Math.abs(d) <= CUSP_ORB) add(OWNER[h], 3.5 * near(d), `Антисция Фортуны у ${h === 1 ? 'Асцендента' : 'Десцендента'} (${deg(d)}): одно из сильнейших свидетельств`, 'fortuna');
     }
 
-    // the Moon's applying aspects within 6°: the last one is usually the final word
+    // 4. the Moon's applying aspects within 5° (6° if extra time is possible), not past the end of her sign
+    const window = 5 + Math.max(0, Math.min(2, opts.extra || 0));
+    const moon = P.Moon, leftInSign = 30 - (n360(moon.lon) % 30);
     const targets = [];
-    for (const k of ['fav', 'dog']) for (const s of teams[k].sigs) targets.push({ id: s.id, lon: P[s.id].lon, speed: P[s.id].speed, team: k, label: RU[s.id] });
-    targets.push({ id: 'Fortune', lon: fortune, speed: 0, label: 'Фортуна' });
-    targets.push({ id: 'FortuneA', lon: anti(fortune), speed: 0, label: 'антисция Фортуны' });
-    const moon = P.Moon, moonAsp = [];
+    for (const s of lords) {
+      targets.push({ key: s.id, lon: P[s.id].lon, speed: P[s.id].speed, lord: s, anti: false, label: RU[s.id], dat: DAT[s.id], ins: INS[s.id] });
+      targets.push({ key: s.id + '*', lon: anti(P[s.id].lon), speed: -P[s.id].speed, lord: s, anti: true, label: `антисция ${GEN[s.id]}`, dat: `антисции ${GEN[s.id]}`, ins: `антисцией ${GEN[s.id]}` });
+    }
+    targets.push({ key: 'F', lon: fortune, speed: 0, fortuna: true, anti: false, label: 'Фортуна', dat: 'Фортуне', ins: 'Фортуной' });
+    targets.push({ key: 'F*', lon: fA, speed: 0, fortuna: true, anti: true, label: 'антисция Фортуны', dat: 'антисции Фортуны', ins: 'антисцией Фортуны' });
+    const moonAsp = [];
     for (const t of targets) {
-      if (t.id === 'Moon') continue;
       for (const a of ASPECTS) for (const sgn of a === 0 || a === 180 ? [1] : [1, -1]) {
-        const target = n360(t.lon + sgn * a);
-        const ahead = n360(target - moon.lon);                // degrees the Moon still has to travel
-        const rel = moon.speed - (t.speed || 0);
-        if (ahead > 0 && ahead <= 6 && rel > 0) moonAsp.push({ to: t, asp: a, deg: ahead, hours: ahead / rel * 24 });
+        const goal = n360(t.lon + sgn * a), rel = moon.speed - t.speed;
+        if (rel <= 0) continue;
+        const gap = n360(goal - moon.lon);                    // relative degrees still to go
+        if (gap > window || gap === 0) continue;
+        const moonTravel = gap / rel * moon.speed;
+        if (moonTravel > leftInSign) continue;               // the end of the sign is the limit
+        moonAsp.push({ to: t, asp: a, deg: gap, hours: gap / rel * 24 });
       }
     }
     moonAsp.sort((x, y) => x.deg - y.deg);
-    if (moonAsp.length) {
-      const last = moonAsp[moonAsp.length - 1];
-      const lt = last.asp === 0 ? `соединение с ${INS[last.to.id]}` : `${ASP_RU[last.asp]} к ${DAT[last.to.id]}`;
-      if (last.to.team) add(last.to.team, last.asp === 0 ? 3.5 : 3, `Последний аспект Луны в пределах 6° — ${lt} (${last.deg.toFixed(1)}°): решающее свидетельство`, 'lastmoon');
-      else add(last.asp === 90 || last.asp === 180 ? 'dog' : 'fav', 2, `Последний аспект Луны в пределах 6° — ${lt}: ${last.asp === 90 || last.asp === 180 ? 'напряжённый, в пользу аутсайдера' : 'гармоничный, в пользу фаворита'}`, 'lastmoon');
-      for (const x of moonAsp.slice(0, -1)) if (x.asp === 0 && x.to.team) add(x.to.team, 1.5, `Луна идёт к соединению с ${INS[x.to.id]} (${x.deg.toFixed(1)}°)`, 'moon');
+    const walked = [];
+    let final = null;
+    for (const x of moonAsp) {
+      walked.push(x);
+      if (x.to.fortuna) { final = x; break; }                  // aspects to Fortuna are always final
+      if (!x.to.anti && x.asp === 0) { final = x; break; }     // a bodily conjunction ends the Moon's course
+    }
+    const aspText = (x) => `${x.asp === 0 ? `соединение с ${x.to.ins}` : `${ASP_RU[x.asp]} к ${x.to.dat}`} (${x.deg.toFixed(1)}°)`;
+    const lordHits = walked.filter((x) => x.to.lord);
+    const lastFortuna = final && final.to.fortuna ? final : null;
+    if (lastFortuna) {
+      const good = lastFortuna.asp === 0 || lastFortuna.asp === 60 || lastFortuna.asp === 120;
+      const w = lastFortuna.to.anti ? (lastFortuna.asp === 0 || lastFortuna.asp === 180 ? 2.5 : 0.75) : (lastFortuna.asp === 0 ? 3 : 2.5);
+      add(good ? 'fav' : 'dog', w, `Заключительный аспект Луны — ${aspText(lastFortuna)}: ${good ? 'гармоничный аспект к Фортуне за фаворита' : 'напряжённый аспект к Фортуне за аутсайдера'}`, 'lastmoon');
+    }
+    const lastLord = lordHits.length ? lordHits[lordHits.length - 1] : null;
+    if (lastLord && !lastFortuna) {
+      const w = lastLord.to.anti && lastLord.asp !== 0 && lastLord.asp !== 180 ? 2 : 3;
+      add(lastLord.to.lord.team, w, `Заключительный аспект Луны — ${aspText(lastLord)}: указывает на победителя`, 'lastmoon');
+    }
+    for (const x of lordHits) if (x !== lastLord || lastFortuna) add(x.to.lord.team, 0.5, `Луна по пути — ${aspText(x)}: преимущество в начале игры`, 'moon');
+
+    // 5. significators applying to Fortuna or its antiscion within 5° (and they must get there)
+    const disp = DOMICILE[signOf(fortune)];
+    const dispIsLord = lords.find((s) => s.id === disp);
+    const dispUsed = disp !== 'Moon' && !(dispIsLord && dispIsLord.main);
+    for (const s of lords) {
+      if (dispUsed && s.id === disp) continue;                 // its role as Fortuna's dispositor comes first
+      const W = s.main ? 3 : 1;
+      for (const [pt, isAnti] of [[fortune, false], [fA, true]]) {
+        for (const asp of [0, 180]) {
+          const goal = n360(pt + asp), tHit = reaches(s.id, t0, goal, 5);
+          if (!tHit) continue;
+          const pro = prohibitedBefore(s.id, t0, tHit, P);
+          const what = `${lordName(s)} идёт к ${asp === 0 ? 'соединению' : 'оппозиции'} с ${isAnti ? 'антисцией Фортуны' : 'Фортуной'} (${deg(n180(goal - P[s.id].lon))})`;
+          if (pro) { notes.push(`${what}, но раньше встречает ${RU[pro.x]} — аспект запрещён.`); continue; }
+          let team;
+          if (asp === 0) team = s.team;                                   // conjunction: for the lord's team
+          else if (s.team === 'fav') team = 'dog';                        // opposition to the favourite's lord: underdog
+          else team = isAnti ? 'fav' : 'dog';                             // underdog's lord: antiscion → favourite, bodily → underdog (Frawley's anomaly)
+          add(team, W, `${what}: в пользу ${team === 'fav' ? 'фаворита' : 'аутсайдера'}`, 'fortuna');
+        }
+      }
+    }
+    // 6. Fortuna's dispositor applying to Fortuna
+    if (dispUsed) {
+      for (const asp of [0, 180]) {
+        const tHit = reaches(disp, t0, n360(fortune + asp), 5);
+        if (tHit && !prohibitedBefore(disp, t0, tHit, P)) add(asp === 0 ? 'fav' : 'dog', 2, `Диспозитор Фортуны ${RU[disp]} идёт к ${asp === 0 ? 'соединению' : 'оппозиции'} с Фортуной (${deg(n180(fortune + asp - P[disp].lon))})`, 'fortuna');
+      }
+    }
+    // 7. nodes (close conjunctions only), combustion within 2° (cazimi counts for nothing here)
+    const NN = P.Node && P.Node.lon, SN = NN != null ? n360(NN + 180) : null;
+    const conj = (a, b, orb) => Math.abs(n180(a - b)) <= orb;
+    for (const s of lords) {
+      const p = P[s.id];
+      if (NN != null && conj(p.lon, NN, 2)) add(s.team, 1.5, `${lordName(s)} на северном узле (${deg(n180(p.lon - NN))})`, 'node');
+      if (SN != null && conj(p.lon, SN, 2)) add(other(s.team), 1.5, `${lordName(s)} на южном узле (${deg(n180(p.lon - SN))})`, 'node');
+      if (s.id !== 'Sun') { const ds = Math.abs(n180(p.lon - P.Sun.lon)); if (ds <= 2 && ds > 17 / 60) add(other(s.team), s.main ? 2 : 1.5, `${lordName(s)} сожжён Солнцем (${ds.toFixed(1)}°)`, 'sun'); }
+    }
+    if (NN != null && conj(fortune, NN, 2)) add('fav', 1.5, `Фортуна на северном узле (${deg(n180(fortune - NN))}): Фортуна — на стороне фаворита`, 'node');
+    if (SN != null && conj(fortune, SN, 2)) add('dog', 1.5, `Фортуна на южном узле (${deg(n180(fortune - SN))})`, 'node');
+    { const ds = Math.abs(n180(fortune - P.Sun.lon)); if (ds <= 2) add('dog', 2, `Фортуна сожжена Солнцем (${ds.toFixed(1)}°)`, 'sun'); }
+
+    // 8. the planets beyond Saturn, and Saturn as a malefic
+    if (P.Pluto) {
+      const pl = P.Pluto.lon;
+      for (const [h, team, w] of [[1, 'dog', 3], [10, 'dog', 2.5], [2, 'dog', 1.5], [7, 'fav', 1], [4, 'fav', 1]]) {
+        const d = n180(pl - cusps[h]);
+        if (Math.abs(d) <= 2) add(team, w * near(d), `Плутон на куспиде ${CUSP_RU[h]} (${deg(d)}): разрушает${team === 'dog' ? ' — особенно не любит фаворита' : ''}`, 'outer');
+      }
+      for (const [nm, pt] of [['Фортуной', fortune], ['диспозитором Фортуны', P[disp] ? P[disp].lon : null]]) {
+        if (pt == null) continue;
+        for (const [lon, an] of [[pl, ''], [anti(pl), 'антисция ']]) {
+          if (conj(lon, pt, 1)) add('dog', 2.5, `${an ? 'Антисция Плутона' : 'Плутон'} в соединении с ${nm}`, 'outer');
+          if (conj(lon, pt + 180, 1)) add('dog', 2.5, `${an ? 'Антисция Плутона' : 'Плутон'} в оппозиции с ${nm}`, 'outer');
+        }
+      }
+    }
+    if (P.Uranus) {
+      if (conj(P.Uranus.lon, E.nat.mc, 1)) add('fav', 2.5, 'Уран в тесном соединении с MC', 'outer');
+      if (conj(P.Uranus.lon, fortune, 1)) add('fav', 2.5, 'Уран в тесном соединении с Фортуной', 'outer');
+      if (conj(P.Uranus.lon, fortune + 180, 1)) add('dog', 2.5, 'Уран в оппозиции с Фортуной', 'outer');
+    }
+    if (!(L[1] && L[1].id === 'Saturn') && !(L[7] && L[7].id === 'Saturn')) {
+      const sat = P.Saturn.lon;
+      for (const s of lords) if (s.id !== 'Saturn' && conj(sat, P[s.id].lon, 2)) add(other(s.team), 1.5, `Сатурн-вредитель в соединении с ${INS[s.id] || RU[s.id]} (управитель ${HNAME[s.h]})`, 'saturn');
+      for (const h of [1, 10, 7, 4]) { const d = n180(sat - cusps[h]); if (Math.abs(d) <= 2) add(other(OWNER[h]), 1.5 * near(d), `Сатурн-вредитель на куспиде ${CUSP_RU[h]} (${deg(d)})`, 'saturn'); }
+      if (conj(sat, fortune, 2)) add('dog', 1.5, 'Сатурн-вредитель на Фортуне', 'saturn');
     }
 
+    // verdict: the balance of testimonies; their number gives a rough score (Frawley does this for football only)
     const score = { fav: 0, dog: 0 };
     for (const t of T) score[t.team] += t.w;
+    score.fav = Math.round(score.fav * 10) / 10; score.dog = Math.round(score.dog * 10) / 10;
     const diff = score.fav - score.dog;
-    const strength = Math.abs(diff) >= 3.5 ? 'явный' : Math.abs(diff) >= 1.5 ? 'умеренный' : null;
+    const strength = Math.abs(diff) >= 4 ? 'явный' : Math.abs(diff) >= 1.5 ? 'умеренный' : null;
     const winner = strength ? (diff > 0 ? 'fav' : 'dog') : null;
+    // no testimony: hardly a goal; each strong one is worth about a goal; the loser rarely scores more than one
+    const goals = (pts) => (pts < 0.7 ? 0 : Math.min(4, 1 + Math.floor((pts - 0.7) / 3)));
+    let gF = goals(score.fav), gD = goals(score.dog);
+    if (winner === 'fav') { if (gF <= gD) gF = gD + 1; if (gD > 1 && score.dog < 6) gD = 1; if (gF - gD > 3) gF = gD + 3; }
+    if (winner === 'dog') { if (gD <= gF) gD = gF + 1; if (gF > 1 && score.fav < 6) gF = 1; if (gD - gF > 3) gD = gF + 3; }
+    if (!winner) { const g = Math.min(gF, gD); gF = gD = g; }
     const verdict = winner
       ? { v: winner, side: teams[winner].side, strength, text: `${strength === 'явный' ? 'Явный' : 'Умеренный'} перевес: ${teams[winner].name}${winner === 'dog' ? ' (аутсайдер)' : ''}.` }
-      : { v: 'draw', side: null, strength: null, text: T.length ? 'Свидетельства уравновешены: равная игра, возможна ничья.' : 'Сильных свидетельств нет ни у одной команды: равная игра, возможна ничья.' };
-    return { E, teams, testimonies: T, score, diff, verdict, moonAsp, notes, fortune };
+      : { v: 'draw', side: null, strength: null, text: T.length ? 'Свидетельства уравновешены: по Фроули это указывает на ничью.' : 'Свидетельств нет ни у одной команды: карта «пустая», как у нулевой ничьей.' };
+    verdict.score = { fav: gF, dog: gD };
+    return { E, teams, testimonies: T, score, diff, verdict, moonAsp, walked, final, notes, fortune, window, disp };
   }
 
   /* ---------------------- experimental player index ---------------------- */
