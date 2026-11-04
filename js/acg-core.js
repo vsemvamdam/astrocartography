@@ -19,6 +19,10 @@
     { id: 'Pluto',   ru: 'Плутон',   glyph: '♇', color: '#C07BFF', kw: 'трансформация, власть, глубина' },
     { id: 'Node',    ru: 'Сев. узел', glyph: '☊', color: '#A7B4C8', kw: 'путь развития, судьбоносные встречи', optional: true },
     { id: 'Chiron',  ru: 'Хирон',    glyph: '⚷', color: '#8FD6B4', kw: 'исцеление, уязвимость, наставничество', optional: true },
+    { id: 'Ceres',   ru: 'Церера',   glyph: '⚳', color: '#B6D97A', kw: 'забота, питание, материнство, утрата и возвращение', optional: true, asteroid: true },
+    { id: 'Pallas',  ru: 'Паллада',  glyph: '⚴', color: '#7FB2E5', kw: 'мудрость, стратегия, творческий ум, справедливость', optional: true, asteroid: true },
+    { id: 'Juno',    ru: 'Юнона',    glyph: '⚵', color: '#E58FB3', kw: 'брак, партнёрство на равных, верность, ревность', optional: true, asteroid: true },
+    { id: 'Vesta',   ru: 'Веста',    glyph: '⚶', color: '#F2A65A', kw: 'служение, преданность делу, сосредоточенность, святость', optional: true, asteroid: true },
   ];
 
   const ANGLES = {
@@ -107,12 +111,31 @@
     for (let j = 0; j < 4; j++) for (let c = 0; c < 3; c++) r[c] += w[j] * T.xyz[(k + j) * 3 + c] * 1e-8;
     return r;
   }
-  // apparent geocentric vector: Chiron at t−τ seen from the Earth at t−τ (light time and annual aberration)
-  function chironGeo(time) {
-    const A = root.Astronomy;
+  /* Ceres, Pallas, Juno, Vesta: the same kind of table (tools/build_asteroids.js), 1800–2100 */
+  const AST = {};
+  function asteroidHelio(id, tt) {
+    const src = root.ACG_ASTEROIDS;
+    if (!src || !src.data[id]) return null;
+    if (!AST[id]) {
+      const bin = atob(src.data[id]), u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      AST[id] = { t0: src.t0, step: src.step, n: src.n, xyz: new Int32Array(u8.buffer) };
+    }
+    const T = AST[id], f = (tt - T.t0) / T.step, k = Math.floor(f) - 1;
+    if (k < 0 || k + 3 >= T.n) return null;
+    const u = f - (k + 1);
+    const w = [-u * (u - 1) * (u - 2) / 6, (u + 1) * (u - 1) * (u - 2) / 2, -(u + 1) * u * (u - 2) / 2, (u + 1) * u * (u - 1) / 6];
+    const r = [0, 0, 0];
+    for (let j = 0; j < 4; j++) for (let c = 0; c < 3; c++) r[c] += w[j] * T.xyz[(k + j) * 3 + c] * 1e-8;
+    return r;
+  }
+  const TABLE_BODIES = { Chiron: (tt) => chironHelio(tt), Ceres: (tt) => asteroidHelio('Ceres', tt), Pallas: (tt) => asteroidHelio('Pallas', tt), Juno: (tt) => asteroidHelio('Juno', tt), Vesta: (tt) => asteroidHelio('Vesta', tt) };
+  // apparent geocentric vector of a table body: its place at t−τ seen from the Earth at t−τ (light time and annual aberration)
+  function tableGeo(id, time) {
+    const A = root.Astronomy, helio = TABLE_BODIES[id];
     let tau = 0, v = null;
     for (let i = 0; i < 3; i++) {
-      const t = time.AddDays(-tau), c = chironHelio(t.tt);
+      const t = time.AddDays(-tau), c = helio(t.tt);
       if (!c) return null;
       const e = A.HelioVector(A.Body.Earth, t);
       v = new A.Vector(c[0] - e.x, c[1] - e.y, c[2] - e.z, time);
@@ -120,6 +143,7 @@
     }
     return v;
   }
+  const chironGeo = (time) => tableGeo('Chiron', time);
 
   function bodyPosition(id, time, rot, opts) {
     const A = root.Astronomy;
@@ -130,7 +154,7 @@
       const dec = Math.asin(Math.sin(eps) * Math.sin(lam)) * R2D;
       return { ra, dec, elon: lam * R2D, elat: 0 };
     }
-    const vec = id === 'Chiron' ? chironGeo(time) : A.GeoVector(A.Body[id], time, true);
+    const vec = TABLE_BODIES[id] ? tableGeo(id, time) : A.GeoVector(A.Body[id], time, true);
     if (!vec) return null;
     const eq = A.EquatorFromVector(A.RotateVector(rot, vec));
     const ecl = A.Ecliptic(vec);
@@ -140,7 +164,7 @@
   function eclAt(id, time, opts) {
     const A = root.Astronomy;
     if (id === 'Node') return { elon: nodeLon(time, opts && opts.node), elat: 0 };
-    const vec = id === 'Chiron' ? chironGeo(time) : A.GeoVector(A.Body[id], time, true);
+    const vec = TABLE_BODIES[id] ? tableGeo(id, time) : A.GeoVector(A.Body[id], time, true);
     return vec ? A.Ecliptic(vec) : null;
   }
   function speedAt(id, time, opts) {
@@ -190,7 +214,7 @@
     const out = { utcMs, gast, eps: A.e_tilt(time).tobl, nodeMode: opts.node === 'mean' ? 'mean' : 'true', bodies: [] };
     for (const b of BODIES) {
       const pos = bodyPosition(b.id, time, rot, opts);
-      if (!pos) continue;                                  // Chiron outside 1800–2100
+      if (!pos) continue;                                  // table bodies outside 1800–2100
       const speed = speedAt(b.id, time, opts);             // deg/day
       out.bodies.push(Object.assign({}, b, pos, { speed, retro: speed < 0 && !(b.id === 'Node' && out.nodeMode === 'mean') }, computeLines(pos.ra, pos.dec, gast)));
     }
@@ -345,6 +369,6 @@
     BODIES, ANGLES, SIGNS, ASPECTS, LAT_LIMIT, norm180, norm360, eclToEq,
     tzOffsetMin, localToUtc, computeChart, computeLines, linesNear, hav, formatZodiac,
     computeAspectLines, computeParans, computeDynamic, distToMeridianKm, distToCurveKm,
-    meanNodeLon, trueNodeLon, chironGeo,
+    meanNodeLon, trueNodeLon, chironGeo, tableGeo,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

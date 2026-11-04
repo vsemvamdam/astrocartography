@@ -29,12 +29,26 @@
     { id: 'lots', ru: 'Арабские жребии', kind: 'natal' },
     { id: 'stars', ru: 'Неподвижные звёзды', kind: 'natal' },
     { id: 'deg30', ru: 'Тридцатиградусник', kind: 'natal' },
+    { id: 'prof', ru: 'Профекции', kind: 'natal' },
+    { id: 'transits', ru: 'Календарь транзитов', kind: 'natal' },
+    { id: 'cycles', ru: 'Циклы жизни', kind: 'natal' },
+    { id: 'num', ru: 'Нумерология', kind: 'birth' },
   ];
+  const C = window.CYCLES;
+  const SIGN_LOC = ['Овне', 'Тельце', 'Близнецах', 'Раке', 'Льве', 'Деве', 'Весах', 'Скорпионе', 'Стрельце', 'Козероге', 'Водолее', 'Рыбах'];
+  const HOUSE_TOPIC = ['', 'тело, характер, новые начинания', 'деньги и имущество', 'братья и сёстры, соседи, поездки, учёба, общение', 'дом, родители, корни', 'дети, творчество, удовольствия, романы',
+    'работа, здоровье, повседневные дела', 'брак, партнёры, открытые противники', 'кризисы, чужие деньги, долги, наследство', 'дальние поездки, высшее образование, вера', 'карьера, статус, достижения',
+    'друзья, покровители, надежды', 'уединение, скрытые дела, усталость и восстановление'];
+  const ptName = (p) => (p.angle ? `<span class="ang">${p.glyph}</span> ${p.ru}` : bodyName(p.id));
+  const MONTHS_NOM = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+  const monthYear = (ms, tz) => { const d = new Date(ms + ACG.tzOffsetMin(tz || 'UTC', ms) * 60000); return `${MONTHS_NOM[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
+  const dayMonth = (ms, tz, year) => { const d = new Date(ms + ACG.tzOffsetMin(tz || 'UTC', ms) * 60000); return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}${year ? ` ${d.getUTCFullYear()}` : ''}`; };
+  const transitPoints = (nat) => nat.points.filter((p) => p.planet).concat(nat.angles);
 
   let app = null;
   const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
   function opts() {
-    app.state.tools = Object.assign({ tool: 'hours', date: null, place: null, classic: false, modern: false }, app.state.tools || {});
+    app.state.tools = Object.assign({ tool: 'hours', date: null, place: null, classic: false, modern: false, year: null, mars: false, name: '' }, app.state.tools || {});
     return app.state.tools;
   }
   const place = () => opts().place || app.state.place;
@@ -177,7 +191,117 @@
       ${pairs.length ? `<h4>Близкие градусы (до 1,5°)</h4><ul class="chains">${pairs.sort((a, b) => a[2] - b[2]).map(([a, b, dv]) => `<li>${a.angle ? a.glyph : `<span style="color:${a.color}">${g(a.glyph)}</span>`} ${esc(a.ru)} <span class="arr">·</span> ${b.angle ? b.glyph : `<span style="color:${b.color}">${g(b.glyph)}</span>`} ${esc(b.ru)} <span class="muted">${dv.toFixed(2).replace('.', ',')}°</span></li>`).join('')}</ul>` : ''}`;
   }
 
-  const RENDER = { hours: renderHours, voc: renderVoc, lunar: renderLunar, eph: renderEph, dign: renderDign, disp: renderDisp, lots: renderLots, stars: renderStars, deg30: renderDeg30 };
+  /* Annual profections, Hellenistic whole signs from the Ascendant (Demetra George, Chris Brennan) */
+  function renderProf() {
+    const nat = natal(), birth = app.chart.utcMs, tz = app.state.place.tz, now = Date.now();
+    const pr = C.profections(nat, birth, now), cur = pr.cur, lord = cur.lord;
+    const lp = nat.points.find((p) => p.id === lord);
+    const inSign = nat.points.filter((p) => (p.planet || p.id === 'Node') && p.sign === cur.sign);
+    const ascIn = Math.floor(n360(nat.asc) / 30) === cur.sign;
+    const [sg, sname] = ACG.SIGNS[cur.sign];
+    let lordTr = '';
+    if (lord !== 'Moon') {
+      const slow = lord === 'Mars' || lord === 'Jupiter' || lord === 'Saturn';
+      const hits = C.transitCalendar(transitPoints(nat), cur.from, cur.to, [lord]).filter((h) => slow || h.asp === 0);
+      lordTr = hits.length ? `<h4>Транзиты управителя года (${BODY[lord].ru}) в этом году</h4>
+        <p class="muted">Управитель года «включает» натальные точки, которых касается: эти даты — самые заметные моменты года.${slow ? '' : ' Для быстрой планеты показаны только соединения.'}</p>
+        ${(() => { const tbl = `<div class="nat-scroll"><table class="nat-table"><tbody>${hits.map((h) => `<tr class="${Math.abs(now - h.t) < 3 * 86400000 ? 'on' : ''}"><td class="pos">${dayMonth(h.t, tz, true)}</td><td>${bodyG(h.tr)} ${g(ASP_G[h.asp])} ${ptName(h.natal)}</td><td class="muted">${ASP_RU[h.asp]}${h.passes > 1 ? `, ${h.pass}-й проход из ${h.passes}` : ''}</td></tr>`).join('')}</tbody></table></div>`;
+          return hits.length > 10 ? `<details class="more"><summary>Показать ${hits.length} ${plural(hits.length, 'дату', 'даты', 'дат')}</summary>${tbl}</details>` : tbl; })()}` : '';
+    }
+    const months = pr.months.map((m) => `<tr class="${now >= m.from && now < m.to ? 'on' : ''}"><td class="pos">${dayMonth(m.from, tz)} – ${dayMonth(m.to - 86400000, tz)}</td><td><span class="sg">${g(ACG.SIGNS[m.sign][0])}</span> ${ACG.SIGNS[m.sign][1]}</td><td>${bodyName(m.lord)}</td><td class="hs">${RN[((cur.house - 1 + m.k) % 12) + 1]}</td></tr>`).join('');
+    const wheel = Array.from({ length: 12 }, (_, h) => {
+      const sign = (Math.floor(n360(nat.asc) / 30) + h) % 12, ages = [];
+      for (let a = h; a <= 95; a += 12) ages.push(a === pr.age ? `<b>${a}</b>` : a);
+      return `<tr class="${h + 1 === cur.house ? 'on' : ''}"><td class="hs">${RN[h + 1]}</td><td><span class="sg">${g(ACG.SIGNS[sign][0])}</span> ${ACG.SIGNS[sign][1]}</td><td>${bodyName(C.DOMICILE[sign])}</td><td class="pos">${ages.join(', ')}</td></tr>`;
+    }).join('');
+    return `<div class="tool-lead"><div class="big-glyph" style="color:${BODY[lord].color}">${g(BODY[lord].glyph)}</div><div><b>${pr.age} ${plural(pr.age, 'год', 'года', 'лет')}: год ${RN[cur.house]} дома, знак ${sname} ${g(sg)}. Управитель года — ${BODY[lord].ru}</b>
+        <p class="muted">С ${dayMonth(cur.from, tz, true)} по ${dayMonth(cur.to - 86400000, tz, true)}. Темы года: ${HOUSE_TOPIC[cur.house]}.</p></div></div>
+      <p>${lp ? `${BODY[lord].ru} в натальной карте стоит в ${SIGN_LOC[lp.sign]}, в ${RN[lp.house]} доме${lp.retro ? ', ретроградный' : ''}: дела этого дома (${HOUSE_TOPIC[lp.house]}) тоже выходят на первый план, а состояние планеты показывает, как пройдёт год.` : ''}
+        ${inSign.length || ascIn ? ` В знаке года в натальной карте ${inSign.length ? `стоят: ${inSign.map((p) => bodyName(p.id)).join(', ')}` : ''}${ascIn ? `${inSign.length ? '; ' : ''}это знак Асцендента` : ''} — они «активируются» и проявятся сильнее обычного.` : ' Натальных планет в знаке года нет, поэтому главное — управитель года и его транзиты.'}</p>
+      <p class="muted">Метод эллинистической астрологии (его возродили Роберт Хэнд и Project Hindsight, подробно изложила Деметра Джордж): каждый год жизни Асцендент сдвигается на один знак, начиная с дня рождения; через 12 лет цикл повторяется. Внутри года так же по месяцам сдвигается знак месяца.</p>
+      ${lordTr}
+      <h4>Месяцы этого года</h4>
+      <div class="nat-scroll"><table class="nat-table"><thead><tr><th>Период</th><th>Знак месяца</th><th>Управитель</th><th>Дом</th></tr></thead><tbody>${months}</tbody></table></div>
+      <h4>Колесо профекций</h4>
+      <div class="nat-scroll"><table class="nat-table"><thead><tr><th>Дом</th><th>Знак</th><th>Управитель</th><th>Возраст (лет)</th></tr></thead><tbody>${wheel}</tbody></table></div>`;
+  }
+
+  /* Transit calendar: exact dates of the slow planets' aspects to the natal planets and angles (Robert Hand, "Planets in Transit") */
+  function renderTransits() {
+    const o = opts(), nat = natal(), tz = app.state.place.tz, now = Date.now();
+    const by = +app.state.date.slice(0, 4), cy = new Date().getFullYear();
+    const yr = o.year && o.year >= by && o.year <= by + 100 ? o.year : Math.max(cy, by);
+    const from = ACG.localToUtc(yr, 1, 1, 0, 0, tz).utc, to = ACG.localToUtc(yr + 1, 1, 1, 0, 0, tz).utc;
+    const ids = ['Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
+    if (o.mars) ids.unshift('Mars');
+    const hits = C.transitCalendar(transitPoints(nat), from, to, ids);
+    const pr = C.profections(nat, app.chart.utcMs, Math.min(Math.max(now, from), to - 1));
+    const years = []; for (let y = Math.max(by, cy - 30); y <= Math.min(by + 100, cy + 30); y++) years.push(`<option value="${y}" ${y === yr ? 'selected' : ''}>${y}</option>`);
+    // "active now": a transit whose period (from entering the 1° orb to leaving it) covers today
+    const seen = new Set(), active = hits.filter((h) => { const k = `${h.tr}${h.asp}${h.natal.id}`; if (seen.has(k) || now < h.win[0] || now > h.win[1]) return false; seen.add(k); return true; });
+    const orbNow = (h) => Math.abs(Math.abs(n180(C.lonOf(h.tr, now) - h.natal.lon)) - h.asp);
+    let lastM = -1, rows = '';
+    for (const h of hits) {
+      const d = new Date(h.t + ACG.tzOffsetMin(tz, h.t) * 60000);
+      if (d.getUTCMonth() !== lastM) { lastM = d.getUTCMonth(); rows += `<tr class="mh"><td colspan="3">${MONTHS_FULL[lastM]} ${yr}</td></tr>`; }
+      const lordTag = h.tr === pr.cur.lord ? ' <span class="tag good">управитель года</span>' : '';
+      const per = `${h.passes > 1 ? `${h.pass}-й проход из ${h.passes}<br>` : ''}${monthYear(h.win[0], tz)}${monthYear(h.win[0], tz) !== monthYear(h.win[1], tz) ? ` – ${monthYear(h.win[1], tz)}` : ''}`;
+      rows += `<tr class="${now >= h.win[0] && now <= h.win[1] ? 'on' : ''}"><td class="pos">${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}</td>
+        <td><div class="tr-h">${bodyG(h.tr)} ${BODY[h.tr].ru} <span class="tg">${g(ASP_G[h.asp])}</span> <span class="muted">${ASP_RU[h.asp]}</span> ${ptName(h.natal)}${lordTag}</div>
+          <div class="tr-m">${esc(C.meaning(h))}</div><div class="tr-pm">${per.replace('<br>', ', ')}</div></td>
+        <td class="muted tr-p">${per}</td></tr>`;
+    }
+    return `<div class="tool-ctl"><div class="field"><label for="trYear">Год</label><select class="inp" id="trYear">${years.join('')}</select></div>
+        <label class="chk"><input type="checkbox" id="trMars" ${o.mars ? 'checked' : ''}> Добавить Марс (быстрые, короткие транзиты)</label></div>
+      <p class="muted">Точные даты аспектов ${o.mars ? 'Марса, ' : ''}Юпитера, Сатурна, Урана, Нептуна и Плутона к планетам и углам карты. Из-за попятного движения транзит часто проходит точку два или три раза — это один процесс, он длится весь указанный период (в орбе 1°). Толкования составлены по схеме Роберта Хэнда: что несёт транзитная планета + какую сферу она затрагивает + характер аспекта.</p>
+      ${yr === cy || (now >= from && now < to) ? `<h4>Действуют сейчас</h4>${active.length ? `<ul class="chains">${active.map((h) => `<li>${bodyG(h.tr)} <span class="cn">${BODY[h.tr].ru}</span> <span class="arr">${g(ASP_G[h.asp])}</span> ${h.natal.angle ? `<span class="cn">${h.natal.ru}</span>` : `${bodyG(h.natal.id)}<span class="cn">${BODY[h.natal.id].ru}</span>`} <span class="muted">${orbNow(h) <= 1 ? `сейчас орб ${orbNow(h).toFixed(1).replace('.', ',')}°` : 'между проходами'}, до ${dayMonth(h.win[1], tz, true)}</span></li>`).join('')}</ul>` : '<p class="muted">Сейчас нет транзитов медленных планет в орбе 1°.</p>'}` : ''}
+      <div class="nat-scroll"><table class="nat-table tr-table"><thead><tr><th>Дата</th><th>Транзит и смысл</th><th>Проход, период</th></tr></thead><tbody>${rows || '<tr><td colspan="3" class="muted">В этом году точных транзитов нет.</td></tr>'}</tbody></table></div>`;
+  }
+
+  /* Life cycles: returns, squares and oppositions of the slow planets to themselves (Liz Greene's Saturn, Robert Hand) */
+  function renderCycles() {
+    const nat = natal(), birth = app.chart.utcMs, tz = app.state.place.tz, now = Date.now();
+    const pts = nat.points.filter((p) => p.planet || p.id === 'Chiron' || p.id === 'Node');
+    const list = C.lifeCycles(pts, birth, 90);
+    const next = list.find((x) => x.last >= now);
+    const rows = list.map((x) => {
+      const span = monthYear(x.t, tz) + (x.passes > 1 && monthYear(x.t, tz) !== monthYear(x.last, tz) ? ` – ${monthYear(x.last, tz)}` : '');
+      return `<tr class="${x === next ? 'on' : ''} ${x.last < now ? 'past' : ''}"><td class="hs">${Math.floor(x.age)}</td><td class="pos tr-p">${span}</td><td>${bodyG(x.id)} <b>${esc(x.ru)}</b>${x.passes > 1 ? ` <span class="muted">(${x.passes} ${plural(x.passes, 'проход', 'прохода', 'проходов')})</span>` : ''}<div class="tr-m">${esc(x.text)}</div><div class="tr-pm">${span}</div></td></tr>`;
+    }).join('');
+    return `<p class="muted">Большие циклы: медленные планеты возвращаются на своё натальное место или встают к нему в квадрат и оппозицию. Это общие для всех вехи (около 7, 14, 21, 29, 42 лет), но точный возраст у каждого свой. Лиз Грин в книге «Сатурн» описывает возвращение Сатурна как время, когда приходится строить жизнь на собственном фундаменте; Роберт Хэнд разбирает каждую веху в «Planets in Transit».</p>
+      ${next ? `<div class="tool-lead"><div class="big-glyph" style="color:${BODY[next.id].color}">${g(BODY[next.id].glyph)}</div><div><b>${next.t <= now ? 'Сейчас' : 'Следующая веха'}: ${esc(next.ru)}</b><p class="muted">${monthYear(next.t, tz)}${next.passes > 1 ? ` – ${monthYear(next.last, tz)}` : ''}, в ${Math.floor(next.age)} ${plural(Math.floor(next.age), 'год', 'года', 'лет')}. ${esc(next.text)[0].toUpperCase() + esc(next.text).slice(1)}.</p></div></div>` : ''}
+      <div class="nat-scroll"><table class="nat-table cyc-table"><thead><tr><th>Возраст</th><th>Когда</th><th>Веха</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  /* Numerology: Pythagorean numbers (Russian and Latin letters), the Chaldean name number as used by Anupam Kapil, and the Pythagoras square */
+  function renderNum() {
+    const o = opts(), dob = app.state.date, cy = new Date().getFullYear();
+    const r = C.numerology(o.name || '', dob, cy);
+    const tile = (n, ru, sub) => `<div class="num-tile"><div class="big-num">${n == null ? '—' : n}</div><div><b>${ru}</b>${sub ? `<span class="muted"> ${sub}</span>` : ''}<p>${n == null ? 'Введите имя, чтобы посчитать.' : esc(C.NUM_TEXT[n] || '')}</p></div></div>`;
+    const cell = (k) => `<div class="psy-c ${r.square[k] ? '' : 'empty'}"><span class="psy-d">${r.square[k] ? String(k).repeat(r.square[k]) : '—'}</span><span class="psy-l">${C.SQUARE_TEXT[k]}</span></div>`;
+    const [y, m, d] = dob.split('-');
+    const years = [0, 1, 2].map((k) => { const v = C.numerology('', dob, cy + k).personalYear; return `<li><b>${cy + k}</b> <span class="big-mini">${v}</span> ${esc(C.YEAR_TEXT[v])}</li>`; }).join('');
+    return `<form class="tool-ctl" id="numForm" autocomplete="off"><div class="field tool-where"><label for="numName">Имя и фамилия</label><input class="inp" type="text" id="numName" value="${esc(o.name || '')}" placeholder="Например: Анна Иванова" spellcheck="false" autocapitalize="words"></div>
+        <button type="submit" class="pill">Посчитать</button></form>
+      <p class="muted">Дата рождения ${d}.${m}.${y} берётся из натальной карты. Буквы считаются по пифагорейской таблице (для русского алфавита: А, И, С, Ъ = 1; Б, Й, Т, Ы = 2 и так далее). Мастер-числа 11, 22 и 33 не сокращаются.</p>
+      <div class="num-grid">
+        ${tile(r.life, 'Число жизненного пути', 'сумма цифр даты рождения')}
+        ${tile(r.birthday, 'Число дня рождения', `${+d}-е число`)}
+        ${tile(r.expr, 'Число имени (выражения)', 'все буквы')}
+        ${tile(r.soul, 'Число души', 'гласные')}
+        ${tile(r.pers, 'Число личности', 'согласные')}
+      </div>
+      <h4>Халдейское число имени</h4>
+      ${r.chaldean ? `<div class="tool-lead"><div class="big-num">${r.chaldean.single}</div><div><b>${r.chaldean.compound} → ${r.chaldean.single}</b> <span class="muted">(латиницей: ${esc(r.chaldean.latin)})</span><p>${esc(C.NUM_TEXT[r.chaldean.single] || '')}</p></div></div>` : '<p class="muted">Введите имя, чтобы посчитать.</p>'}
+      <p class="muted">Анупам Капил работает с халдейской системой: буквы латиницы получают значения от 1 до 8 по звучанию (девятка не используется), считается то имя, которым человека зовут в жизни. Составное число (до сокращения) в этой школе тоже имеет значение.</p>
+      <h4>Личный год</h4>
+      <ul class="chains num-years">${years}</ul>
+      <h4>Квадрат Пифагора (психоматрица)</h4>
+      <div class="psy">${[1, 4, 7, 2, 5, 8, 3, 6, 9].map(cell).join('')}</div>
+      <p class="muted">Цифры даты рождения и четырёх рабочих чисел (${r.work.join(', ')}), без нулей. Чем больше одинаковых цифр в клетке, тем сильнее качество; пустая клетка — качество надо развивать.</p>`;
+  }
+
+  const RENDER = { hours: renderHours, voc: renderVoc, lunar: renderLunar, eph: renderEph, dign: renderDign, disp: renderDisp, lots: renderLots, stars: renderStars, deg30: renderDeg30, prof: renderProf, transits: renderTransits, cycles: renderCycles, num: renderNum };
 
   /* ------------------------------- controls ------------------------------- */
   function initControls() {
@@ -190,6 +314,13 @@
     $('toolOut').addEventListener('change', (e) => {
       if (e.target.id === 'vocClassic') { opts().classic = e.target.checked; app.save(); update(); }
       if (e.target.id === 'dispModern') { opts().modern = e.target.checked; app.save(); update(); }
+      if (e.target.id === 'trYear') { opts().year = +e.target.value; app.save(); update(); }
+      if (e.target.id === 'trMars') { opts().mars = e.target.checked; app.save(); update(); }
+    });
+    $('toolOut').addEventListener('submit', (e) => {
+      if (e.target.id !== 'numForm') return;
+      e.preventDefault();
+      opts().name = $('numName').value.trim().slice(0, 120); app.save(); update();
     });
   }
 
@@ -207,7 +338,8 @@
     if (document.activeElement !== $('toolPlace')) $('toolPlace').value = app.placeLabel(place());
     const st = app.state, [y, m, d] = st.date.split('-').map(Number);
     $('toolTitle').textContent = tool.ru;
-    $('toolSub').textContent = tool.kind === 'natal' ? `По натальной карте: ${d} ${MONTHS[m - 1]} ${y}, ${st.time}, ${st.place.name}` : `На дату и место: ${(o.date || todayISO()).split('-').reverse().join('.')}, ${place().name}`;
+    $('toolSub').textContent = tool.kind === 'natal' ? `По натальной карте: ${d} ${MONTHS[m - 1]} ${y}, ${st.time}, ${st.place.name}`
+      : tool.kind === 'birth' ? `По дате рождения: ${d} ${MONTHS[m - 1]} ${y}` : `На дату и место: ${(o.date || todayISO()).split('-').reverse().join('.')}, ${place().name}`;
     try { $('toolOut').innerHTML = RENDER[tool.id](); }
     catch (err) { $('toolOut').innerHTML = `<p class="status">Не получилось посчитать: ${esc(err.message)}</p>`; }
   }

@@ -183,7 +183,7 @@
     const pts = [];
     const add = (p) => { p.sign = Math.floor(n360(p.lon) / 30); p.house = houseOf(p.lon, H.cusps); pts.push(p); return p; };
     for (const b of chart.bodies) {
-      const minor = b.id === 'Node' || b.id === 'Chiron';
+      const minor = b.id === 'Node' || b.id === 'Chiron' || !!b.asteroid;
       add({ id: b.id, ru: b.ru, glyph: b.glyph, color: b.color, lon: b.elon, lat: b.elat, speed: b.speed, retro: b.retro, lum: b.id === 'Sun' || b.id === 'Moon', planet: !minor, small: minor });
     }
     const node = pts.find((p) => p.id === 'Node');
@@ -191,8 +191,8 @@
     add({ id: 'SNode', ru: 'Юж. узел', glyph: '☋', color: '#A7B4C8', lon: n360(node.lon + 180), speed: node.speed, retro: node.retro, small: true, extra: true, noAspects: true });
     const lil = lilithLon(time);
     add({ id: 'Lilith', ru: 'Лилит', glyph: '⚸', color: '#B9A7D8', lon: lil, speed: 0.111404, small: true, extra: true });
-    const ch = pts.findIndex((p) => p.id === 'Chiron');
-    if (ch >= 0) pts.push(pts.splice(ch, 1)[0]);
+    // Chiron and the asteroids go after the nodes and Lilith
+    for (const id of ['Chiron', 'Ceres', 'Pallas', 'Juno', 'Vesta']) { const k = pts.findIndex((p) => p.id === id); if (k >= 0) pts.push(pts.splice(k, 1)[0]); }
     const sun = pts.find((p) => p.id === 'Sun'), moon = pts.find((p) => p.id === 'Moon');
     const sunAbove = n360(sun.lon - H.asc) > 180;             // houses 7–12 are above the horizon
     const fortune = n360(sunAbove ? H.asc + moon.lon - sun.lon : H.asc + sun.lon - moon.lon);

@@ -146,7 +146,7 @@
   function saveState() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) { /* ignore */ } }
   const state = loadState();
   state.dynDate = todayISO;
-  const bodyOn = (id) => state.bodies[id] !== false;
+  const bodyOn = (id) => (state.bodies[id] != null ? state.bodies[id] !== false : !(ACG.BODIES.find((b) => b.id === id) || {}).asteroid);
   const bodyById = (id) => ACG.BODIES.find((b) => b.id === id);
 
   let chart = null, dyn = null, partnerChart = null, partnerConv = null;

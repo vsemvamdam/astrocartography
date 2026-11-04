@@ -17,7 +17,8 @@
   const CROSSES = ['Кардинальный', 'Фиксированный', 'Мутабельный'];
   const EL_COLOR = ['var(--el-fire)', 'var(--el-earth)', 'var(--el-air)', 'var(--el-water)'];
   const BODY = Object.fromEntries(ACG.BODIES.map((b) => [b.id, b]));
-  const DEFAULTS = { house: 'P', minor: false, nodes: true, chiron: true, lilith: true, fortune: true, angles: true, mode: 'natal', syn: 'syn' };
+  const DEFAULTS = { house: 'P', minor: false, nodes: true, chiron: true, lilith: true, fortune: true, angles: true, asteroids: false, mode: 'natal', syn: 'syn' };
+  const ASTEROIDS = ['Ceres', 'Pallas', 'Juno', 'Vesta'];
 
   let natal = null;     // the chart drawn as the main wheel (natal, solar or composite)
   let outer = null;     // partner's points in the outer ring (synastry)
@@ -46,6 +47,7 @@
     if (id === 'Node' || id === 'SNode') return o.nodes;
     if (id === 'Lilith') return o.lilith;
     if (id === 'Chiron') return o.chiron;
+    if (ASTEROIDS.includes(id)) return o.asteroids;
     if (id === 'Fortune') return o.fortune;
     return true;
   };
@@ -300,6 +302,70 @@
     $('natSolarList').onclick = (e) => { const li = e.target.closest('li[data-i]'); if (li) { solarOpts().place = { name: top[+li.dataset.i].city.ru, country: top[+li.dataset.i].city.c, lat: top[+li.dataset.i].city.lat, lon: top[+li.dataset.i].city.lon, tz: top[+li.dataset.i].city.tz }; changed(); syncSolarControls(); } };
   }
 
+  /* ------------------- evolutionary axis and asteroids ------------------- */
+  // Steven Forrest and Jeffrey Wolf Green: the lunar nodes and the Pluto polarity point
+  const HTHEME = [null, 'своя воля, самостоятельность, собственный путь', 'своё: ресурсы, ценности, самодостаточность', 'знания, слова, общение, близкое окружение',
+    'дом, семья, корни, эмоциональная безопасность', 'творчество, любовь, радость, дети', 'работа, служение, мастерство, здоровье', 'партнёрство, другие люди, равенство',
+    'близость, общие ресурсы, кризисы и обновление', 'вера, смысл, учёба, дальние горизонты', 'призвание, статус, ответственность перед миром', 'друзья, сообщества, идеалы, будущее',
+    'духовность, уединение, сострадание, отпускание'];
+  const NN_SIGN = [
+    'от уступчивости и жизни ради других — к смелости, самостоятельности и праву на свои желания',
+    'от кризисов, накала и чужих ресурсов — к устойчивости, простоте, своим ценностям и телу',
+    'от проповеди «больших истин» — к любопытству, умению слушать, деталям и живому общению',
+    'от контроля, статуса и вечной работы — к чувствам, дому, заботе и уязвимости',
+    'от растворения в группе и холодной отстранённости — к самовыражению, творчеству и радости сердца',
+    'от бегства в мечты и хаос — к порядку, практической пользе, ремеслу и заботе о здоровье',
+    'от привычки всё решать в одиночку — к партнёрству, дипломатии и вниманию к другому',
+    'от цепляния за комфорт и вещи — к глубине, близости, общим ресурсам и умению отпускать',
+    'от разбросанности и мелочей — к смыслу, вере, широкой картине мира и путешествиям',
+    'от зависимости и тёплого семейного гнезда — к зрелости, целям, ответственности и своему месту в мире',
+    'от жажды аплодисментов и личной драмы — к сообществу, идеалам, дружбе и будущему',
+    'от перфекционизма и тревожного контроля — к доверию, состраданию, вере и потоку'];
+  const AST_TEXT = {
+    Ceres: 'Великая Мать: как вы заботитесь и принимаете заботу, отношение к еде и телу, опыт утраты и возвращения, ощущение себя нужным.',
+    Pallas: 'Дочь мудрости: стратегический и творческий ум, умение видеть узоры, чувство справедливости, равновесие ума и чувств.',
+    Juno: 'Царица-супруга: какой союз вам нужен, ожидания от брака, верность и равенство, ревность и власть в паре.',
+    Vesta: 'Хранительница огня: чему вы готовы посвятить себя целиком, сосредоточенность, служение, священное отношение к телу.',
+  };
+  function renderSoulCards() {
+    const show = opts().mode === 'natal' && !outer;
+    $('natSoulCard').hidden = !show; $('natAstCard').hidden = !show;
+    if (!show) return;
+    const pt = (id) => natal.points.find((p) => p.id === id);
+    const nn = pt('Node'), sn = pt('SNode'), pl = pt('Pluto');
+    const sgn = (lon) => Math.floor(n360(lon) / 30);
+    const rulerOf = (lon) => N.RULERS[sgn(lon)][N.RULERS[sgn(lon)].length - 1];   // the traditional ruler
+    const LOC = ['Овне', 'Тельце', 'Близнецах', 'Раке', 'Льве', 'Деве', 'Весах', 'Скорпионе', 'Стрельце', 'Козероге', 'Водолее', 'Рыбах'];
+    const where = (id) => { const p = pt(id); return p ? `в ${LOC[sgn(p.lon)]}, в ${RN[p.house]} доме` : ''; };
+    let h = '';
+    if (nn && sn) {
+      const nr = rulerOf(nn.lon), sr = rulerOf(sn.lon);
+      h += `<div class="soul-row"><span class="tg" style="color:${nn.color}">${g('☋')}</span><div><b>Южный узел: ${pos(sn.lon).text} ${esc(pos(sn.lon).name)}, ${RN[sn.house]} дом</b>
+        <p>Что душа уже умеет и куда по привычке тянется: ${esc(HTHEME[sn.house])}. Управитель южного узла ${BODY[sr].ru} (${esc(where(sr))}) показывает, через что прошлый опыт проявляется сейчас.</p></div></div>
+        <div class="soul-row"><span class="tg" style="color:${nn.color}">${g('☊')}</span><div><b>Северный узел: ${pos(nn.lon).text} ${esc(pos(nn.lon).name)}, ${RN[nn.house]} дом</b>
+        <p>Путь роста: ${esc(NN_SIGN[sgn(nn.lon)])}. Сфера жизни, где это происходит: ${esc(HTHEME[nn.house])}. Управитель ${BODY[nr].ru} (${esc(where(nr))}) — помощник на этом пути.</p></div></div>`;
+    }
+    if (pl) {
+      const ppp = n360(pl.lon + 180), ph = N.houseOf(ppp, natal.cusps), pp = pos(ppp);
+      h += `<div class="soul-row"><span class="tg" style="color:${pl.color}">${g('♇')}</span><div><b>Плутон: ${pos(pl.lon).text} ${esc(pos(pl.lon).name)}, ${RN[pl.house]} дом</b>
+        <p>Самая глубокая привязанность души: ${esc(HTHEME[pl.house])}. Здесь сильнее всего страх потери и желание всё контролировать.</p></div></div>
+        <div class="soul-row"><span class="tg" style="color:${pl.color}">${g('☍')}</span><div><b>Точка полярности Плутона: ${pp.text} ${esc(pp.name)}, ${RN[ph]} дом</b>
+        <p>Эволюционная задача по Джеффри Вольфу Грину — двигаться к противоположному: ${esc(HTHEME[ph])}.</p></div></div>`;
+    }
+    $('natSoul').innerHTML = h;
+    const INSTR = { Sun: 'Солнцем', Moon: 'Луной', Mercury: 'Меркурием', Venus: 'Венерой', Mars: 'Марсом', Jupiter: 'Юпитером', Saturn: 'Сатурном' };
+    const near = [...natal.points.filter((p) => ['Sun', 'Moon', 'Venus', 'Mars', 'Mercury', 'Jupiter', 'Saturn'].includes(p.id)), ...natal.angles];
+    const asp = (a, b) => { const d = Math.abs(n180(a - b)); for (const [x, nm] of [[0, 'соединение'], [180, 'оппозиция'], [90, 'квадрат'], [120, 'трин']]) if (Math.abs(d - x) <= 2) return nm; return null; };
+    const rows = ASTEROIDS.map((id) => {
+      const p = pt(id);
+      if (!p) return '';
+      const links = near.map((q) => { const a = asp(p.lon, q.lon); return a ? `${a} с ${q.angle ? q.glyph : INSTR[q.id]}` : null; }).filter(Boolean);
+      return `<div class="soul-row"><span class="tg" style="color:${p.color}">${g(p.glyph)}</span><div><b>${esc(p.ru)}: ${pos(p.lon).text} ${esc(pos(p.lon).name)}, ${RN[p.house]} дом${p.retro ? ' <span class="rx">R</span>' : ''}</b>
+        <p>${esc(AST_TEXT[id])} Сфера: ${esc(HTHEME[p.house])}.${links.length ? ` Контакты до 2°: ${esc(links.join(', '))}.` : ''}</p></div></div>`;
+    }).join('');
+    $('natAst').innerHTML = rows || '<p class="muted">Астероиды считаются для 1800–2100 годов.</p>';
+  }
+
   /* -------------------------------- horary -------------------------------- */
   const HG = (id) => `<span class="tg" style="color:${BODY[id].color}">${g(BODY[id].glyph)}</span>`;
   const HN = (id) => `${HG(id)} ${H.RU[id]}`;
@@ -539,7 +605,7 @@
     }
     if (hl && !natal.points.some((p) => p.id === hl) && !(outer && outer.some((p) => p.id === hl))) hl = null;
     $('natBalanceCard').hidden = !!outer || o.mode === 'horary';
-    renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard(); renderHoraryCard();
+    renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard(); renderHoraryCard(); renderSoulCards();
   }
 
   window.NatalView = {

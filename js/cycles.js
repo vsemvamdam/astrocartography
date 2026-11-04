@@ -1,0 +1,218 @@
+/* Time techniques and numerology for the tools tab:
+   annual and monthly profections (Hellenistic, as taught by Demetra George), a transit calendar in the
+   manner of Robert Hand's "Planets in Transit", life cycles (Saturn, Jupiter, Uranus, Neptune, Pluto,
+   Chiron and nodal returns, after Liz Greene's work on Saturn), and Pythagorean and Chaldean numerology.
+   Depends on Astronomy, ACG and HORARY (for planet longitudes). */
+(function (root) {
+  'use strict';
+  const ACG = root.ACG;
+  const n360 = (x) => ((x % 360) + 360) % 360;
+  const n180 = (x) => { const y = n360(x); return y > 180 ? y - 360 : y; };
+  const DAY = 86400000;
+  const DOMICILE = ['Mars', 'Venus', 'Mercury', 'Moon', 'Sun', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Saturn', 'Jupiter'];
+
+  function lonOf(id, ms) {
+    const A = root.Astronomy, t = A.MakeTime(new Date(ms));
+    if (id === 'Node') return ACG.trueNodeLon(t);
+    if (id === 'Chiron') { const v = ACG.tableGeo('Chiron', t); return v ? A.Ecliptic(v).elon : null; }
+    return A.Ecliptic(A.GeoVector(A.Body[id], t, true)).elon;
+  }
+  function bisect(f, a, b) {
+    let fa = f(a);
+    for (let i = 0; i < 40; i++) { const m = (a + b) / 2, fm = f(m); if ((fa < 0) === (fm < 0)) { a = m; fa = fm; } else b = m; }
+    return (a + b) / 2;
+  }
+  /* ------------------------------ profections ------------------------------ */
+  // the year starts at each birthday; the Ascendant's sign moves one sign a year, one sign a month within the year
+  function profections(nat, birth, now) {
+    const b = new Date(birth), ascSign = Math.floor(n360(nat.asc) / 30);
+    const bday = (age) => Date.UTC(b.getUTCFullYear() + age, b.getUTCMonth(), b.getUTCDate(), b.getUTCHours(), b.getUTCMinutes());
+    let age = 0;
+    while (bday(age + 1) <= now) age++;
+    const years = [];
+    for (let a = 0; a <= 96; a++) { const sign = (ascSign + a) % 12; years.push({ age: a, from: bday(a), to: bday(a + 1), sign, house: (a % 12) + 1, lord: DOMICILE[sign] }); }
+    const cur = years[age], months = [];
+    for (let k = 0; k < 12; k++) {
+      const d = new Date(cur.from), from = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + k, d.getUTCDate()), to = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + k + 1, d.getUTCDate());
+      const sign = (cur.sign + k) % 12;
+      months.push({ k, from, to, sign, lord: DOMICILE[sign] });
+    }
+    return { age, years, cur, months };
+  }
+
+  /* ---------------------------- transit calendar ---------------------------- */
+  const ASPECTS = [0, 60, 90, 120, 180];
+  /* natPts: [{id, lon, ru}]; trIds: transiting planets. Returns exact hits sorted by time, with the passes
+     of the same transit counted (retrograde loops give up to three) and the period within 1°. */
+  const sampleCache = new Map();
+  function samples(tr, from, to, step) {
+    const key = `${tr}|${from}|${to}|${step}`;
+    if (sampleCache.has(key)) return sampleCache.get(key);
+    const ts = [], ls = [];
+    for (let t = from; t <= to; t += step * DAY) { ts.push(t); ls.push(lonOf(tr, t)); }
+    const r = { ts, ls };
+    if (sampleCache.size > 40) sampleCache.clear();
+    sampleCache.set(key, r);
+    return r;
+  }
+  const ORB = 1;
+  /* natPts: [{id, lon, ru}]; trIds: transiting planets. Returns exact hits sorted by time, with the passes
+     of the same transit counted (a retrograde loop gives three, sometimes five) and the period within 1°. */
+  function transitCalendar(natPts, from, to, trIds) {
+    const hits = [];
+    for (const tr of trIds) {
+      const fast = tr === 'Sun' || tr === 'Mars' || tr === 'Venus' || tr === 'Mercury';
+      const step = fast ? 1 : 2, margin = (fast ? 120 : 330) * DAY;   // look past the year so earlier and later passes are counted
+      const { ts, ls } = samples(tr, from - margin, to + margin, step);
+      for (const p of natPts) {
+        for (const a of ASPECTS) for (const sg of a === 0 || a === 180 ? [1] : [1, -1]) {
+          const target = n360(p.lon + sg * a), f = (x) => n180(lonOf(tr, x) - target);
+          const list = [];
+          for (let i = 1; i < ts.length; i++) {
+            const f1 = n180(ls[i - 1] - target), f2 = n180(ls[i] - target);
+            if (Math.abs(f1) < 20 && Math.abs(f2) < 20 && (f1 < 0) !== (f2 < 0)) list.push({ t: bisect(f, ts[i - 1], ts[i]), i });
+          }
+          // passes that belong together: the orb is never left for long between them (one retrograde loop)
+          const groups = [];
+          for (const h of list) { const gr = groups[groups.length - 1]; if (gr && h.t - gr[gr.length - 1].t < 300 * DAY) gr.push(h); else groups.push([h]); }
+          for (const gr of groups) {
+            let a0 = gr[0].i, a1 = gr[gr.length - 1].i;
+            while (a0 > 0 && Math.abs(n180(ls[a0 - 1] - target)) < ORB) a0--;
+            while (a1 < ts.length - 1 && Math.abs(n180(ls[a1] - target)) < ORB) a1++;
+            const win = [ts[a0], ts[a1]];
+            gr.forEach((h, k) => { if (h.t >= from && h.t < to) hits.push({ tr, natal: p, asp: a, t: h.t, pass: k + 1, passes: gr.length, win }); });
+          }
+        }
+      }
+    }
+    return hits.sort((x, y) => x.t - y.t);
+  }
+  const TR_THEME = {
+    Sun: 'внимание и силы', Mercury: 'мысли, разговоры и бумаги', Venus: 'симпатии, удовольствия и деньги', Mars: 'энергия, спешка и споры',
+    Jupiter: 'рост, удача и новые возможности', Saturn: 'проверка, ответственность и ограничения', Uranus: 'перемены, свобода и неожиданности',
+    Neptune: 'вдохновение, растворение и туман', Pluto: 'глубокая перестройка, власть и обновление через кризис',
+  };
+  const NAT_THEME = {
+    Sun: 'личность, цели и самочувствие', Moon: 'чувства, дом и близкие', Mercury: 'мышление, учёба и общение', Venus: 'любовь, красота и деньги',
+    Mars: 'действия, работа и азарт', Jupiter: 'вера, рост и планы', Saturn: 'обязательства и структура жизни', Uranus: 'свобода и стремление к переменам',
+    Neptune: 'мечты, идеалы и интуиция', Pluto: 'глубинные силы и контроль', ASC: 'тело, внешность, отношение к себе', MC: 'карьера, репутация и цели в мире',
+  };
+  const TONE = {
+    0: 'начинается новая глава: тема выходит на первый план', 60: 'открывается возможность — ей надо воспользоваться', 90: 'давление и препятствия требуют решений и усилий',
+    120: 'всё идёт легче, помощь и поддержка', 180: 'обострение через других людей, нужно искать равновесие',
+  };
+  const meaning = (h) => `${TR_THEME[h.tr]} — в сфере «${NAT_THEME[h.natal.id] || h.natal.ru}»: ${TONE[h.asp]}.`;
+
+  /* ------------------------------ life cycles ------------------------------ */
+  const CYCLES = [
+    ['Jupiter', 0, 'Возвращение Юпитера', 'новый двенадцатилетний цикл роста: планы, учёба, расширение'],
+    ['Saturn', 90, 'квадрат Сатурна к Сатурну', ['проверка выбранного пути: первые серьёзные усилия и первые ограничения', 'пересмотр сделанного: что из построенного стоит сохранить, а что отпустить']],
+    ['Saturn', 180, 'Оппозиция Сатурна', 'середина цикла: итоги, конфликт желаний и долга'],
+    ['Saturn', 0, 'Возвращение Сатурна', 'взросление: жизнь перестраивается под настоящие цели, отпадает то, что было чужим'],
+    ['Uranus', 90, 'квадрат Урана', ['бунт и поиск свободы, резкие перемены, выход из-под чужой опеки', 'последняя проверка на свободу: сбросить то, что стало тесным, пока есть силы']],
+    ['Uranus', 180, 'Оппозиция Урана', 'кризис середины жизни: желание прожить непрожитое'],
+    ['Neptune', 90, 'квадрат Нептуна', ['разочарования и пересмотр идеалов, поиск смысла', 'растворение старых целей, тяга к духовному и тихому']],
+    ['Pluto', 90, 'квадрат Плутона', ['глубокая перестройка, встреча с собственной силой и страхами', 'итоговая перестройка: отпустить контроль над тем, что уже прожито']],
+    ['Chiron', 0, 'Возвращение Хирона', 'старые раны становятся опытом, который можно передать'],
+    ['Node', 0, 'Возвращение узлов', 'новый виток пути: судьбоносные встречи и повороты'],
+    ['Node', 180, 'Обращение узлов', 'выбор между привычным и новым путём'],
+  ];
+  const STEP = { Jupiter: 5, Saturn: 6, Uranus: 12, Neptune: 12, Pluto: 12, Chiron: 8, Node: 6 };
+  const PERIOD = { Jupiter: 11.86, Saturn: 29.46, Uranus: 84, Neptune: 165, Pluto: 248, Chiron: 50.7, Node: 18.6 };
+  let lifeCache = null;
+  function lifeCycles(natPts, birth, years) {
+    const end = birth + (years || 90) * 365.25 * DAY;
+    const key = `${birth}|${years}|${natPts.map((p) => p.lon.toFixed(3)).join(',')}`;
+    if (lifeCache && lifeCache.key === key) return lifeCache.out;
+    const out = [];
+    for (const [id, a, ru, text] of CYCLES) {
+      const p = natPts.find((q) => q.id === id);
+      if (!p) continue;
+      const { ts, ls } = samples(id, birth + 100 * DAY, end, STEP[id]);
+      // a retrograde planet can recross its natal place in the first months; a return only counts after a real cycle
+      const earliest = birth + (a === 0 ? 0.6 * PERIOD[id] : a === 180 ? 0.35 * PERIOD[id] : 0.12 * PERIOD[id]) * 365.25 * DAY;
+      for (const sg of a === 0 || a === 180 ? [1] : [1, -1]) {
+        const target = n360(p.lon + sg * a), list = [];
+        for (let i = 1; i < ts.length; i++) {
+          if (ts[i] < earliest) continue;
+          const f1 = n180(ls[i - 1] - target), f2 = n180(ls[i] - target);
+          if (Math.abs(f1) < 30 && Math.abs(f2) < 30 && (f1 < 0) !== (f2 < 0)) list.push(bisect((x) => n180(lonOf(id, x) - target), ts[i - 1], ts[i]));
+        }
+        const groups = [];
+        for (const t of list) { const gr = groups[groups.length - 1]; if (gr && t - gr[gr.length - 1] < 400 * DAY) gr.push(t); else groups.push([t]); }
+        // a square 90° ahead of the natal place is the waxing one (first quarter of the cycle), 90° behind is waning
+        const name = a === 90 ? (sg > 0 ? 'Растущий ' : 'Убывающий ') + ru : ru;
+        const txt = Array.isArray(text) ? text[sg > 0 ? 0 : 1] : text;
+        for (const gr of groups) out.push({ id, asp: a, ru: name, text: txt, t: gr[0], passes: gr.length, last: gr[gr.length - 1], age: (gr[0] - birth) / (365.25 * DAY) });
+      }
+    }
+    out.sort((x, y) => x.t - y.t);
+    lifeCache = { key, out };
+    return out;
+  }
+
+  /* ------------------------------- numerology ------------------------------- */
+  const RU_VAL = {}; 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'.split('').forEach((c, i) => { RU_VAL[c] = (i % 9) + 1; });
+  const LAT_VAL = {}; 'abcdefghijklmnopqrstuvwxyz'.split('').forEach((c, i) => { LAT_VAL[c] = (i % 9) + 1; });
+  const CHALDEAN = { a: 1, b: 2, c: 3, d: 4, e: 5, f: 8, g: 3, h: 5, i: 1, j: 1, k: 2, l: 3, m: 4, n: 5, o: 7, p: 8, q: 1, r: 2, s: 3, t: 4, u: 6, v: 6, w: 6, x: 5, y: 1, z: 7 };
+  const VOWELS = new Set('аеёиоуыэюяaeiou'.split(''));
+  const TRANSLIT = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'yo', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'shch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya' };
+  const digits = (n) => String(n).split('').reduce((a, c) => a + (+c || 0), 0);
+  function reduce(n, keepMaster) {
+    while (n > 9 && !(keepMaster && (n === 11 || n === 22 || n === 33))) n = digits(n);
+    return n;
+  }
+  const letterSum = (name, pick) => {
+    let s = 0;
+    for (const c of name.toLowerCase()) { const v = RU_VAL[c] || LAT_VAL[c]; if (v && pick(c)) s += v; }
+    return s;
+  };
+  function numerology(name, dob, year) {
+    const [y, m, d] = dob.split('-').map(Number);
+    const all = digits(String(d) + String(m) + String(y));
+    const life = reduce(all, true);
+    const nm = (name || '').trim();
+    const expr = nm ? reduce(letterSum(nm, () => true), true) : null;
+    const soul = nm ? reduce(letterSum(nm, (c) => VOWELS.has(c)), true) : null;
+    const pers = nm ? reduce(letterSum(nm, (c) => !VOWELS.has(c)), true) : null;
+    const latin = nm.toLowerCase().split('').map((c) => (TRANSLIT[c] != null ? TRANSLIT[c] : c)).join('');
+    let ch = 0; for (const c of latin) if (CHALDEAN[c]) ch += CHALDEAN[c];
+    const personalYear = reduce(digits(d) + digits(m) + digits(year), true);
+    // the Pythagoras square (the Russian "psychomatrix"): the date's digits plus four working numbers
+    const dateDigits = `${pad2(d)}${pad2(m)}${y}`.replace(/0/g, '');
+    const w1 = digits(`${d}${m}${y}`), w2 = digits(w1), firstDay = +String(d).replace(/^0+/, '')[0];
+    const w3 = w1 - 2 * firstDay, w4 = digits(Math.abs(w3));
+    const pool = dateDigits + String(w1) + String(w2) + String(Math.abs(w3)) + String(w4);
+    const square = {}; for (let k = 1; k <= 9; k++) square[k] = (pool.match(new RegExp(String(k), 'g')) || []).length;
+    return { life, birthday: reduce(d, true), expr, soul, pers, chaldean: nm ? { compound: ch, single: reduce(ch, false), latin } : null, personalYear, square, work: [w1, w2, w3, w4] };
+  }
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const NUM_TEXT = {
+    1: 'лидер и первопроходец: воля, независимость, умение начинать',
+    2: 'дипломат и партнёр: чуткость, сотрудничество, умение сглаживать',
+    3: 'творец и рассказчик: общительность, радость, самовыражение',
+    4: 'строитель: порядок, надёжность, труд и системность',
+    5: 'искатель свободы: перемены, путешествия, любопытство, риск',
+    6: 'хранитель семьи: забота, ответственность, красота и гармония дома',
+    7: 'мыслитель: анализ, глубина, интуиция, тяга к уединению и знанию',
+    8: 'организатор: деньги, власть, масштаб, практичность',
+    9: 'гуманист: щедрость, сострадание, широкий взгляд, завершение циклов',
+    11: 'мастер-число вдохновения: интуиция, идеи, способность вести за собой людей',
+    22: 'мастер-строитель: большие проекты, воплощение мечты в реальность',
+    33: 'мастер-учитель: служение, любовь и забота в масштабе многих людей',
+  };
+  const YEAR_TEXT = {
+    1: 'год начал: новые проекты, решения, смелые шаги', 2: 'год терпения и партнёрства: договорённости, близость, ожидание',
+    3: 'год общения и творчества: радость, круг знакомств, самовыражение', 4: 'год труда: фундамент, порядок, дисциплина',
+    5: 'год перемен: переезды, поездки, свобода, неожиданности', 6: 'год семьи и ответственности: дом, забота, отношения',
+    7: 'год осмысления: учёба, отдых, внутренняя работа', 8: 'год результатов: деньги, карьера, власть и ответственность',
+    9: 'год завершений: отпустить старое, подвести итоги', 11: 'год озарений: интуиция и вдохновение, но и нервное напряжение',
+    22: 'год больших свершений: можно построить то, что долго задумывалось', 33: 'год служения и заботы о других',
+  };
+  const SQUARE_TEXT = {
+    1: 'характер и воля', 2: 'энергия и биополе', 3: 'интерес к точным наукам, порядок', 4: 'здоровье и выносливость', 5: 'логика и интуиция',
+    6: 'трудолюбие, мастерство рук', 7: 'везение и талант', 8: 'чувство долга и ответственность', 9: 'память и ум',
+  };
+
+  root.CYCLES = { lonOf, profections, transitCalendar, meaning, lifeCycles, numerology, NUM_TEXT, YEAR_TEXT, SQUARE_TEXT, DOMICILE };
+})(typeof window !== 'undefined' ? window : globalThis);
