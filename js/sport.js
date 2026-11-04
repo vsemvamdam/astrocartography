@@ -45,6 +45,10 @@
   }
   const cache = new Map();
   let source = { mirror: 0, live: 0, stale: 0 };
+  const origin = new Map();          // url → {copy: time of the copy} or {live: true}: what the page shows
+  // when ESPN itself last failed: on a network that blocks it every request would hang until the timeout,
+  // so for the next ten minutes an older copy is taken straight away instead of asking ESPN again
+  let espnFailed = 0;
   // ttlMin: how long a result stays in memory; freshMin: how old the mirror copy may be before ESPN is asked
   async function getJSON(url, ttlMin, freshMin) {
     const hit = cache.get(url);
@@ -52,17 +56,22 @@
     const mp = mirrorPath(url);
     let copy = null;
     if (mp) { try { copy = await fetchJSON(MIRROR + mp, 10000); } catch (e) { copy = null; } }
-    if (copy && copy.data && Date.now() - copy.fetched < (freshMin || 120) * 60000) {
-      source.mirror++; cache.set(url, { t: Date.now(), v: copy.data }); return copy.data;
-    }
+    const fromCopy = (kind) => {
+      source[kind]++; origin.set(url, { copy: copy.fetched }); cache.set(url, { t: Date.now(), v: copy.data }); return copy.data;
+    };
+    if (copy && copy.data && Date.now() - copy.fetched < (freshMin || 120) * 60000) return fromCopy('mirror');
+    if (copy && copy.data && Date.now() - espnFailed < 10 * 60000) return fromCopy('stale');
     try {
       const v = await fetchJSON(url, 10000);
-      source.live++; cache.set(url, { t: Date.now(), v }); return v;
+      source.live++; origin.set(url, { live: true }); cache.set(url, { t: Date.now(), v }); return v;
     } catch (e) {
-      if (copy && copy.data) { source.stale++; cache.set(url, { t: Date.now(), v: copy.data }); return copy.data; }
+      espnFailed = Date.now();
+      if (copy && copy.data) return fromCopy('stale');
       throw e;
     }
   }
+  /* where the last fixture list came from: {live: requests answered by ESPN, copyAt: the oldest copy used, or 0} */
+  let fixturesFrom = { live: 0, copyAt: 0 };
   async function pool(tasks, n) {
     const out = new Array(tasks.length); let i = 0;
     await Promise.all(Array.from({ length: Math.min(n, tasks.length) }, async () => {
@@ -111,11 +120,18 @@
     const now = Date.now(), tasks = [];
     const months = [...new Set([ym(now - DAY), ym(now + days * DAY)])];
     const once = (url) => getJSON(url, 20, 90);
-    for (const lg of leagueIds) for (const mo of months) tasks.push(() => once(`${API}${lg}/scoreboard?dates=${mo}&limit=300`).then((j) => ({ lg, j })));
+    for (const lg of leagueIds) for (const mo of months) {
+      const url = `${API}${lg}/scoreboard?dates=${mo}&limit=300`;
+      tasks.push(() => once(url).then((j) => ({ lg, j, url })));
+    }
     const res = await pool(tasks, 4);
     const seen = new Map(); let failed = 0;
+    fixturesFrom = { live: 0, copyAt: 0 };
     for (const r of res) {
       if (!r || r.error) { failed++; continue; }
+      const o = origin.get(r.url) || {};
+      if (o.live) fixturesFrom.live++;
+      else if (o.copy && (!fixturesFrom.copyAt || o.copy < fixturesFrom.copyAt)) fixturesFrom.copyAt = o.copy;
       for (const ev of r.j.events || []) if (!seen.has(ev.id)) seen.set(ev.id, normalize(ev, r.lg));
     }
     if (failed === res.length) throw new Error('Не удалось получить расписание');
@@ -533,5 +549,5 @@
     return { idx, why };
   }
 
-  root.SPORT = { LEAGUES, fixtures, squads, venuePlace, judge, playerIndex, eventChart, implied, RU, RN, source: () => Object.assign({}, source) };
+  root.SPORT = { LEAGUES, fixtures, squads, venuePlace, judge, playerIndex, eventChart, implied, RU, RN, source: () => Object.assign({}, source), fixturesFrom: () => Object.assign({}, fixturesFrom) };
 })(typeof window !== 'undefined' ? window : globalThis);

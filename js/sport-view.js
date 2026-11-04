@@ -85,7 +85,16 @@
         <span class="sp-v">${verdictChip(m)}</span>
       </button></li>`;
     }
-    box.innerHTML = html + '</ul>';
+    box.innerHTML = html + '</ul>' + dataNote();
+  }
+  // how fresh the schedule is: the copy on GitHub is rebuilt every half hour, ESPN itself is live
+  function dataNote() {
+    const f = S.fixturesFrom ? S.fixturesFrom() : null;
+    if (!f || (!f.live && !f.copyAt)) return '';
+    if (!f.copyAt) return '<p class="bal-note sp-src">Расписание и счёт получены с ESPN напрямую.</p>';
+    const when = dayKey(f.copyAt) === dayKey(Date.now()) ? `сегодня, ${hm(f.copyAt)}` : `${dayLabel(f.copyAt).toLowerCase()}, ${hm(f.copyAt)}`;
+    const old = Date.now() - f.copyAt > 2 * 3600000 ? '. Свежее получить не удалось: счёт и составы могут отставать' : '';
+    return `<p class="bal-note sp-src">Расписание и счёт: копия данных ESPN, ${when}${old}.</p>`;
   }
 
   /* --------------------------------- detail -------------------------------- */

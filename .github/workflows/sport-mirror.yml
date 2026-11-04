@@ -1,11 +1,20 @@
 # Copies the ESPN data of the "Спорт" tab to the `data` branch every half hour,
 # so the site works where ESPN itself is blocked. See tools/sport_mirror.js.
+#
+# GitHub's own schedule is best-effort: runs can come late or not at all (on this repository it did not
+# fire once in the first hours). So the run is also started from outside through the API, every half hour
+# (README → «Копия данных ESPN»). Both may fire: a copy under 20 minutes old is left as it is.
 name: Sport data mirror
 
 on:
   schedule:
     - cron: '7,37 * * * *'
   workflow_dispatch:
+    inputs:
+      force:
+        description: 'rebuild even if the copy is fresh'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -25,15 +34,24 @@ jobs:
           sparse-checkout: tools
 
       - name: Previous copy
-        run: git clone -q --depth 1 --branch data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" prev || mkdir -p prev
+        id: prev
+        run: |
+          git clone -q --depth 1 --branch data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" prev || mkdir -p prev
+          age=$(node -e "try { console.log(Math.floor((Date.now() - require('./prev/index.json').fetched) / 60000)) } catch (e) { console.log(99999) }")
+          echo "The copy is $age min old"
+          if [ "$age" -lt 20 ] && [ "${{ inputs.force }}" != "true" ]; then
+            echo "Fresh enough, nothing to do"
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Fetch from ESPN
         id: fetch
+        if: steps.prev.outputs.skip != '1'
         # an ESPN outage should not mail a failure every half hour: warn and keep the previous copy
         run: node site/tools/sport_mirror.js prev next || { echo "::warning::ESPN did not answer; the previous copy stays"; echo "skip=1" >> "$GITHUB_OUTPUT"; }
 
       - name: Publish to the data branch
-        if: steps.fetch.outputs.skip != '1'
+        if: steps.prev.outputs.skip != '1' && steps.fetch.outputs.skip != '1'
         run: |
           cd next
           git init -q -b data
