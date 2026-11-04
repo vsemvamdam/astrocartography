@@ -177,6 +177,13 @@
       const at = along(p, tangent(h.lat, h.lon, r.az), (km * (1 + step * 0.13)) / R_KM);
       LL.marker(at, { interactive: false, keyboard: false, icon: LL.divIcon({ className: 'cm-lbl', html: `<span style="--c:${r.b.color}">${g(r.b.glyph)}</span>`, iconSize: [26, 26], iconAnchor: [13, 13] }) }).addTo(labelLayer);
     }
+    // the dashed back sides get faint glyphs too, otherwise they read as stray marks
+    prev = -99; step = 0;
+    for (const r of sorted.map((x) => ({ r: x, az: n360(x.az + 180) })).sort((a, b) => a.az - b.az)) {
+      step = r.az - prev < 7 ? step + 1 : 0; prev = r.az;
+      const at = along(p, tangent(h.lat, h.lon, r.az), (km * (0.78 + step * 0.11)) / R_KM);
+      LL.marker(at, { interactive: false, keyboard: false, icon: LL.divIcon({ className: 'cm-lbl back', html: `<span style="--c:${r.r.b.color}">${g(r.r.b.glyph)}</span>`, iconSize: [20, 20], iconAnchor: [10, 10] }) }).addTo(labelLayer);
+    }
   }
   function drawMap() {
     if (!map) return;
@@ -211,7 +218,18 @@
     if (homeMarker) homeMarker.setLatLng([h.lat, h.lon]);
     else {
       homeMarker = LL.marker([h.lat, h.lon], { draggable: true, keyboard: true, title: 'Ваш дом: перетащите', icon: LL.divIcon({ className: 'cm-home', html: '<span>⌂</span>', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(map);
-      homeMarker.on('dragend', () => { const ll = homeMarker.getLatLng(); opts().home = { lat: +ll.lat.toFixed(5), lon: +ll.lng.toFixed(5) }; app.save(); refresh(false); });
+      homeMarker.on('dragend', () => {
+        const ll = homeMarker.getLatLng(), o = opts(), c = cityPlace();
+        o.home = { lat: +ll.lat.toFixed(5), lon: +ll.lng.toFixed(5) };
+        // the house dragged into another town: the town follows, so the title and the reading stay true
+        if (ACG.hav(c.lat, c.lon, ll.lat, ll.lng) > 30) {
+          const near = app.nearestCity(ll.lat, ll.lng);
+          o.place = near && near.km < 40 ? { name: near.city.ru, country: near.city.c, lat: near.city.lat, lon: near.city.lon, tz: near.city.tz }
+            : { name: `${num(ll.lat, 2)}°, ${num(ll.lng, 2)}°`, country: '', lat: o.home.lat, lon: o.home.lon, tz: near ? near.city.tz : 'UTC' };
+          hlId = null;
+        }
+        app.save(); refresh(false);
+      });
     }
     drawLabels();
   }
@@ -326,7 +344,17 @@
       if (recenter) map.setView([h.lat, h.lon], Math.max(map.getZoom(), 12));
       drawMap();
     }
-    renderRays(); renderReloc(); renderNear(); renderGoals();
+    renderRays(); renderReloc(); renderNear(); renderGoals(); renderSpread();
+  }
+  // when every planet stood in one part of the sky at birth, all rays go one way: say so, it looks like an error
+  function renderSpread() {
+    const az = rays.map((r) => r.az).sort((a, b) => a - b);
+    let gap = 0, after = 0;
+    for (let i = 0; i < az.length; i++) { const d = n360(az[(i + 1) % az.length] - az[i]) || 360; if (d > gap) { gap = d; after = (i + 1) % az.length; } }
+    const from = az[after], to = az[(after - 1 + az.length) % az.length];
+    $('citySpread').textContent = gap >= 120
+      ? `Все лучи идут в одну сторону, от ${compass(from)} до ${compass(to)}: в момент вашего рождения все планеты стояли в этой части неба. Это не ошибка расчёта, а особенность карты. Пунктир с другой стороны дома — продолжение тех же лучей (значок показывает, какой планеты): тема та же, но слабее.`
+      : 'Пунктир — продолжение каждого луча за домом в обратную сторону (значок показывает, какой планеты): тема та же, но слабее.';
   }
   function update() { refresh(false); }
   function setPlace(p, home) { const o = opts(); o.place = p; o.home = home || null; hlId = null; app.save(); refresh(true); }

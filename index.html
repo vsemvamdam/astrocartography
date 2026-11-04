@@ -548,6 +548,9 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .city-legend i.dash { border-top-style: dashed; opacity: .6; }
 .city-legend i.acg { border-top-width: 3px; }
 .cm-home span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--brass); color: var(--brass-ink); font-size: 18px; line-height: 1; box-shadow: 0 0 0 3px rgba(0,0,0,.45); cursor: grab; }
+.cm-lbl.back span { width: 20px; height: 20px; opacity: .6; border-style: dashed; font-size: 12px; }
+.city-spread { margin: 0; padding: 10px 14px 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.city-spread:empty { display: none; }
 .cm-lbl span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: rgba(7,12,22,.82); border: 1px solid var(--c); color: var(--c); font-family: var(--f-glyph); font-size: 15px; line-height: 1; }
 /* OSM tiles darkened one by one (a filter on the whole layer leaves dark seams at fractional
    pixel ratios); the map background is the darkened land colour, so sub-pixel gaps vanish */
@@ -1696,8 +1699,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
         </div>
         <div id="cityMap" role="application" aria-label="Карта города с лучами планет"></div>
         <p class="city-map-note" id="cityMapNote"></p>
+        <p class="city-spread" id="citySpread"></p>
         <div class="city-legend">
-          <span><i></i>луч планеты от дома</span><span><i class="dash"></i>обратная сторона луча</span><span><i class="dot"></i>натальный луч от места рождения</span><span><i class="acg"></i>линия MC или ASC (пунктир — IC или DSC)</span>
+          <span><i></i>луч планеты от дома</span><span><i class="dash"></i>тот же луч за домом, в обратную сторону</span><span><i class="dot"></i>натальный луч от места рождения</span><span><i class="acg"></i>линия MC или ASC (пунктир — IC или DSC)</span>
         </div>
       </section>
       <section class="nat-card">
@@ -1938,7 +1942,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/natal-view.js?v=20261104u"></script>
 <script src="js/cycles.js?v=20261104u"></script>
 <script src="js/tools-view.js?v=20261104u"></script>
-<script src="js/city-view.js?v=20261104cn"></script>
+<script src="js/city-view.js?v=20261104cr"></script>
 <script src="js/sport.js?v=20261104fc"></script>
 <script src="js/sport-view.js?v=20261104u"></script>
 <script src="js/firebase-config.js?v=20261104u"></script>
