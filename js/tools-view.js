@@ -33,6 +33,7 @@
     { id: 'transits', ru: 'Календарь транзитов', kind: 'natal' },
     { id: 'cycles', ru: 'Циклы жизни', kind: 'natal' },
     { id: 'num', ru: 'Нумерология', kind: 'birth' },
+    { id: 'bio', ru: 'Биоритмы', kind: 'bio' },
   ];
   const C = window.CYCLES;
   const SIGN_ACC = ['Овна', 'Тельца', 'Близнецы', 'Рака', 'Льва', 'Деву', 'Весы', 'Скорпиона', 'Стрельца', 'Козерога', 'Водолея', 'Рыбы'];
@@ -49,7 +50,7 @@
   let app = null;
   const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
   function opts() {
-    const o = app.state.tools || (app.state.tools = {}), defs = { tool: 'hours', date: null, place: null, classic: false, modern: false, year: null, mars: false, name: '' };
+    const o = app.state.tools || (app.state.tools = {}), defs = { tool: 'hours', date: null, place: null, classic: false, modern: false, year: null, mars: false, name: '', bioBirth: null, bioDate: null, bioDays: 30 };
     for (const k in defs) if (!(k in o)) o[k] = defs[k];
     return o;
   }
@@ -324,7 +325,84 @@
       <p class="muted">Цифры даты рождения и четырёх рабочих чисел (${r.work.join(', ')}), без нулей. Чем больше одинаковых цифр в клетке, тем сильнее качество; пустая клетка — качество надо развивать.</p>`;
   }
 
-  const RENDER = { hours: renderHours, voc: renderVoc, lunar: renderLunar, eph: renderEph, dign: renderDign, disp: renderDisp, lots: renderLots, stars: renderStars, deg30: renderDeg30, prof: renderProf, transits: renderTransits, cycles: renderCycles, num: renderNum };
+
+  /* Biorhythms: sine waves from the day of birth with periods of 23 (physical), 28 (emotional) and 33 days
+     (intellectual), after Wilhelm Fliess, Hermann Swoboda and Alfred Teltscher. A critical day is the day the
+     wave crosses zero (the crossing falls inside it); two or three on the same day make a double or triple one. */
+  const BIO = [
+    { id: 'p', ru: 'Физический', short: 'Физ.', per: 23, color: '#F2A541', up: 'силы и выносливость на подъёме', down: 'силы восстанавливаются, лучше не перегружаться' },
+    { id: 'e', ru: 'Эмоциональный', short: 'Эмоц.', per: 28, color: '#4FB3BF', up: 'настроение и чувствительность на подъёме', down: 'эмоции тише, легче устать от людей' },
+    { id: 'i', ru: 'Интеллектуальный', short: 'Интел.', per: 33, color: '#A88BEB', up: 'голова ясная, хорошо думать и решать', down: 'внимание рассеивается, сложное лучше отложить' },
+  ];
+  const isoDay = (iso) => { const [y, m, d] = iso.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 86400000); };
+  const dayIso = (n) => new Date(n * 86400000).toISOString().slice(0, 10);
+  const bioVal = (t, per) => Math.sin(2 * Math.PI * t / per);
+  // a crossing of zero at t = k·per/2 falls inside day t when t ≤ k·per/2 < t + 1
+  const bioCrit = (t, per) => { const h = per / 2, k = Math.ceil(t / h - 1e-9); return k * h < t + 1 - 1e-9; };
+  function renderBio() {
+    const o = opts(), birthIso = o.bioBirth || app.state.date, dateIso = o.bioDate || todayISO(), span = [30, 60, 90].includes(o.bioDays) ? o.bioDays : 30;
+    const b0 = isoDay(birthIso), d0 = isoDay(dateIso), from = d0 - 3, to = from + span;
+    const ctl = `<form class="tool-ctl bio-ctl" id="bioForm" autocomplete="off">
+        <div class="field"><label for="bioBirth">Дата рождения</label><input class="inp" type="date" id="bioBirth" value="${birthIso}" min="1800-01-01" max="2100-12-31"></div>
+        <div class="field"><label for="bioDate">Дата расчёта</label><input class="inp" type="date" id="bioDate" value="${dateIso}" min="1800-01-01" max="2100-12-31"></div>
+        <div class="seg" id="bioSpan" role="group" aria-label="Период">${[30, 60, 90].map((n) => `<button type="button" data-n="${n}" aria-pressed="${n === span}">${n === 30 ? 'Месяц' : n === 60 ? '2 месяца' : '3 месяца'}</button>`).join('')}</div>
+        ${o.bioBirth || o.bioDate ? '<button type="button" class="pill" id="bioReset">Из карты и сегодня</button>' : ''}
+      </form>`;
+    if (d0 < b0) return ctl + '<p class="status">Дата расчёта раньше даты рождения.</p>';
+    const days = [];
+    for (let n = from; n <= to; n++) {
+      const t = n - b0;
+      if (t < 0) continue;
+      const v = BIO.map((c) => ({ c, v: bioVal(t, c.per), next: bioVal(t + 1, c.per), crit: bioCrit(t, c.per) }));
+      days.push({ n, t, v, crit: v.filter((x) => x.crit).length, low: v.every((x) => x.v < 0) });
+    }
+    const today = days.find((x) => x.n === d0);
+    const pct = (x) => { const v = Math.round(x * 100); return v === 0 ? '0%' : `${v > 0 ? '+' : '−'}${Math.abs(v)}%`; };
+    const word = (x) => (x.crit ? 'критический день' : x.v >= 0 ? (x.next >= x.v ? 'подъём' : 'на подъёме, но уже идёт вниз') : (x.next >= x.v ? 'спад, но уже идёт вверх' : 'спад'));
+    const [by, bm, bd] = birthIso.split('-').map(Number), [ty, tm, td] = dateIso.split('-').map(Number);
+    const lead = today ? `<div class="bio-tiles">${today.v.map((x) => `<div class="bio-tile${x.crit ? ' crit' : ''}" style="--c:${x.c.color}"><span class="bio-n">${pct(x.v)}</span><b>${x.c.ru}</b><span class="bio-w">${word(x)}</span><span class="muted">${x.crit ? 'кривая пересекает ноль: день перехода, самый неустойчивый в цикле' : esc(x.v >= 0 ? x.c.up : x.c.down)}</span></div>`).join('')}</div>
+      <p class="muted">${td} ${MONTHS[tm - 1]} ${ty} — ${today.t}-й день жизни (рождение ${bd} ${MONTHS[bm - 1]} ${by}). Циклы: физический ${BIO[0].per}, эмоциональный ${BIO[1].per}, интеллектуальный ${BIO[2].per} дня.${today.crit >= 2 ? ` <b class="bio-alarm">${today.crit === 3 ? 'Тройной' : 'Двойной'} критический день.</b>` : ''}</p>` : '';
+
+    // the chart
+    const W = Math.round(Math.max(300, Math.min(720, ($('toolOut').clientWidth || 720) - 30))), H = W < 480 ? 220 : 250, X0 = 34, X1 = W - 10, Y0 = 16, Y1 = H - 40, mid = (Y0 + Y1) / 2, amp = (Y1 - Y0) / 2;
+    const x = (n) => X0 + (n - from) / (to - from) * (X1 - X0), y = (v) => mid - v * amp;
+    let svg = '';
+    for (const d of days) if (d.crit) svg += `<rect x="${x(d.n - 0.5).toFixed(1)}" y="${Y0}" width="${(x(1) - x(0)).toFixed(1)}" height="${Y1 - Y0}" class="bio-band${d.crit >= 2 ? ' strong' : ''}"/>`;
+    for (const v of [1, 0.5, 0, -0.5, -1]) svg += `<line x1="${X0}" x2="${X1}" y1="${y(v)}" y2="${y(v)}" class="${v ? 'bio-grid' : 'bio-zero'}"/><text x="${X0 - 5}" y="${y(v) + 4}" class="bio-ylab">${v ? (v > 0 ? '+' : '−') + Math.abs(v * 100) : '0'}</text>`;
+    const step = [1, 2, 3, 5, 7, 10, 14].find((k) => (X1 - X0) / (to - from) * k >= 26) || 14;   // day labels at least 26 px apart
+    for (const d of days) {
+      const dt = new Date(d.n * 86400000), first = dt.getUTCDate() === 1;
+      if ((d.n - from) % step === 0 || first) svg += `<line x1="${x(d.n)}" x2="${x(d.n)}" y1="${Y1}" y2="${Y1 + 4}" class="bio-tick"/><text x="${x(d.n)}" y="${Y1 + 17}" class="bio-xlab${first ? ' m' : ''}">${first ? MONTHS_NOM[dt.getUTCMonth()] : dt.getUTCDate()}</text>`;
+    }
+    if (today) svg += `<line x1="${x(d0)}" x2="${x(d0)}" y1="${Y0 - 6}" y2="${Y1}" class="bio-now"/><text x="${x(d0)}" y="${Y1 + 32}" class="bio-xlab now">${td} ${MONTHS_NOM[tm - 1]}</text>`;
+    const tStart = Math.max(from - b0, 0), tEnd = to - b0;
+    for (const c of BIO) {
+      const pts = [];
+      for (let t = tStart; t <= tEnd + 1e-9; t += 0.25) pts.push(`${x(t + b0).toFixed(1)},${y(bioVal(t, c.per)).toFixed(1)}`);
+      svg += `<polyline points="${pts.join(' ')}" class="bio-line" style="stroke:${c.color}"/>`;
+    }
+    for (const d of days) for (const z of d.v) if (z.crit) svg += `<circle cx="${x(d.n)}" cy="${y(z.v)}" r="3.6" class="bio-dot" style="fill:${z.c.color}"/>`;
+    const chart = `<div class="bio-legend">${BIO.map((c) => `<span><i style="background:${c.color}"></i>${c.ru} · ${c.per} дн.</span>`).join('')}<span><i class="crit"></i>критический день</span></div>
+      <svg class="bio-chart" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="График биоритмов">${svg}</svg>`;
+
+    // the list
+    const rows = days.map((d) => {
+      const dt = new Date(d.n * 86400000), names = d.v.filter((z) => z.crit).map((z) => z.c.ru.toLowerCase());
+      const mark = d.crit === 3 ? 'тройной критический' : d.crit === 2 ? `двойной критический: ${names.join(' и ')}` : d.crit ? `критический: ${names[0]}` : d.low ? 'все три ниже нуля' : '';
+      const cls = [d.crit >= 2 ? 'crit2' : d.crit ? 'crit' : d.low ? 'low' : '', d.n === d0 ? 'on' : ''].filter(Boolean).join(' ');
+      return `<tr class="${cls}"><td class="pos">${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]} <span class="muted">${WD[dt.getUTCDay()]}</span></td>${d.v.map((z) => `<td class="bio-v${z.crit ? ' c' : ''}" style="--c:${z.c.color}">${pct(z.v)}</td>`).join('')}<td class="bio-mark">${mark}</td></tr>`;
+    }).join('');
+    const crits = days.filter((d) => d.crit && d.n >= d0);
+    const nextList = crits.slice(0, 6).map((d) => { const dt = new Date(d.n * 86400000); return `<span class="bio-chip${d.crit >= 2 ? ' strong' : ''}">${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]}${d.crit >= 2 ? (d.crit === 3 ? ' · тройной' : ' · двойной') : ''}</span>`; }).join('');
+    return `${ctl}${lead}
+      ${nextList ? `<h4>Ближайшие критические дни</h4><div class="bio-chips">${nextList}</div>` : ''}
+      <h4>График</h4>${chart}
+      <h4>По дням</h4>
+      <div class="nat-scroll"><table class="nat-table bio-table"><thead><tr><th>Дата</th>${BIO.map((c) => `<th style="color:${c.color}">${c.short}</th>`).join('')}<th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="muted">Красным — критические дни, когда кривая пересекает ноль; двойные и тройные выделены сильнее. Оранжевым — дни, когда все три цикла ниже нуля. Значения — от −100% до +100%, на начало суток. Циклы 23, 28 и 33 дня взяты из теории биоритмов Вильгельма Флисса, Германа Свободы и Альфреда Тельчера; научные проверки связи биоритмов с самочувствием и несчастными случаями её не подтвердили.</p>`;
+  }
+
+  const RENDER = { bio: renderBio, hours: renderHours, voc: renderVoc, lunar: renderLunar, eph: renderEph, dign: renderDign, disp: renderDisp, lots: renderLots, stars: renderStars, deg30: renderDeg30, prof: renderProf, transits: renderTransits, cycles: renderCycles, num: renderNum };
 
   /* ------------------------------- controls ------------------------------- */
   function initControls() {
@@ -339,8 +417,16 @@
       if (e.target.id === 'dispModern') { opts().modern = e.target.checked; app.save(); update(); }
       if (e.target.id === 'trYear') { opts().year = +e.target.value; app.save(); update(); }
       if (e.target.id === 'trMars') { opts().mars = e.target.checked; app.save(); update(); }
+      if (e.target.id === 'bioBirth') { opts().bioBirth = e.target.value && e.target.value !== app.state.date ? e.target.value : null; app.save(); update(); }
+      if (e.target.id === 'bioDate') { opts().bioDate = e.target.value && e.target.value !== todayISO() ? e.target.value : null; app.save(); update(); }
+    });
+    $('toolOut').addEventListener('click', (e) => {
+      const sp = e.target.closest('#bioSpan button');
+      if (sp) { opts().bioDays = +sp.dataset.n; app.save(); update(); return; }
+      if (e.target.closest('#bioReset')) { opts().bioBirth = null; opts().bioDate = null; app.save(); update(); }
     });
     $('toolOut').addEventListener('submit', (e) => {
+      if (e.target.id === 'bioForm') { e.preventDefault(); return; }
       if (e.target.id !== 'numForm') return;
       e.preventDefault();
       opts().name = $('numName').value.trim().slice(0, 120); app.save(); update();
@@ -362,7 +448,8 @@
     const st = app.state, [y, m, d] = st.date.split('-').map(Number);
     $('toolTitle').textContent = tool.ru;
     $('toolSub').textContent = tool.kind === 'natal' ? `По натальной карте: ${d} ${MONTHS[m - 1]} ${y}, ${st.time}, ${st.place.name}`
-      : tool.kind === 'birth' ? `По дате рождения: ${d} ${MONTHS[m - 1]} ${y}` : `На дату и место: ${(o.date || todayISO()).split('-').reverse().join('.')}, ${place().name}`;
+      : tool.kind === 'birth' ? `По дате рождения: ${d} ${MONTHS[m - 1]} ${y}`
+      : tool.kind === 'bio' ? 'Физический, эмоциональный и интеллектуальный циклы по дате рождения' : `На дату и место: ${(o.date || todayISO()).split('-').reverse().join('.')}, ${place().name}`;
     try { $('toolOut').innerHTML = RENDER[tool.id](); }
     catch (err) { $('toolOut').innerHTML = `<p class="status">Не получилось посчитать: ${esc(err.message)}</p>`; }
   }
