@@ -26,7 +26,13 @@ globalThis.window = globalThis;
 globalThis.Astronomy = require(process.env.ASTRONOMY_JS || 'astronomy-engine');
 for (const f of ['data', 'acg-core', 'natal', 'horary', 'sport']) require(path.join(ROOT, 'js', f + '.js'));
 const S = globalThis.SPORT, D = globalThis.ACG_DATA;
-const VERSION = crypto.createHash('sha1').update(fs.readFileSync(path.join(ROOT, 'js', 'sport.js'))).digest('hex').slice(0, 8);
+// the version of the method: a hash of the judgement part of js/sport.js, so that fetching or layout
+// changes there do not count as a new method
+const VERSION = (() => {
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'sport.js'), 'utf8');
+  const a = src.indexOf('/* -------------------------------- judgement'), b = src.indexOf('/* ---------------------- experimental player index');
+  return crypto.createHash('sha1').update(a >= 0 && b > a ? src.slice(a, b) : src).digest('hex').slice(0, 8);
+})();
 
 const SITE = process.env.ESPN_API || 'https://site.api.espn.com/apis/site/v2/sports/soccer/';
 const CORE = process.env.ESPN_CORE || 'https://sports.core.api.espn.com/v2/sports/soccer/leagues/';
@@ -45,9 +51,7 @@ const CITIES = D.cities.split('\n').map((row) => {
 });
 
 /* ------------------------------------- places ------------------------------------- */
-// letters that Unicode decomposition does not reduce to Latin
-const FOLD = { 'ø': 'o', 'Ø': 'o', 'æ': 'ae', 'Æ': 'ae', 'ß': 'ss', 'ł': 'l', 'Ł': 'l', 'đ': 'd', 'Đ': 'd', 'ı': 'i', 'œ': 'oe', 'þ': 'th', 'ð': 'd' };
-const key = (s) => String(s || '').replace(/[øØæÆßłŁđĐıœþð]/g, (c) => FOLD[c]).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const key = S.venueKey;     // the site looks the stadium up in venues.json by the same key
 const COUNTRY_ALIAS = { england: 'GB', scotland: 'GB', wales: 'GB', 'northern ireland': 'GB', turkiye: 'TR', turkey: 'TR', 'czech republic': 'CZ', czechia: 'CZ',
   'republic of ireland': 'IE', ireland: 'IE', kosovo: 'XK', 'bosnia herzegovina': 'BA', 'bosnia and herzegovina': 'BA', 'north macedonia': 'MK', macedonia: 'MK', 'fyr macedonia': 'MK',
   russia: 'RU', moldova: 'MD', 'faroe islands': 'FO', usa: 'US', 'united states': 'US', holland: 'NL', netherlands: 'NL', 'the netherlands': 'NL',

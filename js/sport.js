@@ -124,7 +124,9 @@
       const url = `${API}${lg}/scoreboard?dates=${mo}&limit=300`;
       tasks.push(() => once(url).then((j) => ({ lg, j, url })));
     }
+    const venues = loadVenues();
     const res = await pool(tasks, 4);
+    await Promise.race([venues, new Promise((r) => setTimeout(r, 3000))]);
     const seen = new Map(); let failed = 0;
     fixturesFrom = { live: 0, copyAt: 0 };
     for (const r of res) {
@@ -222,9 +224,22 @@
     Denmark: 'Дания', Norway: 'Норвегия', Sweden: 'Швеция', Switzerland: 'Швейцария', Austria: 'Австрия', 'Czech Republic': 'Чехия', Czechia: 'Чехия', Poland: 'Польша',
     Croatia: 'Хорватия', Serbia: 'Сербия', Ukraine: 'Украина', Romania: 'Румыния', Hungary: 'Венгрия', Cyprus: 'Кипр', Israel: 'Израиль', };
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  /* Stadium towns found in GeoNames by tools/sport_db.js, kept in the football-db branch as venues.json:
+     {"<town>|<country>": {lat, lon, tz}}. Loaded together with the fixtures; while it is missing (or if it
+     fails to load) the city list below is used, which knows only larger towns. */
+  const VENUES_URL = 'https://raw.githubusercontent.com/vsemvamdam/astrocartography/football-db/venues.json';
+  const FOLD = { 'ø': 'o', 'Ø': 'o', 'æ': 'ae', 'Æ': 'ae', 'ß': 'ss', 'ł': 'l', 'Ł': 'l', 'đ': 'd', 'Đ': 'd', 'ı': 'i', 'œ': 'oe', 'þ': 'th', 'ð': 'd' };
+  const venueKey = (s) => norm(String(s || '').replace(/[øØæÆßłŁđĐıœþð]/g, (c) => FOLD[c]));
+  let venueTable = null, venueLoad = null;
+  function loadVenues() {
+    if (!venueLoad) venueLoad = fetchJSON(VENUES_URL, 8000).then((j) => { venueTable = j || {}; }).catch(() => { venueLoad = null; });
+    return venueLoad;
+  }
   function venuePlace(m, cities) {
     const v = m.venue, key = norm(v.city), k2 = ALIAS[key] || key;
     const label = v.city || v.name || m.home.name;
+    const known = venueTable && venueTable[venueKey(v.city) + '|' + venueKey(v.country)];
+    if (known) return { name: label, lat: known.lat, lon: known.lon, tz: known.tz, approx: false };
     if (EXTRA[k2]) { const [lat, lon, tz] = EXTRA[k2]; return { name: label, lat, lon, tz, approx: false }; }
     const country = COUNTRY[v.country];
     const hits = cities.filter((c) => c.en && norm(c.en) === k2);
@@ -549,5 +564,5 @@
     return { idx, why };
   }
 
-  root.SPORT = { LEAGUES, fixtures, squads, venuePlace, judge, playerIndex, eventChart, implied, RU, RN, source: () => Object.assign({}, source), fixturesFrom: () => Object.assign({}, fixturesFrom) };
+  root.SPORT = { LEAGUES, fixtures, squads, venuePlace, venueKey, judge, playerIndex, eventChart, implied, RU, RN, source: () => Object.assign({}, source), fixturesFrom: () => Object.assign({}, fixturesFrom) };
 })(typeof window !== 'undefined' ? window : globalThis);
