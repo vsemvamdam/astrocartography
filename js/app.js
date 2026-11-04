@@ -1411,6 +1411,7 @@
     requestDraw();
     if (window.NatalView) NatalView.update();
     if (window.ToolsView) ToolsView.update();
+    if (window.CityView) CityView.update();
   }
 
   /* --------------------------------- views -------------------------------- */
@@ -1436,13 +1437,14 @@
     current: () => ({ date: state.date, time: state.time, place: state.place, manualOffset: state.manualOffset }),
   };
   window.ACG_APP = APP;
-  const VIEWS = ['map', 'natal', 'tools', 'sport'];
+  const VIEWS = ['map', 'natal', 'city', 'tools', 'sport'];
   function setView(v) {
     if (!VIEWS.includes(v)) v = 'map';
     document.body.dataset.view = v;
     wrap.hidden = v !== 'map';
     $('natalView').hidden = v !== 'natal';
     $('toolsView').hidden = v !== 'tools';
+    $('cityView').hidden = v !== 'city';
     $('sportView').hidden = v !== 'sport';
     document.querySelectorAll('.tab').forEach((t) => {
       if (t.dataset.view === v) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
@@ -1450,6 +1452,7 @@
     if (v !== 'map' && $('app').classList.contains('map-only')) $('expand').click();
     if (v === 'natal') NatalView.update();
     else if (v === 'tools') ToolsView.update();
+    else if (v === 'city') { if (window.CityView) CityView.update(); }
     else if (v === 'sport') { if (window.SportView) SportView.update(); }
     else requestAnimationFrame(() => { resize(); if (!view.ready) return; measureHead(); requestDraw(); });
   }
@@ -1457,6 +1460,7 @@
   window.addEventListener('hashchange', () => setView(viewFromHash()));
   if (window.NatalView) NatalView.init(APP);
   if (window.ToolsView) ToolsView.init(APP);
+  if (window.CityView) CityView.init(APP);
   if (window.SportView) SportView.init(APP);
   if (window.Account) Account.init(APP);
 
