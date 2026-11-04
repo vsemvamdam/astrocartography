@@ -69,7 +69,7 @@
       return;
     }
     const o = opts(), list = (matches || []).filter((m) => o.league === 'all' || m.league === o.league);
-    if (!list.length) { box.innerHTML = '<p class="muted sp-msg">В ближайшую неделю матчей нет.</p>'; return; }
+    if (!list.length) { box.innerHTML = '<p class="muted sp-msg">В ближайшие две недели матчей нет.</p>'; return; }
     let html = '', day = null;
     for (const m of list) {
       const dk = dayKey(m.date);
@@ -190,7 +190,7 @@
     loading = true; loadError = null;
     if (force) { matches = null; judged.clear(); }
     renderList();
-    try { matches = await S.fixtures(S.LEAGUES.map((l) => l.id), 8); }
+    try { matches = await S.fixtures(S.LEAGUES.map((l) => l.id), 14); }
     catch (e) { loadError = e && e.name === 'AbortError' ? 'сервер ESPN не ответил вовремя' : (e && e.message) || 'ошибка сети'; }
     loading = false;
     renderAll();

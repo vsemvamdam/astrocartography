@@ -26,7 +26,7 @@
     const hit = cache.get(url);
     if (hit && Date.now() - hit.t < (ttlMin || 15) * 60000) return hit.v;
     const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timer = ctl && setTimeout(() => ctl.abort(), 20000);
+    const timer = ctl && setTimeout(() => ctl.abort(), 12000);
     try {
       const r = await fetch(url, ctl ? { signal: ctl.signal } : undefined);
       if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -42,7 +42,7 @@
     }));
     return out;
   }
-  const ymd = (ms) => { const d = new Date(ms); return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`; };
+  const ym = (ms) => { const d = new Date(ms); return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}`; };
 
   // American odds → implied probability
   function implied(odds) {
@@ -77,21 +77,21 @@
       home: side('home'), away: side('away'), odds: readOdds(c),
     };
   }
-  /* Upcoming and live matches for the next `days` days. */
+  /* Upcoming and live matches for the next `days` days: one request per league and calendar month
+     (ESPN takes a month in `dates`, but not a range of days). A failed request is tried once more. */
   async function fixtures(leagueIds, days) {
     const now = Date.now(), tasks = [];
-    for (const lg of leagueIds) for (let k = -1; k < days; k++) {
-      const d = ymd(now + k * DAY);
-      tasks.push(() => getJSON(`${API}${lg}/scoreboard?dates=${d}`, 20).then((j) => ({ lg, j })));
-    }
-    const res = await pool(tasks, 8);
+    const months = [...new Set([ym(now - DAY), ym(now + days * DAY)])];
+    const once = (url) => getJSON(url, 20).catch(() => getJSON(url, 20));
+    for (const lg of leagueIds) for (const mo of months) tasks.push(() => once(`${API}${lg}/scoreboard?dates=${mo}&limit=300`).then((j) => ({ lg, j })));
+    const res = await pool(tasks, 4);
     const seen = new Map(); let failed = 0;
     for (const r of res) {
       if (!r || r.error) { failed++; continue; }
       for (const ev of r.j.events || []) if (!seen.has(ev.id)) seen.set(ev.id, normalize(ev, r.lg));
     }
     if (failed === res.length) throw new Error('Не удалось получить расписание');
-    return [...seen.values()].filter((m) => m.state !== 'post' && m.date > now - 3 * 3600000).sort((a, b) => a.date - b.date || a.league.localeCompare(b.league));
+    return [...seen.values()].filter((m) => m.state !== 'post' && m.date > now - 3 * 3600000 && m.date < now + days * DAY).sort((a, b) => a.date - b.date || a.league.localeCompare(b.league));
   }
 
   /* --------------------------------- squads -------------------------------- */
