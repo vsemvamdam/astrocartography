@@ -66,6 +66,10 @@
     return { ru: f[0], en: f[1], c: D.countries[+f[2]], lat, lon: +f[4] / 100, wy: -millerY(lat), tz: D.tzs[+f[5]], pop: +f[6], mz: +f[7] / 10, k: normName(f[0]), ke: normName(f[1] || '') };
   });
 
+  // country names from Natural Earth: shown from their own zoom level, under the cities
+  const COUNTRY_LABELS = (window.ACG_COUNTRY_LABELS || []).map(([ru, lon, lat, mz, xz, rank]) => ({ ru: ru.toUpperCase(), lon, lat, wy: -millerY(lat), mz: mz + 0.25, xz, rank, country: true }));
+  const MAP_LABELS = CITIES.concat(COUNTRY_LABELS).sort((a, b) => a.mz - b.mz);
+
   function nearestCity(lat, lon) {
     let best = null, bd = Infinity;
     const cl = Math.cos(lat * D2R);
@@ -614,14 +618,34 @@
       });
     }
 
+    // cities and country names compete for space by importance: a country label yields to the
+    // biggest cities of its own zoom level, so Moscow or Paris never disappear behind a country name
     const wz = Math.log2(s * 360 / 256) + 0.6;
-    const font = `500 11px ${FONT_UI}`;
-    let n = 0;
-    ctx.font = font; ctx.textBaseline = 'middle';
-    for (const c of CITIES) {
-      if (c.mz > wz) continue;
+    const font = `500 11px ${FONT_UI}`, hasLS = 'letterSpacing' in ctx;
+    let n = 0, nc = 0;
+    ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    for (const c of MAP_LABELS) {
+      if (c.mz > wz + (c.country ? 0.3 : 0)) { if (c.mz > wz + 0.3) break; continue; }
+      if (c.country ? (nc > 70 || c.xz + 2.5 < wz) : n > 90) continue;
       const y = c.wy * s + v.ty;
-      if (y < 0 || y > H) continue;
+      if (y < 8 || y > H - 8) continue;
+      if (c.country) {
+        const cf = `600 ${c.rank <= 2 && wz < 5 ? 11 : 10}px ${FONT_UI}`;
+        copies(c.lon, (x) => {
+          const w = measure(c.ru, cf) + (hasLS ? c.ru.length * 1.2 : 0);
+          const r = { x: x - w / 2 - 2, y: y - 7, w: w + 4, h: 14 };
+          if (r.x < 2 || r.x + r.w > W - 2 || hits(r, placed)) return;
+          placed.push(r); nc++;
+          ctx.font = cf; ctx.textAlign = 'center';
+          if (hasLS) ctx.letterSpacing = '1.2px';
+          ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(7,12,22,.55)'; ctx.strokeText(c.ru, x, y);
+          ctx.fillStyle = 'rgba(160,181,209,.52)'; ctx.fillText(c.ru, x, y);
+          if (hasLS) ctx.letterSpacing = '0px';
+          ctx.textAlign = 'start';
+        });
+        continue;
+      }
+      ctx.font = font;
       copies(c.lon, (x) => {
         if (x < 0 || x > W) return;
         const w = measure(c.ru, font);
@@ -629,10 +653,9 @@
         if (r.x + r.w > W - 4 || r.y < 0 || hits(r, placed)) return;
         placed.push(r); n++;
         ctx.beginPath(); ctx.arc(x, y, 2, 0, 2 * Math.PI); ctx.fillStyle = 'rgba(230,236,244,.75)'; ctx.fill();
-        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(7,12,22,.75)'; ctx.lineJoin = 'round';
+        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(7,12,22,.75)';
         ctx.strokeText(c.ru, x + 5, y); ctx.fillStyle = 'rgba(214,224,238,.82)'; ctx.fillText(c.ru, x + 5, y);
       });
-      if (n > 90) break;
     }
   }
 

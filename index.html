@@ -520,6 +520,19 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .soul-row p { margin: 3px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--fg); max-width: 75ch; }
 .soul-row .rx { color: var(--danger); font-size: 11px; }
 .soul + .bal-note { margin-top: 14px; }
+.rd { column-gap: 36px; }
+@media (min-width: 1100px) { .rd { column-count: 2; } }
+.rd-sec { min-width: 0; }
+.rd-sec .nat-h4, .rd-sec > .bal-note { break-after: avoid; }
+.rd .soul { gap: 0; }
+.rd .soul-row { break-inside: avoid; padding: 6px 0; }
+.rd-sec:first-child .nat-h4 { margin-top: 0; }
+.rd-sec .nat-h4 { margin-top: 12px; }
+.rd-sec > .bal-note { margin: 0 0 10px; }
+.rd .soul-row .tg .rd-ang, .rd-asp .rd-ang { font-family: var(--f-mono); font-size: 10.5px; font-weight: 600; color: var(--brass); }
+.rd-asp { font-family: var(--f-glyph); font-size: 15px; font-weight: 400; margin-right: 4px; white-space: nowrap; }
+.rd-asp > span { margin-right: 2px; }
+.rd-b { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
 .hor-ctl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--rule); }
 @media (min-width: 900px) { .hor-ctl { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .hor-ctl .hor-q, .hor-ctl .hor-where, .hor-ctl .layer-hint { grid-column: 1 / -1; } }
 .hor-ctl .hor-when, .hor-ctl .hor-where { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
@@ -939,6 +952,7 @@ details.more[open] summary { margin-bottom: 8px; }
         <p class="bal-note">Учтены дома соляра, в которые попадают Солнце, Юпитер, Венера, Луна и вредители, и планеты на ASC и MC (до 6°). В списке не больше двух городов из одной страны. Нажмите на город, чтобы построить соляр там.</p>
         <ol class="best-list" id="natSolarList"></ol>
       </section>
+      <section class="nat-card rd-card" id="natReadCard" hidden><h3 id="natReadTitle">Расшифровка <span id="natReadSub"></span></h3><div class="rd" id="natRead"></div></section>
       <div class="natal-grid bottom">
         <section class="nat-card"><h3 id="natAspTitle">Аспекты <span id="natAspCount"></span></h3>
           <div class="nat-scroll"><table class="asp-grid" id="natAspGrid"></table></div>
@@ -1159,21 +1173,23 @@ details.more[open] summary { margin-bottom: 8px; }
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
-<script src="js/data.js?v=20261104j"></script>
-<script src="js/chiron-data.js?v=20261104j"></script>
-<script src="js/asteroids-data.js?v=20261104j"></script>
-<script src="js/acg-core.js?v=20261104j"></script>
-<script src="js/meanings.js?v=20261104j"></script>
-<script src="js/natal.js?v=20261104j"></script>
-<script src="js/features.js?v=20261104j"></script>
-<script src="js/horary.js?v=20261104j"></script>
-<script src="js/natal-view.js?v=20261104j"></script>
-<script src="js/cycles.js?v=20261104j"></script>
-<script src="js/tools-view.js?v=20261104j"></script>
-<script src="js/sport.js?v=20261104j"></script>
-<script src="js/sport-view.js?v=20261104j"></script>
-<script src="js/firebase-config.js?v=20261104j"></script>
-<script src="js/account.js?v=20261104j"></script>
-<script src="js/app.js?v=20261104j"></script>
+<script src="js/data.js?v=20261104k"></script>
+<script src="js/country-labels.js?v=20261104k"></script>
+<script src="js/chiron-data.js?v=20261104k"></script>
+<script src="js/asteroids-data.js?v=20261104k"></script>
+<script src="js/acg-core.js?v=20261104k"></script>
+<script src="js/meanings.js?v=20261104k"></script>
+<script src="js/natal.js?v=20261104k"></script>
+<script src="js/features.js?v=20261104k"></script>
+<script src="js/horary.js?v=20261104k"></script>
+<script src="js/interpret.js?v=20261104k"></script>
+<script src="js/natal-view.js?v=20261104k"></script>
+<script src="js/cycles.js?v=20261104k"></script>
+<script src="js/tools-view.js?v=20261104k"></script>
+<script src="js/sport.js?v=20261104k"></script>
+<script src="js/sport-view.js?v=20261104k"></script>
+<script src="js/firebase-config.js?v=20261104k"></script>
+<script src="js/account.js?v=20261104k"></script>
+<script src="js/app.js?v=20261104k"></script>
 </body>
 </html>

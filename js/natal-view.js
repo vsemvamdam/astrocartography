@@ -23,7 +23,7 @@
   let natal = null;     // the chart drawn as the main wheel (natal, solar or composite)
   let outer = null;     // partner's points in the outer ring (synastry)
   let cross = [];       // synastry aspects
-  let hl = null, app = null, solarInfo = null, natB = null, horInfo = null, horCache = null;
+  let hl = null, app = null, solarInfo = null, natB = null, natBase = null, horInfo = null, horCache = null;
 
   function opts() {
     const st = app.state;
@@ -366,6 +366,31 @@
     $('natAst').innerHTML = rows || '<p class="muted">Астероиды считаются для 1800–2100 годов.</p>';
   }
 
+  /* --------------- readings: solar return, synastry, composite --------------- */
+  function renderReading() {
+    const card = $('natReadCard'), o = opts(), I = window.INTERP;
+    let secs = null, title = '', sub = '';
+    try {
+      if (I && o.mode === 'solar' && solarInfo) { secs = I.solar(natal, natBase); title = `Расшифровка соляра ${solarInfo.year}`; sub = 'на год от дня рождения до дня рождения'; }
+      else if (I && o.mode === 'synastry' && natB && outer) { secs = I.synastry(natBase, natB, cross, partnerName()); title = 'Расшифровка синастрии'; sub = `вы и ${partnerName()}`; }
+      else if (I && o.mode === 'synastry' && natB) { secs = I.composite(natal); title = 'Расшифровка композита'; sub = 'отношения как отдельная карта'; }
+    } catch (e) { secs = null; }
+    card.hidden = !secs;
+    if (!secs) return;
+    $('natReadTitle').firstChild.textContent = title + ' ';
+    $('natReadSub').textContent = sub;
+    const gl = (id, partner) => {
+      if (id === 'ASC' || id === 'MC') return `<span class="rd-ang">${id}</span>`;
+      const b = BODY[id];
+      return b ? `<span style="color:${b.color}"${partner ? ' class="rd-b"' : ''}>${g(b.glyph)}</span>` : '';
+    };
+    // aspect rows carry the aspect's glyph in its colour, the others the planet's glyph
+    const row = (it) => `<div class="soul-row"><span class="tg">${it.asp ? `<span class="ag-${it.asp.kind}">${g(it.asp.glyph)}</span>` : gl(it.id, it.partner)}</span><div>
+        <b>${esc(it.head)}</b>
+        <p>${esc(it.text)}</p></div></div>`;
+    $('natRead').innerHTML = secs.filter((sec) => sec.items.length).map((sec) => `<section class="rd-sec"><h4 class="nat-h4">${esc(sec.title)}</h4>${sec.note ? `<p class="bal-note">${esc(sec.note)}</p>` : ''}<div class="soul">${sec.items.map(row).join('')}</div></section>`).join('');
+  }
+
   /* -------------------------------- horary -------------------------------- */
   const HG = (id) => `<span class="tg" style="color:${BODY[id].color}">${g(BODY[id].glyph)}</span>`;
   const HN = (id) => `${HG(id)} ${H.RU[id]}`;
@@ -579,7 +604,7 @@
     const natOpts = { house: o.house, minor: o.minor, points: visible, anglesAspects: o.angles };
     outer = null; cross = []; solarInfo = null; natB = null; horInfo = null;
     const natA = N.computeNatal(app.chart, P.lat, P.lon, natOpts);
-    natal = natA;
+    natal = natA; natBase = natA;
     if (o.mode === 'horary' && H) {
       horInfo = horaryChart();
       natal = horInfo.nat;
@@ -605,7 +630,7 @@
     }
     if (hl && !natal.points.some((p) => p.id === hl) && !(outer && outer.some((p) => p.id === hl))) hl = null;
     $('natBalanceCard').hidden = !!outer || o.mode === 'horary';
-    renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard(); renderHoraryCard(); renderSoulCards();
+    renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard(); renderHoraryCard(); renderSoulCards(); renderReading();
   }
 
   window.NatalView = {
