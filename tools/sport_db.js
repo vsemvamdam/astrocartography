@@ -50,7 +50,8 @@ const FOLD = { 'ø': 'o', 'Ø': 'o', 'æ': 'ae', 'Æ': 'ae', 'ß': 'ss', 'ł': '
 const key = (s) => String(s || '').replace(/[øØæÆßłŁđĐıœþð]/g, (c) => FOLD[c]).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const COUNTRY_ALIAS = { england: 'GB', scotland: 'GB', wales: 'GB', 'northern ireland': 'GB', turkiye: 'TR', turkey: 'TR', 'czech republic': 'CZ', czechia: 'CZ',
   'republic of ireland': 'IE', ireland: 'IE', kosovo: 'XK', 'bosnia herzegovina': 'BA', 'bosnia and herzegovina': 'BA', 'north macedonia': 'MK', macedonia: 'MK', 'fyr macedonia': 'MK',
-  russia: 'RU', moldova: 'MD', 'faroe islands': 'FO', usa: 'US', 'united states': 'US', holland: 'NL', 'the netherlands': 'NL' };
+  russia: 'RU', moldova: 'MD', 'faroe islands': 'FO', usa: 'US', 'united states': 'US', holland: 'NL', netherlands: 'NL', 'the netherlands': 'NL',
+  'south korea': 'KR', 'north korea': 'KP', 'ivory coast': 'CI', gibraltar: 'GI', 'san marino': 'SM', belarus: 'BY', ukraine: 'UA', georgia: 'GE' };
 let GEO = null;
 function loadGeo(dir) {
   const cc = Object.assign({}, COUNTRY_ALIAS);
