@@ -144,13 +144,17 @@ function prob(x) {
   const d = parseFloat(s);
   return d > 1 ? 1 / d : null;
 }
-// three prices → probabilities without the bookmaker's margin
+// three prices → probabilities without the bookmaker's margin. Some old closing lines (Caesars, 2017–2019)
+// price only the two wins: the draw is then what a usual three-way book (5% over 100) leaves for it
 function norm3(h, d, a) {
-  const ph = prob(h), pd = prob(d), pa = prob(a);
+  const ph = prob(h), pa = prob(a);
+  let pd = prob(d);
   if (ph == null || pa == null) return null;
-  const s = ph + pa + (pd || 0);
+  const est = pd == null;
+  if (est) pd = Math.max(0.03, 1.05 - ph - pa);
+  const s = ph + pa + pd;
   const r = (x) => Math.round(x / s * 1000) / 1000;
-  return { home: r(ph), draw: pd == null ? null : r(pd), away: r(pa) };
+  return Object.assign({ home: r(ph), draw: r(pd), away: r(pa) }, est ? { drawEst: true } : {});
 }
 // the scoreboard before kickoff: American moneylines, opening and current ("close")
 function scoreboardOdds(c) {
@@ -200,7 +204,11 @@ function favourite(r) {
   if (o.espn && (p = norm3(o.espn.close.home, o.espn.close.draw, o.espn.close.away))) src = 'espn';
   else if (o.b365 && (p = norm3(o.b365.home, o.b365.draw, o.b365.away))) src = 'b365';
   else if (o.core && (p = norm3(o.core.home, o.core.draw, o.core.away))) src = 'core';
-  else if (o.model) { const s = o.model.home + o.model.away; p = { home: Math.round(o.model.home / s * 1000) / 1000, draw: null, away: Math.round(o.model.away / s * 1000) / 1000 }; src = 'model'; }
+  else if (o.model) {
+    // the model gives win chances of both teams; what is left is the draw
+    const s = Math.max(1, o.model.home + o.model.away), r = (x) => Math.round(x * 1000) / 1000;
+    p = { home: r(o.model.home / s), draw: r(Math.max(0, 1 - (o.model.home + o.model.away) / s)), away: r(o.model.away / s) }; src = 'model';
+  }
   if (!p) return null;
   return { side: p.home >= p.away ? 'home' : 'away', src, p };
 }
@@ -369,29 +377,60 @@ function writeTable(all) {
   }
   fs.writeFileSync(path.join(DB, 'football.csv'), '﻿' + lines.join('\r\n') + '\r\n');
 }
+const KIND_RU = { cusp: 'Управители у куспидов углов', moon: 'Луна у углов и по пути', lastmoon: 'Заключительный аспект Луны', fortuna: 'Фортуна и её диспозитор',
+  node: 'Узлы', sun: 'Сожжение', outer: 'Уран и Плутон', saturn: 'Сатурн-вредитель', other: 'Прочее' };
+/* actual share against the share the odds promised: n, actual %, expected %, difference and its 2σ */
+function vsOdds(rows, sideOf) {
+  let n = 0, hit = 0, exp = 0, v = 0;
+  for (const r of rows) {
+    const side = sideOf(r), p = r.fav.p[side];
+    if (p == null) continue;
+    n++; exp += p; v += p * (1 - p);
+    if (r.result.winner90 === side) hit++;
+  }
+  if (!n) return null;
+  return { n, act: hit / n, exp: exp / n, diff: (hit - exp) / n, se2: 2 * Math.sqrt(v) / n };
+}
+const pp = (x) => `${Math.round(x * 100)}%`;
+const sgn = (x) => `${x >= 0 ? '+' : '−'}${Math.abs(Math.round(x * 1000) / 10).toString().replace('.', ',')}`;
+function row(label, st) {
+  if (!st) return `| ${label} | — | — | — | — |`;
+  const sure = Math.abs(st.diff) > st.se2 ? ' **' : '';
+  return `| ${label} | ${st.n} | ${pp(st.act)} | ${pp(st.exp)} | ${sgn(st.diff)} ± ${(Math.round(st.se2 * 1000) / 10).toString().replace('.', ',')}${sure} |`;
+}
 function summary(all) {
-  const done = all.filter((r) => r.result && r.result.winner90 && r.judge && r.fav);
-  const rate = (a, ok) => (a.length ? `${a.filter(ok).length} из ${a.length} (${Math.round(a.filter(ok).length / a.length * 100)}%)` : '—');
-  const sides = done.filter((r) => r.judge.winner !== 'draw');
-  const forFav = sides.filter((r) => r.judge.winner === r.fav.side), forDog = sides.filter((r) => r.judge.winner !== r.fav.side);
-  const draws = done.filter((r) => r.judge.winner === 'draw');
-  const expDog = forDog.reduce((s, r) => s + r.fav.p[r.judge.winner], 0);
+  const done = all.filter((r) => r.result && r.result.winner90 && r.judge && r.fav && !(r.place && r.place.approx));
   const live = done.filter((r) => r.pre);
+  const sides = done.filter((r) => r.judge.winner !== 'draw');
+  const picked = (r) => r.judge.winner;
   const by = {};
   for (const r of all) by[r.league] = (by[r.league] || 0) + 1;
+  const T = ['| | Матчей | Вышло | По ставкам | Разница, п. п. |', '|---|---|---|---|---|'];
   const lines = [
     '# Сводка', '',
-    `Обновлено ${new Date(now).toISOString().slice(0, 16).replace('T', ' ')} UTC. Версия расчёта (js/sport.js): \`${VERSION}\`.`, '',
-    `Матчей в базе: ${all.length} (${Object.entries(by).map(([k, v]) => `${LG_RU[k] || k} ${v}`).join(', ')}); сыграно и посчитано: ${done.length}; из них с прогнозом, записанным до матча: ${live.length}.`, '',
-    '| Что проверяем | Результат |', '|---|---|',
-    `| Фаворит по ставкам выиграл за 90 минут | ${rate(done, (r) => r.fav.side === r.result.winner90)} |`,
-    `| Карта назвала победителя, и он выиграл | ${rate(sides, (r) => r.judge.winner === r.result.winner90)} |`,
-    `| — карта за фаворита, фаворит выиграл | ${rate(forFav, (r) => r.judge.winner === r.result.winner90)} |`,
-    `| — карта за аутсайдера, аутсайдер выиграл | ${rate(forDog, (r) => r.judge.winner === r.result.winner90)}; по ставкам ожидалось ${forDog.length ? Math.round(expDog / forDog.length * 100) + '%' : '—'} |`,
-    `| Карта за ничью, была ничья | ${rate(draws, (r) => r.result.winner90 === 'draw')} |`,
-    `| Прогнозы до матча: карта угадала | ${rate(live.filter((r) => r.pre.winner !== 'draw'), (r) => r.pre.winner === r.result.winner90)} |`, '',
-    'Главная строка — «карта за аутсайдера»: метод полезен, только если такие аутсайдеры выигрывают заметно чаще, чем обещают ставки.', '',
+    `Обновлено ${new Date(now).toISOString().slice(0, 16).replace('T', ' ')} UTC. Версия расчёта: \`${VERSION}\`.`, '',
+    `Матчей в базе: ${all.length} (${Object.entries(by).map(([k, v]) => `${LG_RU[k] || k} ${v}`).join(', ')}). Сыграно, с коэффициентами и точным местом стадиона: ${done.length}; из них с прогнозом, записанным до матча: ${live.length}.`, '',
+    'Везде сравнивается, как часто событие случилось на самом деле («Вышло») и как часто его обещали ставки без маржи букмекера («По ставкам»). ' +
+    'Если карта что-то знает, «Вышло» должно быть заметно выше. «±» — две стандартные ошибки: разница меньше неё может быть случайной; ** — разница больше.', '',
+    '## Прогноз карты', '', ...T,
+    row('Фаворит по ставкам выиграл (для сравнения)', vsOdds(done, (r) => r.fav.side)),
+    row('Карта назвала победителя — он выиграл', vsOdds(sides, picked)),
+    row('— карта за фаворита', vsOdds(sides.filter((r) => r.judge.winner === r.fav.side), picked)),
+    row('— карта за аутсайдера', vsOdds(sides.filter((r) => r.judge.winner !== r.fav.side), picked)),
+    row('— явный перевес', vsOdds(sides.filter((r) => r.judge.strength === 'явный'), picked)),
+    row('— умеренный перевес', vsOdds(sides.filter((r) => r.judge.strength === 'умеренный'), picked)),
+    row('Карта за ничью — была ничья', vsOdds(done.filter((r) => r.judge.winner === 'draw'), () => 'draw')),
+    row('Прогноз до матча — победитель угадан', vsOdds(live.filter((r) => r.pre.winner !== 'draw'), (r) => r.pre.winner)), '',
+    '## Свидетельства по видам', '',
+    'Команда, в пользу которой в карте есть хотя бы одно свидетельство этого вида: как часто она выигрывала.', '', ...T,
   ];
+  for (const kind of Object.keys(KIND_RU)) for (const team of ['fav', 'dog']) {
+    const rows = done.filter((r) => r.judge.t.some((t) => t[2] === kind && t[0] === team));
+    if (rows.length < 30) continue;
+    const sideOf = (r) => (team === 'fav' ? r.fav.side : r.fav.side === 'home' ? 'away' : 'home');
+    lines.push(row(`${KIND_RU[kind]} — за ${team === 'fav' ? 'фаворита' : 'аутсайдера'}`, vsOdds(rows, sideOf)));
+  }
+  lines.push('', 'Прогнозы прошлых сезонов посчитаны задним числом; по ним можно искать закономерности. Проверять найденное честно — только на матчах, которых не было при поиске (например, на новых, с прогнозом до матча).', '');
   fs.writeFileSync(path.join(DB, 'SUMMARY.md'), lines.join('\n'));
   fs.writeFileSync(path.join(DB, 'index.json'), JSON.stringify({ updated: now, version: VERSION, matches: all.length, finished: done.length, live: live.length }));
 }
@@ -404,7 +443,11 @@ function summary(all) {
   if (opt('--geonames')) loadGeo(opt('--geonames'));
   if (args.includes('--rejudge')) {
     loadAll();
-    for (const [key, m] of months) for (const r of m.values()) if (r.place && (!r.judge || r.judge.v !== VERSION)) { judgeRecord(r, false); dirty.add(key); }
+    for (const [key, m] of months) for (const r of m.values()) {
+      const f = favourite(r) || undefined;
+      if (JSON.stringify(f) !== JSON.stringify(r.fav)) { r.fav = f; dirty.add(key); }
+      if (r.place && (!r.judge || r.judge.v !== VERSION || (r.fav && r.judge.fav !== r.fav.side))) { judgeRecord(r, false); dirty.add(key); }
+    }
   } else {
     const range = opt('--months');
     const live = !range;
