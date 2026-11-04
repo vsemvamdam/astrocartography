@@ -1,4 +1,5 @@
 {
+"alkmaar|netherlands": {"name":"Alkmaar","lat":52.6317,"lon":4.7486,"tz":"Europe/Amsterdam","src":"geonames","gid":"2759899"},
 "athens|greece": {"name":"Athens","lat":37.9838,"lon":23.7278,"tz":"Europe/Athens","src":"geonames","gid":"264371"},
 "aue|germany": {"name":"Aue","lat":50.5903,"lon":12.7066,"tz":"Europe/Berlin","src":"geonames","gid":"2954695"},
 "barcelona|spain": {"name":"Barcelona","lat":41.3888,"lon":2.159,"tz":"Europe/Madrid","src":"geonames","gid":"3128760"},
@@ -15,6 +16,7 @@
 "coventry|england": {"name":"Coventry","lat":52.4066,"lon":-1.5122,"tz":"Europe/London","src":"geonames","gid":"2652221"},
 "craiova|romania": {"name":"Craiova","lat":44.3167,"lon":23.8,"tz":"Europe/Bucharest","src":"geonames","gid":"680332"},
 "elche|spain": {"name":"Elche","lat":38.2622,"lon":-0.7011,"tz":"Europe/Madrid","src":"geonames","gid":"2518559"},
+"enschede|netherlands": {"name":"Enschede","lat":52.2183,"lon":6.8958,"tz":"Europe/Amsterdam","src":"geonames","gid":"2756071"},
 "getafe|spain": {"name":"Getafe","lat":40.3057,"lon":-3.7329,"tz":"Europe/Madrid","src":"geonames","gid":"3121437"},
 "gibraltar|gibraltar": {"name":"Gibraltar","lat":36.1447,"lon":-5.3526,"tz":"Europe/Gibraltar","src":"geonames","gid":"2411585"},
 "glasgow|scotland": {"name":"Glasgow","lat":55.8652,"lon":-4.2576,"tz":"Europe/London","src":"geonames","gid":"2648579"},
@@ -41,6 +43,7 @@
 "manises|spain": {"name":"Manises","lat":39.4914,"lon":-0.4635,"tz":"Europe/Madrid","src":"geonames","gid":"2514197"},
 "milano|italy": {"name":"Milano","lat":45.4643,"lon":9.1895,"tz":"Europe/Rome","src":"geonames","gid":"3173435"},
 "newcastle upon tyne|england": {"name":"Newcastle-upon-Tyne","lat":54.9733,"lon":-1.614,"tz":"Europe/London","src":"geonames","gid":"2641673"},
+"nijmegen|netherlands": {"name":"Nijmegen","lat":51.8425,"lon":5.8528,"tz":"Europe/Amsterdam","src":"geonames","gid":"2750053"},
 "nottingham|england": {"name":"Nottingham","lat":52.9536,"lon":-1.1505,"tz":"Europe/London","src":"geonames","gid":"2641170"},
 "pamplona|spain": {"name":"Pamplona","lat":42.8169,"lon":-1.6432,"tz":"Europe/Madrid","src":"geonames","gid":"3114472"},
 "porto|portugal": {"name":"Porto","lat":41.1485,"lon":-8.611,"tz":"Europe/Lisbon","src":"geonames","gid":"2735943"},
