@@ -254,11 +254,13 @@ L.push(`- Те же веса без штрафа за сложность (так
 L.push(`- Штраф за сложность, лучший по сезонам обучения: λ = ${best.lam}${best.lam === LAMBDAS[LAMBDAS.length - 1] ? ' — самый большой из проверенных, то есть лучше всего, когда все веса почти ноль' : ''}.`);
 L.push(`- Команда, за которую карта с новыми весами, выигрывала: на обучении ${pkt.n ? `${Math.round(pkt.act * 100)}% при ожидании ${Math.round(pkt.exp * 100)}% (${eff(pkt)})` : '—'}, на проверке ${pk.n ? `${Math.round(pk.act * 100)}% при ожидании ${Math.round(pk.exp * 100)}% (${eff(pk)})` : '—'}.`, '');
 
+// a rule's name inside a sentence: lower case, except planets and points
+const lc = (x) => (/^(Плутон|Сатурн|Уран|Луна|Фортуна|Солнце|Марс|Венера|Юпитер|Меркурий)/.test(x) ? x : x[0].toLowerCase() + x.slice(1));
 const confirmed = RULES.filter((c) => verdict(out.rules[c].train, out.rules[c].test).startsWith('да'));
 const faded = RULES.filter((c) => verdict(out.rules[c].train, out.rules[c].test) === 'нет');
 L.push('## Итог', '');
-if (!confirmed.length) L.push('Ни одно правило не подтвердилось.' + (faded.length ? ` Выглядели рабочими на обучении, но не повторились на проверке: ${faded.map((c) => (RULE_RU[c] || c).toLowerCase()).join('; ')}.` : ''));
-else L.push('Подтвердились: ' + confirmed.map((c) => `${RULE_RU[c] || c} (${verdict(out.rules[c].train, out.rules[c].test)})`).join('; ') + '.' + (faded.length ? ` Не повторились на проверке: ${faded.map((c) => (RULE_RU[c] || c).toLowerCase()).join('; ')}.` : ''));
+if (!confirmed.length) L.push('Ни одно правило не подтвердилось.' + (faded.length ? ` Выглядели рабочими на обучении, но не повторились на проверке: ${faded.map((c) => lc(RULE_RU[c] || c)).join('; ')}.` : ''));
+else L.push('Подтвердились: ' + confirmed.map((c) => `${RULE_RU[c] || c} (${verdict(out.rules[c].train, out.rules[c].test)})`).join('; ') + '.' + (faded.length ? ` Не повторились на проверке: ${faded.map((c) => lc(RULE_RU[c] || c)).join('; ')}.` : ''));
 L.push(gTest.m - 2 * gTest.se > 0 ? 'Карта с подобранными весами на проверке добавляет к коэффициентам больше, чем случайный разброс.' : 'Карта с подобранными весами на проверке не добавляет к коэффициентам ничего сверх случайного разброса.', '');
 L.push('Отчёт пересчитывает `tools/sport_rules.js` после каждого обновления базы.', '');
 
