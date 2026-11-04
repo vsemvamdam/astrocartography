@@ -1268,7 +1268,7 @@
   $('bestList').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const li = e.target.closest('li[data-i]'); if (li) focusCity(BEST[+li.dataset.i].city); } });
   // fly the map to a city and show the lines around it
   function focusCity(c) {
-    if (location.hash === '#natal' || location.hash === '#tools') location.hash = '#map';
+    if (location.hash && location.hash !== '#map') location.hash = '#map';
     const v = view;
     const s1 = Math.max(v.s, (v.w / 360) * 5);
     v.s = s1; v.tx = v.w / 2 - c.lon * s1; v.ty = (v.headH + v.h) / 2 + millerY(c.lat) * s1;
@@ -1393,25 +1393,28 @@
     current: () => ({ date: state.date, time: state.time, place: state.place, manualOffset: state.manualOffset }),
   };
   window.ACG_APP = APP;
-  const VIEWS = ['map', 'natal', 'tools'];
+  const VIEWS = ['map', 'natal', 'tools', 'sport'];
   function setView(v) {
     if (!VIEWS.includes(v)) v = 'map';
     document.body.dataset.view = v;
     wrap.hidden = v !== 'map';
     $('natalView').hidden = v !== 'natal';
     $('toolsView').hidden = v !== 'tools';
+    $('sportView').hidden = v !== 'sport';
     document.querySelectorAll('.tab').forEach((t) => {
       if (t.dataset.view === v) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
     });
     if (v !== 'map' && $('app').classList.contains('map-only')) $('expand').click();
     if (v === 'natal') NatalView.update();
     else if (v === 'tools') ToolsView.update();
+    else if (v === 'sport') { if (window.SportView) SportView.update(); }
     else requestAnimationFrame(() => { resize(); if (!view.ready) return; measureHead(); requestDraw(); });
   }
   const viewFromHash = () => (location.hash || '#map').slice(1);
   window.addEventListener('hashchange', () => setView(viewFromHash()));
   if (window.NatalView) NatalView.init(APP);
   if (window.ToolsView) ToolsView.init(APP);
+  if (window.SportView) SportView.init(APP);
   if (window.Account) Account.init(APP);
 
   /* --------------------------------- boot --------------------------------- */
