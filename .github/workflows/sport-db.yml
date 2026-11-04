@@ -85,9 +85,16 @@ jobs:
             done
             echo "::warning::could not push the base this time"
           }
+          # the rule-by-rule report (tools/sport_rules.js) takes a few minutes: after a rejudge or new seasons,
+          # otherwise once a day
+          rules() {
+            due=$(node -e "try { console.log(Date.now() - require('./db/rules.json').updated > 20 * 3600e3 ? 1 : 0) } catch (e) { console.log(1) }")
+            if [ "$1" = "now" ] || [ "$due" = "1" ]; then node site/tools/sport_rules.js db || echo "::warning::the rules report failed"; fi
+          }
           lg=${LEAGUES:+--leagues $LEAGUES}
           if [ "$REJUDGE" = "true" ]; then
             node site/tools/sport_db.js db --rejudge
+            rules now
             publish "Rejudge with js/sport.js $(git -C site log -1 --format=%h -- js/sport.js)"
           elif [ -n "$SEASONS" ]; then
             # one season at a time, each saved before the next starts
@@ -95,7 +102,10 @@ jobs:
               node site/tools/sport_db.js db --geonames geonames --months "${y}07-$((y + 1))06" $lg || echo "::warning::season $y did not finish"
               publish "Season $y/$((y + 1))"
             done
+            rules now
+            publish "Rules report"
           else
             node site/tools/sport_db.js db --geonames geonames $lg
+            rules
             publish "Matches $(date -u +%Y-%m-%dT%H:%MZ)"
           fi

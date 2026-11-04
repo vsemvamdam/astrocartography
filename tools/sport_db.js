@@ -252,7 +252,7 @@ function judgement(r, extra) {
     winner: J.verdict.v === 'draw' ? 'draw' : J.verdict.side, strength: J.verdict.strength || null,
     score: { fav: J.score.fav, dog: J.score.dog }, diff: r1(J.diff),
     goals: { [sideOf('fav')]: J.verdict.score.fav, [sideOf('dog')]: J.verdict.score.dog },
-    t: J.testimonies.map((t) => [t.team, t.w, t.kind, t.text]),
+    t: J.testimonies.map((t) => [t.team, t.w, t.kind, t.text, t.rule]),
     asc: r1(J.E.nat.asc), mc: r1(J.E.nat.mc),
   };
 }
