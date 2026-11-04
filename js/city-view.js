@@ -116,10 +116,17 @@
   }
 
   /* ---------------------------------- map --------------------------------- */
+  // CARTO raster basemaps need a key since 25 Sep 2026 (without one every tile is an
+  // "API KEY REQUIRED" picture that loads fine, so no error fallback can catch it).
+  // Free key: carto.com/basemaps/apikey — put it here to get the native dark map back.
+  const CARTO_KEY = '';
+  const OSM_ATTR = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
   const TILES = [
-    { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', o: { subdomains: 'abcd', maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>' } },
-    { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', o: { maxZoom: 19, className: 'osm-dark', attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>' } },
-  ];
+    CARTO_KEY && { url: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`, o: { subdomains: 'abcd', maxZoom: 19, attribution: `${OSM_ATTR} · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>` } },
+    // OpenStreetMap's own tiles, darkened by a CSS filter (.osm-dark in index.html)
+    { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', o: { maxZoom: 19, className: 'osm-dark', attribution: OSM_ATTR } },
+    { url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png', o: { maxZoom: 18, className: 'osm-dark', attribution: OSM_ATTR } },
+  ].filter(Boolean);
   function setTiles(i) {
     if (tileLayer) map.removeLayer(tileLayer);
     tileIx = i; tileOk = false; tileErr = 0;

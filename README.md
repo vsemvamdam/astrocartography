@@ -106,5 +106,5 @@ python3 tools/build_data.py natural-earth-vector/geojson js/data.js
 
 - Контуры, границы и города: [Natural Earth](https://www.naturalearthdata.com/), общественное достояние. Часовые пояса городов уточнены по регионам.
 - Данные рождения для «Звёзд»: страницы [Astrotheme](https://www.astrotheme.com/), где указаны источник времени и рейтинг Родден по [Astro-Databank](https://www.astro.com/astro-databank/). Ссылка на страницу каждого человека есть в `tools/celebs.tsv` и в карточке на сайте. До введения поясного времени используется местное среднее время места рождения, как в метрических книгах; во Франции 1891–1911 годов — парижское среднее время.
-- Карта улиц: © участники [OpenStreetMap](https://www.openstreetmap.org/copyright), подложка [CARTO](https://carto.com/attributions) (если не загрузилась — тайлы OpenStreetMap).
+- Карта улиц: © участники [OpenStreetMap](https://www.openstreetmap.org/copyright), тайлы tile.openstreetmap.org (запасной сервер — tile.openstreetmap.de), затемнены CSS-фильтром. Тёмная подложка CARTO с сентября 2026 требует ключ: если получить бесплатный на carto.com/basemaps/apikey и вписать в `CARTO_KEY` в `js/city-view.js`, она снова станет основной.
 - Эфемериды: [Astronomy Engine](https://github.com/cosinekitty/astronomy), лицензия MIT.
