@@ -53,11 +53,12 @@ jobs:
       - name: GeoNames (towns with stadiums)
         run: |
           if [ ! -s geonames/cities500.txt ]; then
-            mkdir -p geonames && cd geonames
-            curl -fsSL --retry 3 -o c.zip https://download.geonames.org/export/dump/cities500.zip && unzip -oq c.zip cities500.txt && rm c.zip
-            curl -fsSL --retry 3 -o countryInfo.txt https://download.geonames.org/export/dump/countryInfo.txt
+            mkdir -p geonames
+            curl -fsSL --retry 3 -o geonames/c.zip https://download.geonames.org/export/dump/cities500.zip
+            unzip -oq geonames/c.zip cities500.txt -d geonames && rm geonames/c.zip
+            curl -fsSL --retry 3 -o geonames/countryInfo.txt https://download.geonames.org/export/dump/countryInfo.txt
           fi
-          wc -l geonames/cities500.txt
+          wc -l geonames/cities500.txt geonames/countryInfo.txt
 
       - name: The base
         run: |
