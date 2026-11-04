@@ -399,7 +399,7 @@
       <h4>График</h4>${chart}
       <h4>По дням</h4>
       <div class="nat-scroll"><table class="nat-table bio-table"><thead><tr><th>Дата</th>${BIO.map((c) => `<th style="color:${c.color}">${c.short}</th>`).join('')}<th></th></tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="muted">Красным — критические дни, когда кривая пересекает ноль; двойные и тройные выделены сильнее. Оранжевым — дни, когда все три цикла ниже нуля. Значения — от −100% до +100%, на начало суток. Циклы 23, 28 и 33 дня взяты из теории биоритмов Вильгельма Флисса, Германа Свободы и Альфреда Тельчера; научные проверки связи биоритмов с самочувствием и несчастными случаями её не подтвердили.</p>`;
+      <p class="muted">Красным — критические дни, когда кривая пересекает ноль; двойные и тройные выделены сильнее. Оранжевым — дни, когда все три цикла ниже нуля. Значения — от −100% до +100%, на начало суток. Циклы 23, 28 и 33 дня взяты из теории биоритмов Вильгельма Флисса, Германа Свободы и Альфреда Тельчера.</p>`;
   }
 
   const RENDER = { bio: renderBio, hours: renderHours, voc: renderVoc, lunar: renderLunar, eph: renderEph, dign: renderDign, disp: renderDisp, lots: renderLots, stars: renderStars, deg30: renderDeg30, prof: renderProf, transits: renderTransits, cycles: renderCycles, num: renderNum };
