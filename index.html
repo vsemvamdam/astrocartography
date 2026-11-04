@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<title>Астрокартография</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Астрокартография онлайн: линии MC, IC, ASC и DSC всех планет на карте мира, аспектные линии, параны, транзиты и прогрессии.">
+<meta name="theme-color" content="#070C16">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+[hidden] { display: none !important; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Forum&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a night-chart instrument. The map is the hero and fills the screen;
+   the ledger panel (birth data, lines, planets) sits beside it on wide screens
+   and below it on phones. One deliberate dark look: navy sea, steel land, brass. */
+:root {
+  --ink: #070C16;
+  --panel: #0A1322;
+  --raise: #111C30;
+  --rule: #1B2940;
+  --fg: #E6ECF4;
+  --muted: #93A1B7;
+  --faint: #5E6D86;
+  --brass: #D9B56E;
+  --brass-ink: #1A1408;
+  --ocean: #0B1D31;
+  --void: #07111F;
+  --land: #34537A;
+  --coast: #7194BA;
+  --danger: #FF8A7A;
+  --f-display: "Forum", "Times New Roman", Georgia, serif;
+  --f-body: "Golos Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --f-glyph: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", sans-serif;
+  --r: 10px;
+  color-scheme: dark;
+}
+html { height: 100%; box-sizing: border-box; }
+body { height: 100%; }
+body {
+  background: var(--ink);
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--ink); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+/* ------------------------------ app frame ------------------------------ */
+.app { display: flex; flex-direction: column; }
+.mapwrap {
+  position: relative;
+  height: 70vh; height: 70svh; min-height: 380px;
+  background: var(--ocean);
+  overflow: hidden;
+  border-bottom: 1px solid var(--rule);
+}
+#map { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+#map.dragging { cursor: grabbing; }
+#map.picking { cursor: crosshair; }
+
+.panel {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+  display: flex; flex-direction: column; gap: 28px;
+  background: var(--panel);
+}
+.panel > * { min-width: 0; }
+
+@media (min-width: 900px) {
+  .app { flex-direction: row-reverse; height: 100%; }
+  .mapwrap { flex: 1 1 auto; height: 100%; min-height: 0; border-bottom: 0; }
+  .panel { flex: 0 0 372px; width: 372px; overflow-y: auto; border-right: 1px solid var(--rule); padding-block: 24px 40px; }
+  .app.map-only .panel { display: none; }
+}
+/* phone: expanded map covers the screen */
+@media (max-width: 899.98px) {
+  .app.map-only .mapwrap { position: fixed; inset: 0; z-index: 50; height: auto; min-height: 0; border: 0; }
+  body.lock { overflow: hidden; }
+}
+
+/* ---------------------------- map overlays ----------------------------- */
+.map-head {
+  position: absolute; z-index: 2; pointer-events: none;
+  top: calc(12px + var(--inset-top, 0px));
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(72px, calc(env(safe-area-inset-right, 0px) + 56px));
+  display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px;
+  text-shadow: 0 1px 8px rgba(4, 9, 18, .9), 0 0 2px rgba(4, 9, 18, .9);
+}
+.app.map-only .mapwrap { --inset-top: env(safe-area-inset-top, 0px); --inset-bottom: env(safe-area-inset-bottom, 0px); }
+.mh-title { font-family: var(--f-display); font-size: 19px; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); line-height: 1.1; }
+.mh-sep { color: var(--brass); opacity: .55; }
+.mh-date { font-family: var(--f-display); font-size: 17px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg); line-height: 1.15; }
+.mh-meta { flex-basis: 100%; font-family: var(--f-mono); font-size: 11px; color: var(--muted); letter-spacing: .02em; }
+.mh-meta .long { white-space: nowrap; }
+.map-shade {
+  position: absolute; z-index: 1; left: 0; right: 0; top: 0; pointer-events: none;
+  height: calc(var(--head-h, 80px) + 18px);
+  background: linear-gradient(to bottom, rgba(7, 12, 22, .86) 0%, rgba(7, 12, 22, .62) 62%, rgba(7, 12, 22, 0) 100%);
+}
+@media (min-width: 900px) {
+  .app:not(.map-only) .mh-title, .app:not(.map-only) .mh-sep { display: none; }
+}
+@media (max-width: 599.98px) {
+  .map-head { column-gap: 8px; top: calc(10px + var(--inset-top, 0px)); }
+  .mh-title { font-size: 14px; letter-spacing: .12em; }
+  .mh-sep { display: none; }
+  .mh-title { flex-basis: 100%; }
+  .mh-date { font-size: 14px; letter-spacing: .06em; }
+  .mh-meta { font-size: 10.5px; }
+  .mh-meta .long { display: none; }
+  .legend { font-size: 10.5px; gap: 3px 9px; padding: 5px 8px; }
+}
+
+.map-ctrls {
+  position: absolute; z-index: 3;
+  right: max(12px, calc(env(safe-area-inset-right, 0px) + 8px));
+  bottom: calc(14px + var(--inset-bottom, 0px));
+  display: flex; flex-direction: column; gap: 8px;
+}
+.mbtn {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: grid; place-items: center;
+  background: rgba(10, 19, 34, .88); border: 1px solid #2A3B58;
+  color: var(--fg);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.mbtn:hover { border-color: var(--brass); }
+.mbtn:active { transform: scale(.96); }
+.mbtn svg { width: 20px; height: 20px; }
+.mbtn-group { display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; border: 1px solid #2A3B58; background: rgba(10, 19, 34, .88); }
+.mbtn-group .mbtn { border: 0; border-radius: 0; background: transparent; }
+.mbtn-group .mbtn + .mbtn { border-top: 1px solid #2A3B58; }
+
+.legend {
+  position: absolute; z-index: 2; pointer-events: none;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  bottom: calc(14px + var(--inset-bottom, 0px));
+  display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center;
+  max-width: calc(100% - 100px);
+  padding: 6px 10px; border-radius: 8px;
+  background: rgba(7, 12, 22, .78);
+  font-size: 11px; color: var(--muted);
+}
+.legend span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.legend svg { width: 22px; height: 6px; color: var(--fg); }
+
+.pick-banner {
+  position: absolute; z-index: 4; left: 50%; transform: translateX(-50%);
+  top: calc(64px + var(--inset-top, 0px));
+  display: flex; align-items: center; gap: 12px;
+  max-width: calc(100% - 32px);
+  padding: 8px 8px 8px 14px; border-radius: 999px;
+  background: var(--brass); color: var(--brass-ink); font-weight: 500; font-size: 14px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.4);
+}
+.pick-banner button { border: 0; border-radius: 999px; padding: 6px 12px; background: rgba(26,20,8,.14); font-weight: 600; }
+
+.info {
+  position: absolute; z-index: 4;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  bottom: calc(14px + var(--inset-bottom, 0px));
+  width: min(360px, calc(100% - 32px - 56px));
+  max-height: min(60%, 460px);
+  display: flex; flex-direction: column;
+  background: rgba(10, 18, 32, .96);
+  border: 1px solid #2A3B58; border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .45);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.info-head { display: flex; align-items: flex-start; gap: 10px; padding: 12px 8px 10px 14px; border-bottom: 1px solid var(--rule); }
+.info-where { flex: 1; min-width: 0; }
+.info-place { font-weight: 600; font-size: 15px; line-height: 1.25; }
+.info-coord { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.icon-btn { width: 34px; height: 34px; flex: none; border: 0; border-radius: 8px; background: transparent; color: var(--muted); display: grid; place-items: center; }
+.icon-btn:hover { background: var(--raise); color: var(--fg); }
+.info-list { list-style: none; margin: 0; padding: 6px 0 8px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.info-list li { display: grid; grid-template-columns: 26px 1fr auto; column-gap: 8px; align-items: center; padding: 7px 14px; cursor: pointer; }
+.info-list li:hover, .info-list li.on { background: var(--raise); }
+.il-glyph { font-family: var(--f-glyph); font-size: 18px; line-height: 1; color: var(--c); text-align: center; }
+.il-name { font-weight: 500; font-size: 14px; }
+.il-name b { font-weight: 600; color: var(--c); }
+.il-km { font-family: var(--f-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; text-align: right; }
+.il-kw { grid-column: 2 / 4; font-size: 12px; color: var(--muted); line-height: 1.35; }
+.il-bar { grid-column: 2 / 4; height: 2px; border-radius: 2px; background: var(--rule); margin-top: 5px; overflow: hidden; }
+.il-bar i { display: block; height: 100%; background: var(--c); }
+.info-empty { padding: 14px; color: var(--muted); font-size: 13px; margin: 0; }
+.info-foot { padding: 8px 14px 12px; font-size: 11.5px; color: var(--faint); border-top: 1px solid var(--rule); }
+
+@media (max-width: 899.98px) {
+  .info { right: max(72px, calc(env(safe-area-inset-right, 0px) + 64px)); width: auto; }
+}
+
+/* ------------------------------- panel --------------------------------- */
+.brand { display: none; }
+@media (min-width: 900px) {
+  .brand { display: block; }
+  .brand h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 30px; letter-spacing: .06em; line-height: 1.1; color: var(--fg); text-wrap: balance; }
+  .brand p { margin: 6px 0 0; color: var(--muted); font-size: 13.5px; max-width: 32ch; }
+}
+.sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+.sec-h h2 { margin: 0; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); }
+.sec-h .aside { font-size: 12px; color: var(--muted); }
+
+.example {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 12px; margin-bottom: 14px; border-radius: var(--r);
+  background: rgba(217, 181, 110, .08); border: 1px solid rgba(217, 181, 110, .28);
+  font-size: 13px; color: #E9D7B2;
+}
+.example b { font-weight: 600; }
+
+.form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+.field > label, .lbl { font-size: 12.5px; color: var(--muted); }
+.inp {
+  width: 100%; min-height: 46px; box-sizing: border-box;
+  padding: 10px 12px; border-radius: var(--r);
+  background: var(--raise); border: 1px solid #24344F;
+  font-size: 16px; color: var(--fg);
+  -webkit-appearance: none; appearance: none;
+}
+input[type="date"].inp, input[type="time"].inp { display: block; font-family: var(--f-mono); font-size: 15.5px; }
+.inp:focus { border-color: var(--brass); outline: none; box-shadow: 0 0 0 3px rgba(217, 181, 110, .18); }
+select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
+
+.place-box { position: relative; }
+.suggest {
+  position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px);
+  margin: 0; padding: 4px 0; list-style: none;
+  max-height: 300px; overflow-y: auto;
+  background: #0F1A2D; border: 1px solid #2A3B58; border-radius: var(--r);
+  box-shadow: 0 14px 30px rgba(0,0,0,.5);
+}
+.suggest li { padding: 9px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; }
+.suggest li[aria-selected="true"], .suggest li:hover { background: var(--raise); }
+.suggest .s-name { font-weight: 500; }
+.suggest .s-meta { font-size: 12px; color: var(--muted); }
+.suggest .s-none { color: var(--muted); font-size: 13px; cursor: default; }
+
+.place-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; font-size: 12.5px; color: var(--muted); }
+.place-meta .coords { font-family: var(--f-mono); font-size: 11.5px; }
+.link-btn { border: 0; background: none; padding: 4px 0; color: var(--brass); font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.link-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.tzbox { grid-column: 1 / -1; padding: 12px; border-radius: var(--r); border: 1px solid var(--rule); display: flex; flex-direction: column; gap: 10px; }
+.tz-row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 13px; }
+.tz-row .k { color: var(--muted); }
+.tz-row .v { font-family: var(--f-mono); font-size: 12.5px; text-align: right; font-variant-numeric: tabular-nums; }
+.tz-row .v.strong { color: var(--fg); font-size: 13.5px; }
+.chk { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.chk input { width: 16px; height: 16px; accent-color: var(--brass); margin: 0; }
+.status { grid-column: 1 / -1; font-size: 13px; color: var(--danger); margin: 0; }
+
+/* angle chips */
+.angles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chip {
+  display: flex; align-items: center; gap: 10px; min-height: 46px;
+  padding: 8px 12px; border-radius: var(--r);
+  border: 1px solid #24344F; background: transparent; text-align: left;
+}
+.chip svg { width: 28px; height: 8px; flex: none; }
+.chip .c-t { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.chip .c-t b { font-weight: 600; font-size: 14px; font-family: var(--f-mono); }
+.chip .c-t small { font-size: 11.5px; color: var(--muted); }
+.chip[aria-pressed="true"] { border-color: rgba(217,181,110,.55); background: rgba(217,181,110,.07); }
+.chip[aria-pressed="false"] { opacity: .5; }
+
+/* planets ledger */
+.filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.pill { border: 1px solid #24344F; background: transparent; border-radius: 999px; padding: 6px 12px; font-size: 12.5px; color: var(--muted); min-height: 32px; }
+.pill:hover { color: var(--fg); border-color: var(--brass); }
+.planets { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.planets li { border-bottom: 1px solid var(--rule); }
+.planets label {
+  display: grid; grid-template-columns: 20px 26px 1fr auto; align-items: center; column-gap: 10px;
+  padding: 9px 2px; cursor: pointer; min-height: 44px; box-sizing: border-box;
+}
+.planets input { width: 16px; height: 16px; margin: 0; accent-color: var(--c); }
+.p-glyph { font-family: var(--f-glyph); font-size: 20px; line-height: 1; color: var(--c); text-align: center; }
+.p-name { font-weight: 500; font-size: 14.5px; }
+.p-name small { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); }
+.p-pos { font-family: var(--f-mono); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.p-pos .sg { font-family: var(--f-glyph); font-size: 15px; margin-left: 2px; }
+.p-pos .rx { color: var(--danger); font-size: 11px; margin-left: 4px; }
+.planets li.off .p-glyph, .planets li.off .p-name, .planets li.off .p-pos { opacity: .45; }
+
+.notes { font-size: 12.5px; color: var(--muted); line-height: 1.55; display: flex; flex-direction: column; gap: 8px; }
+.notes p { margin: 0; max-width: 60ch; }
+.notes code { font-family: var(--f-mono); font-size: 11.5px; color: var(--fg); }
+
+/* layers */
+.switch { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #24344F; background: transparent; border-radius: 999px; padding: 4px 11px 4px 4px; font-size: 12.5px; color: var(--muted); min-height: 32px; }
+.switch .knob { width: 30px; height: 18px; border-radius: 999px; background: #22314A; position: relative; transition: background .15s; }
+.switch .knob::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+.switch[aria-checked="true"] { color: var(--fg); border-color: rgba(217,181,110,.55); }
+.switch[aria-checked="true"] .knob { background: rgba(217,181,110,.32); }
+.switch[aria-checked="true"] .knob::after { transform: translateX(12px); background: var(--brass); }
+.layer-note { margin: -4px 0 12px; font-size: 13px; color: var(--muted); line-height: 1.5; max-width: 60ch; }
+.layer-hint { margin: 0; font-size: 12px; color: var(--faint); line-height: 1.5; }
+.layer-body { display: flex; flex-direction: column; gap: 12px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { border: 1px solid #24344F; background: transparent; border-radius: 999px; padding: 6px 12px; font-size: 13px; color: var(--muted); min-height: 36px; }
+.seg button:hover { color: var(--fg); }
+.seg button[aria-pressed="true"] { color: var(--fg); border-color: rgba(217,181,110,.6); background: rgba(217,181,110,.09); }
+.seg .g { font-family: var(--f-glyph); font-size: 15px; margin-right: 5px; color: var(--brass); }
+.sub-h { font-size: 12.5px; color: var(--muted); }
+.par-list { list-style: none; margin: -4px 0 0; padding: 0; border-top: 1px solid var(--rule); }
+.par-list button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; padding: 10px 2px; border: 0; border-bottom: 1px solid var(--rule); background: transparent; font-size: 13.5px; min-height: 44px; }
+.par-list button:hover { background: var(--raise); }
+.par-list .pl-g { font-family: var(--f-glyph); font-size: 15px; }
+.par-list .pl-lat { font-family: var(--f-mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.par-empty { font-size: 12.5px; color: var(--muted); padding: 10px 2px; }
+.dyn-date { display: flex; gap: 10px; align-items: flex-end; }
+.dyn-date .field { flex: 1; }
+.dyn-date .pill { min-height: 46px; }
+.p-dyn { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.p-dyn .sg { font-size: 12.5px; }
+
+/* info card body */
+.info-body { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; }
+.info-glyph { font-family: var(--f-glyph); font-size: 24px; line-height: 1.1; color: var(--c); flex: none; letter-spacing: 2px; }
+.info-place b { color: var(--c); font-weight: 600; }
+.ig-h { margin: 12px 14px 2px; font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--brass); }
+.il-text { grid-column: 2 / 4; margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--fg); }
+.lc { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.lc p { margin: 0; font-size: 13.5px; line-height: 1.55; max-width: 60ch; }
+.lc p.muted { color: var(--muted); font-size: 12.5px; }
+.cities { display: flex; flex-wrap: wrap; gap: 6px; }
+.cities span { border: 1px solid var(--rule); border-radius: 999px; padding: 3px 9px; font-size: 12.5px; }
+.cities small { color: var(--muted); font-family: var(--f-mono); font-size: 11px; margin-left: 5px; }
+.lc-actions { display: flex; gap: 16px; flex-wrap: wrap; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <section class="mapwrap" id="mapwrap" aria-label="Карта мира с линиями планет">
+    <canvas id="map" tabindex="0" aria-label="Карта астрокартографии. Перетаскивайте, чтобы двигать, сводите пальцы или крутите колесо, чтобы приблизить. Нажмите на точку, чтобы увидеть ближайшие линии."></canvas>
+
+    <div class="map-shade" aria-hidden="true"></div>
+    <div class="map-head" aria-hidden="true">
+      <span class="mh-title">Астрокартография</span>
+      <span class="mh-sep">|</span>
+      <span class="mh-date" id="mhDate">—</span>
+      <span class="mh-meta" id="mhMeta"></span>
+    </div>
+
+    <div class="pick-banner" id="pickBanner" hidden>
+      <span>Коснитесь места рождения на карте</span>
+      <button type="button" id="pickCancel">Отмена</button>
+    </div>
+
+    <div class="legend" id="legend" aria-hidden="true"></div>
+
+    <div class="info" id="info" hidden aria-live="polite">
+      <div class="info-head">
+        <span class="info-glyph" id="infoGlyph" hidden></span>
+        <div class="info-where">
+          <div class="info-place" id="infoPlace"></div>
+          <div class="info-coord" id="infoCoord"></div>
+        </div>
+        <button type="button" class="icon-btn" id="infoClose" aria-label="Закрыть">
+          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 5l10 10M15 5L5 15"/></svg>
+        </button>
+      </div>
+      <div class="info-body" id="infoBody"></div>
+    </div>
+
+    <div class="map-ctrls">
+      <div class="mbtn-group">
+        <button type="button" class="mbtn" id="zoomIn" aria-label="Приблизить">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 4v12M4 10h12"/></svg>
+        </button>
+        <button type="button" class="mbtn" id="zoomOut" aria-label="Отдалить">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10h12"/></svg>
+        </button>
+      </div>
+      <button type="button" class="mbtn" id="zoomFit" aria-label="Показать весь мир">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7"/><path d="M3 10h14M10 3c-2.6 2.2-2.6 11.8 0 14M10 3c2.6 2.2 2.6 11.8 0 14"/></svg>
+      </button>
+      <button type="button" class="mbtn" id="expand" aria-label="Карта на весь экран" aria-pressed="false">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="expandIcon"><path d="M12 3h5v5M8 17H3v-5M17 3l-5.5 5.5M3 17l5.5-5.5"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <aside class="panel" id="panel">
+    <header class="brand">
+      <h1>Астрокартография</h1>
+      <p>Где на Земле планеты вашего рождения стояли на четырёх углах неба.</p>
+    </header>
+
+    <section aria-labelledby="hBirth">
+      <div class="sec-h"><h2 id="hBirth">Данные рождения</h2></div>
+      <div class="example" id="exampleNote">
+        <span>Сейчас показан <b>пример</b>: 27.12.1996, 14:20, Иркутск. Введите свои дату, время и город — карта перестроится сразу.</span>
+      </div>
+      <form class="form" id="birthForm" autocomplete="off" novalidate>
+        <div class="field">
+          <label for="bDate">Дата</label>
+          <input class="inp" type="date" id="bDate" min="1800-01-01" max="2100-12-31" required>
+        </div>
+        <div class="field">
+          <label for="bTime">Местное время</label>
+          <input class="inp" type="time" id="bTime" required>
+        </div>
+        <div class="field wide">
+          <label for="bPlace">Место рождения</label>
+          <div class="place-box">
+            <input class="inp" type="text" id="bPlace" placeholder="Город, например Казань" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest" spellcheck="false" autocapitalize="words">
+            <ul class="suggest" id="suggest" role="listbox" hidden></ul>
+          </div>
+          <div class="place-meta">
+            <span class="coords" id="placeCoords"></span>
+            <button type="button" class="link-btn" id="pickOnMap">
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="7" r="2.2"/><path d="M8 15s5-4.6 5-8.2A5 5 0 0 0 3 6.8C3 10.4 8 15 8 15z"/></svg>
+              Указать на карте
+            </button>
+          </div>
+        </div>
+        <div class="tzbox">
+          <div class="tz-row"><span class="k">Часовой пояс</span><span class="v" id="tzName">—</span></div>
+          <div class="tz-row"><span class="k">Смещение на дату рождения</span><span class="v" id="tzOffset">—</span></div>
+          <div class="tz-row"><span class="k">Всемирное время</span><span class="v strong" id="utcOut">—</span></div>
+          <label class="chk"><input type="checkbox" id="manualTz"> Задать смещение вручную</label>
+          <select class="inp" id="manualOffset" hidden aria-label="Смещение от UTC"></select>
+        </div>
+        <p class="status" id="status" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <section aria-labelledby="hAngles">
+      <div class="sec-h"><h2 id="hAngles">Линии</h2><span class="aside">нажмите, чтобы скрыть</span></div>
+      <div class="angles" id="angles"></div>
+    </section>
+
+    <section aria-labelledby="hPlanets">
+      <div class="sec-h"><h2 id="hPlanets">Планеты</h2><span class="aside" id="planetsAside">положение в знаке</span></div>
+      <div class="filters">
+        <button type="button" class="pill" data-set="all">Все</button>
+        <button type="button" class="pill" data-set="personal">Личные</button>
+        <button type="button" class="pill" data-set="social">Высшие</button>
+        <button type="button" class="pill" data-set="none">Скрыть все</button>
+      </div>
+      <ul class="planets" id="planets"></ul>
+    </section>
+
+    <section aria-labelledby="hAsp">
+      <div class="sec-h"><h2 id="hAsp">Аспектные линии</h2>
+        <button type="button" class="switch" id="aspOn" role="switch" aria-checked="false" aria-labelledby="hAsp"><span class="knob"></span><span class="sw-t">Выкл</span></button></div>
+      <p class="layer-note">Где планета образует секстиль, квадрат или трин к MC или Асценденту. Это более мягкие линии рядом с основными.</p>
+      <div class="layer-body" id="aspBody" hidden>
+        <div class="field"><label for="aspPlanet">Планета</label><select class="inp" id="aspPlanet"></select></div>
+        <div class="seg" id="aspSet" aria-label="Аспекты"></div>
+        <div class="seg" id="aspTo" aria-label="К какому углу"></div>
+        <p class="layer-hint">Для всех планет сразу получится около сотни линий, поэтому удобнее смотреть по одной.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="hPar">
+      <div class="sec-h"><h2 id="hPar">Параны</h2>
+        <button type="button" class="switch" id="parOn" role="switch" aria-checked="false" aria-labelledby="hPar"><span class="knob"></span><span class="sw-t">Выкл</span></button></div>
+      <p class="layer-note">Широты, на которых две планеты в сутки рождения одновременно стояли на углах. Паран действует полосой ±1° по широте вокруг всего мира.</p>
+      <div class="layer-body" id="parBody" hidden>
+        <div class="field"><label for="parPlanet">С участием планеты</label><select class="inp" id="parPlanet"></select></div>
+        <p class="layer-hint" id="parCount"></p>
+        <div class="sub-h" id="parBirthTitle">На широте рождения</div>
+        <ul class="par-list" id="parBirth"></ul>
+      </div>
+    </section>
+
+    <section aria-labelledby="hDyn">
+      <div class="sec-h"><h2 id="hDyn">Динамика</h2></div>
+      <p class="layer-note">Транзиты и прогрессии поверх вашей карты: куда планеты «приходят» на выбранную дату.</p>
+      <div class="seg" id="dynMode" role="group" aria-label="Режим">
+        <button type="button" data-m="off">Выкл</button>
+        <button type="button" data-m="transit">Транзиты</button>
+        <button type="button" data-m="prog">Прогрессии</button>
+      </div>
+      <div class="layer-body" id="dynBody" hidden style="margin-top:12px">
+        <div class="dyn-date">
+          <div class="field"><label for="dynDate">На дату</label><input class="inp" type="date" id="dynDate" min="1800-01-01" max="2200-12-31"></div>
+          <button type="button" class="pill" id="dynToday">Сегодня</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="showNatal" checked> Показывать натальные линии</label>
+        <p class="layer-hint">Линии динамики — с тёмной обводкой и подписями «т» (транзит) или «п» (прогрессия). Положения на дату — в списке планет.</p>
+      </div>
+    </section>
+
+    <section class="notes" aria-labelledby="hNotes">
+      <div class="sec-h" style="margin-bottom:4px"><h2 id="hNotes">Как считается</h2></div>
+      <p>MC — где планета стояла в зените, IC — в надире, ASC — где она восходила, DSC — где заходила. Линии зависят только от момента рождения; город нужен, чтобы перевести местное время во всемирное.</p>
+      <p>Положения планет геоцентрические, видимые, на истинный экватор даты (Astronomy Engine, точность около угловой минуты). Горизонт геометрический, без рефракции. Узел — средний.</p>
+      <p>Аспектные линии считаются по эклиптике: MC или Асцендент совпадает с градусом планеты ± 60°, 90° или 120°. Параны — по прямым восхождениям и склонениям, как и основные линии. Транзиты и вторичные прогрессии (день после рождения за год жизни) наложены на звёздное время рождения, как в циклокартографии.</p>
+      <p>Часовые пояса берутся из базы IANA с историей: летнее и декретное время, переходы 1991, 2011 и 2014 годов. Если в документах время другое, задайте смещение вручную.</p>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/acg-core.js"></script>
+<script src="js/meanings.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
