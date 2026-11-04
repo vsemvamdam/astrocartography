@@ -293,6 +293,7 @@
     v.w = W; v.h = H; v.dpr = dpr;
     measureHead();
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    if (W < 60 || H < 60) return;          // map is hidden (natal view)
     v.sMin = Math.min(W / 360, H / (2 * Y85)) * 0.98;
     if (!v.ready) { fitWorld(); v.ready = true; }
     else { v.s = Math.max(v.sMin, v.s); v.tx = W / 2 - cx * v.s; v.ty = H / 2 - cy * v.s; clampView(); }
@@ -1213,14 +1214,42 @@
     saveState();
     measureHead();
     requestDraw();
+    if (window.NatalView) NatalView.update();
   }
+
+  /* --------------------------------- views -------------------------------- */
+  const APP = {
+    state,
+    save: saveState,
+    get chart() { return chart; },
+    get conv() { return lastConv; },
+  };
+  function setView(v) {
+    const natal = v === 'natal';
+    document.body.dataset.view = natal ? 'natal' : 'map';
+    wrap.hidden = natal;
+    $('natalView').hidden = !natal;
+    document.querySelectorAll('.tab').forEach((t) => {
+      if (t.dataset.view === (natal ? 'natal' : 'map')) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+    });
+    if (natal) {
+      if ($('app').classList.contains('map-only')) $('expand').click();
+      NatalView.update();
+    } else {
+      requestAnimationFrame(() => { resize(); if (!view.ready) return; measureHead(); requestDraw(); });
+    }
+  }
+  const viewFromHash = () => (location.hash === '#natal' ? 'natal' : 'map');
+  window.addEventListener('hashchange', () => setView(viewFromHash()));
+  if (window.NatalView) NatalView.init(APP);
 
   /* --------------------------------- boot --------------------------------- */
   const ro = new ResizeObserver(() => resize());
   ro.observe(wrap);
+  setView(viewFromHash());
   resize();
   recompute();
-  measureHead(); fitWorld(); requestDraw();
+  if (view.w >= 60) { measureHead(); fitWorld(); requestDraw(); }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { textW.clear(); requestDraw(); });
   setTimeout(() => { layer('land50'); setTimeout(() => { layer('land10'); layer('borders10'); requestDraw(); }, 300); }, 700);
 })();

@@ -33,6 +33,13 @@ body { margin: 0; }
   --land: #34537A;
   --coast: #7194BA;
   --danger: #FF8A7A;
+  --el-fire: #F0805E;
+  --el-earth: #9CC77A;
+  --el-air: #E6CB72;
+  --el-water: #62A9EF;
+  --asp-hard: #FF6A5C;
+  --asp-soft: #5C9DFF;
+  --asp-minor: #7FD3A6;
   --f-display: "Forum", "Times New Roman", Georgia, serif;
   --f-body: "Golos Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -79,7 +86,9 @@ button { cursor: pointer; touch-action: manipulation; }
 .panel > * { min-width: 0; }
 
 @media (min-width: 900px) {
-  .app { flex-direction: row-reverse; height: 100%; }
+  body { display: flex; flex-direction: column; }
+  .app { flex: 1 1 auto; min-height: 0; flex-direction: row-reverse; }
+  .natal { flex: 1 1 auto; min-width: 0; height: 100%; overflow-y: auto; }
   .mapwrap { flex: 1 1 auto; height: 100%; min-height: 0; border-bottom: 0; }
   .panel { flex: 0 0 372px; width: 372px; overflow-y: auto; border-right: 1px solid var(--rule); padding-block: 24px 40px; }
   .app.map-only .panel { display: none; }
@@ -110,9 +119,31 @@ button { cursor: pointer; touch-action: manipulation; }
   height: calc(var(--head-h, 80px) + 18px);
   background: linear-gradient(to bottom, rgba(7, 12, 22, .86) 0%, rgba(7, 12, 22, .62) 62%, rgba(7, 12, 22, 0) 100%);
 }
-@media (min-width: 900px) {
-  .app:not(.map-only) .mh-title, .app:not(.map-only) .mh-sep { display: none; }
+.app:not(.map-only) .mh-title, .app:not(.map-only) .mh-sep { display: none; }
+
+/* ------------------------------- top bar -------------------------------- */
+.topbar { flex: none; position: relative; z-index: 5; background: var(--ink); border-bottom: 1px solid var(--rule); }
+.tb-inner {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 10px;
 }
+.tb-brand { font-family: var(--f-display); font-size: 23px; letter-spacing: .07em; color: var(--fg); white-space: nowrap; line-height: 1; }
+.tabs { display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--panel); border: 1px solid var(--rule); }
+.tab { padding: 7px 15px; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; white-space: nowrap; text-align: center; }
+.tab:hover { color: var(--fg); }
+.tab[aria-current="page"] { background: var(--brass); color: var(--brass-ink); }
+@media (max-width: 599.98px) {
+  .tb-brand { font-size: 18px; }
+  .tab { padding: 7px 11px; font-size: 13.5px; }
+}
+@media (max-width: 519.98px) {
+  .tb-brand { display: none; }
+  .tabs { flex: 1; }
+  .tab { flex: 1; }
+}
+body[data-view="natal"] .for-map, body:not([data-view="natal"]) .for-natal { display: none !important; }
 @media (max-width: 599.98px) {
   .map-head { column-gap: 8px; top: calc(10px + var(--inset-top, 0px)); }
   .mh-title { font-size: 14px; letter-spacing: .12em; }
@@ -204,12 +235,6 @@ button { cursor: pointer; touch-action: manipulation; }
 }
 
 /* ------------------------------- panel --------------------------------- */
-.brand { display: none; }
-@media (min-width: 900px) {
-  .brand { display: block; }
-  .brand h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 30px; letter-spacing: .06em; line-height: 1.1; color: var(--fg); text-wrap: balance; }
-  .brand p { margin: 6px 0 0; color: var(--muted); font-size: 13.5px; max-width: 32ch; }
-}
 .sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
 .sec-h h2 { margin: 0; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); }
 .sec-h .aside { font-size: 12px; color: var(--muted); }
@@ -344,10 +369,124 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .cities small { color: var(--muted); font-family: var(--f-mono); font-size: 11px; margin-left: 5px; }
 .lc-actions { display: flex; gap: 16px; flex-wrap: wrap; }
 
+/* ------------------------------ natal view ------------------------------ */
+.natal { background: var(--ink); }
+.natal-inner {
+  box-sizing: border-box; max-width: 1320px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+@media (min-width: 900px) { .natal-inner { padding-left: 32px; padding-right: 32px; padding-block: 28px 56px; } }
+.natal-head h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 30px; letter-spacing: .04em; line-height: 1.15; text-wrap: balance; }
+.natal-head .nt { margin: 4px 0 0; font-family: var(--f-display); font-size: 19px; letter-spacing: .06em; text-transform: uppercase; color: var(--brass); }
+.natal-head .ns { margin: 6px 0 0; font-family: var(--f-mono); font-size: 12px; color: var(--muted); line-height: 1.6; }
+.nat-note { margin: 10px 0 0; padding: 8px 12px; border-radius: var(--r); border: 1px solid rgba(217,181,110,.3); background: rgba(217,181,110,.07); color: #E9D7B2; font-size: 13px; max-width: 70ch; }
+.natal-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1360px) { .natal-grid.top { grid-template-columns: minmax(0, 1.05fr) minmax(400px, 1fr); } }
+@media (min-width: 1100px) { .natal-grid.bottom { grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); } }
+.nat-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.wheel-box { margin: 0; min-width: 0; }
+#wheel { display: block; width: 100%; max-width: 780px; height: auto; aspect-ratio: 1 / 1; margin: 0 auto; -webkit-user-select: none; user-select: none; }
+.wheel-box figcaption { margin-top: 6px; text-align: center; font-size: 12.5px; color: var(--faint); }
+.nat-card { min-width: 0; padding: 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--rule); }
+.nat-card h3 { margin: 0 0 10px; display: flex; justify-content: space-between; gap: 12px; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); }
+.nat-card h3 span { letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--muted); font-size: 12px; }
+.nat-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.nat-table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.nat-table th { text-align: left; font-size: 11.5px; font-weight: 500; color: var(--muted); padding: 0 8px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+.nat-table td { padding: 7px 8px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+.nat-table tbody tr:last-child td { border-bottom: 0; }
+.nat-table tr[data-id] { cursor: pointer; }
+.nat-table tr[data-id]:hover td, .nat-table tr.on td { background: var(--raise); }
+.nat-table .gl { width: 24px; padding-right: 0; text-align: center; font-family: var(--f-glyph); font-size: 19px; line-height: 1; }
+.nat-table .nm { white-space: nowrap; font-weight: 500; }
+.nat-table .ps { white-space: nowrap; }
+.nat-table .pos { font-family: var(--f-mono); font-size: 13px; }
+.nat-table .sg { font-family: var(--f-glyph); font-size: 16px; }
+.nat-table .sgn { color: var(--muted); font-size: 12.5px; }
+.nat-table .hs { font-family: var(--f-mono); font-size: 13px; white-space: nowrap; }
+.nat-table .hs small { margin-left: 4px; font-size: 10.5px; color: var(--brass); }
+.nat-table .ru { font-family: var(--f-glyph); font-size: 17px; white-space: nowrap; }
+.nat-table .rx { color: var(--danger); font-size: 11px; font-weight: 600; }
+.tag { display: inline-block; padding: 1px 7px; border-radius: 999px; border: 1px solid; font-size: 11px; white-space: nowrap; }
+.tag.good { color: #9BE07A; border-color: rgba(155, 224, 122, .35); }
+.tag.bad { color: var(--danger); border-color: rgba(255, 138, 122, .35); }
+.tag .s, .nat-table th .s { display: none; }
+@media (max-width: 479.98px) {
+  .nat-table .sgn { display: none; }
+  .nat-card { padding: 14px 12px; }
+  .nat-table th, .nat-table td { padding-left: 5px; padding-right: 5px; }
+  .tag .l, .nat-table th .l { display: none; }
+  .tag .s, .nat-table th .s { display: inline; }
+}
+.ang { font-family: var(--f-mono); font-size: 10.5px; font-weight: 600; letter-spacing: -.02em; color: var(--brass); }
+.asp-grid { border-collapse: collapse; font-family: var(--f-glyph); margin: 0 auto; }
+.asp-grid td, .asp-grid th { width: 30px; min-width: 30px; height: 32px; padding: 0; text-align: center; line-height: 1; font-size: 16px; }
+.asp-grid td { border: 1px solid var(--rule); }
+.asp-grid th.ag-diag { font-weight: 400; font-size: 18px; }
+.asp-grid small { display: block; margin-top: 2px; font-family: var(--f-mono); font-size: 9px; color: var(--muted); }
+.ag-hard { color: var(--asp-hard); }
+.ag-soft { color: var(--asp-soft); }
+.ag-neutral { color: var(--fg); }
+.ag-minor { color: var(--asp-minor); }
+.asp-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 0; font-size: 12px; color: var(--muted); }
+.asp-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.asp-legend i { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
+.asp-list { list-style: none; margin: 14px 0 0; padding: 0; columns: 2 300px; column-gap: 28px; }
+.asp-list li { display: grid; grid-template-columns: 24px 20px 24px minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--rule); break-inside: avoid; font-size: 13px; }
+.asp-list li.dim { opacity: .3; }
+.al-p, .al-a { font-family: var(--f-glyph); font-size: 17px; text-align: center; line-height: 1; }
+.al-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.al-o { font-family: var(--f-mono); font-size: 12px; white-space: nowrap; }
+.al-o abbr { text-decoration: none; color: var(--faint); }
+.bal-wrap { display: grid; gap: 14px; }
+.bal { display: flex; flex-direction: column; gap: 4px; }
+.bal-row { display: grid; grid-template-columns: 118px 22px minmax(0, 1fr); align-items: center; gap: 8px; font-size: 14px; padding: 3px 0; }
+.bal-c { font-family: var(--f-mono); text-align: right; }
+.bal-g { font-family: var(--f-glyph); font-size: 17px; letter-spacing: 3px; }
+.bal-note { margin: 0; font-size: 12.5px; color: var(--muted); }
+#wheel .w-ring-out { fill: var(--panel); stroke: #2A3B58; stroke-width: 1.5; }
+#wheel .w-inner { fill: var(--ink); }
+#wheel .w-ring { fill: none; stroke: #2A3B58; stroke-width: 1.2; }
+#wheel .w-ring-soft { fill: none; stroke: #22314A; stroke-width: 1; }
+#wheel .w-sector { fill-opacity: .07; }
+#wheel .w-sign { font-family: var(--f-glyph); font-size: 40px; text-anchor: middle; dominant-baseline: central; }
+#wheel .w-tick { stroke: #3A4D6E; stroke-width: 1; }
+#wheel .w-cusp { stroke: #3C5070; stroke-width: 1; }
+#wheel .w-axis { stroke: var(--brass); stroke-width: 2.2; }
+#wheel .w-hnum { font-family: var(--f-mono); font-size: 21px; fill: var(--muted); text-anchor: middle; dominant-baseline: central; }
+#wheel .w-axlab { font-family: var(--f-mono); font-size: 25px; font-weight: 500; fill: var(--brass); text-anchor: middle; dominant-baseline: central; }
+#wheel .w-asp { stroke-linecap: round; }
+#wheel .w-asp-hard { stroke: var(--asp-hard); }
+#wheel .w-asp-soft { stroke: var(--asp-soft); }
+#wheel .w-asp-minor { stroke: var(--asp-minor); stroke-dasharray: 7 6; }
+#wheel .w-planet { font-family: var(--f-glyph); font-size: 46px; text-anchor: middle; dominant-baseline: central; }
+#wheel .w-deg { font-family: var(--f-mono); font-size: 23px; font-weight: 500; fill: var(--fg); text-anchor: middle; dominant-baseline: central; }
+#wheel .w-min { font-family: var(--f-mono); font-size: 18px; fill: var(--muted); text-anchor: middle; dominant-baseline: central; }
+#wheel .w-rx { fill: var(--danger); font-weight: 600; }
+#wheel .w-ptick { stroke-width: 2.5; }
+#wheel .w-conn { stroke-width: 1; opacity: .5; }
+#wheel .w-hit { fill: transparent; }
+#wheel .w-pt { cursor: pointer; outline: none; }
+#wheel .w-pt:focus-visible .w-hit, #wheel .w-pt.on .w-hit { stroke: var(--brass); stroke-width: 2; }
+#wheel .dim { opacity: .14; }
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
+<header class="topbar">
+  <div class="tb-inner">
+    <span class="tb-brand">Астрокартография</span>
+    <nav class="tabs" aria-label="Разделы">
+      <a class="tab" href="#map" data-view="map">Карта мира</a>
+      <a class="tab" href="#natal" data-view="natal">Натальная карта</a>
+    </nav>
+  </div>
+</header>
+
 <div class="app" id="app">
   <section class="mapwrap" id="mapwrap" aria-label="Карта мира с линиями планет">
     <canvas id="map" tabindex="0" aria-label="Карта астрокартографии. Перетаскивайте, чтобы двигать, сводите пальцы или крутите колесо, чтобы приблизить. Нажмите на точку, чтобы увидеть ближайшие линии."></canvas>
@@ -399,11 +538,36 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
     </div>
   </section>
 
+  <section class="natal" id="natalView" hidden aria-labelledby="natH">
+    <div class="natal-inner">
+      <header class="natal-head">
+        <h1 id="natH">Натальная карта</h1>
+        <p class="nt" id="natTitle"></p>
+        <p class="ns" id="natSub"></p>
+        <p class="nat-note" id="natNote" hidden></p>
+      </header>
+      <div class="natal-grid top">
+        <figure class="wheel-box">
+          <svg id="wheel" viewBox="-62 -62 1124 1124" role="img" aria-label="Колесо натальной карты"></svg>
+          <figcaption>Нажмите на планету в круге или в таблице, чтобы выделить её аспекты.</figcaption>
+        </figure>
+        <div class="nat-side">
+          <section class="nat-card"><h3>Планеты и точки</h3><div class="nat-scroll"><table class="nat-table" id="natPlanets"></table></div></section>
+          <section class="nat-card"><h3>Дома</h3><div class="nat-scroll"><table class="nat-table" id="natHouses"></table></div></section>
+        </div>
+      </div>
+      <div class="natal-grid bottom">
+        <section class="nat-card"><h3>Аспекты <span id="natAspCount"></span></h3>
+          <div class="nat-scroll"><table class="asp-grid" id="natAspGrid"></table></div>
+          <div class="asp-legend"><span><i style="background:var(--asp-hard)"></i>напряжённые</span><span><i style="background:var(--asp-soft)"></i>гармоничные</span><span><i style="background:var(--asp-minor)"></i>минорные</span><span>цифра — орб в градусах</span></div>
+          <ul class="asp-list" id="natAspList"></ul>
+        </section>
+        <section class="nat-card"><h3>Стихии и кресты</h3><div class="bal-wrap" id="natBalance"></div></section>
+      </div>
+    </div>
+  </section>
+
   <aside class="panel" id="panel">
-    <header class="brand">
-      <h1>Астрокартография</h1>
-      <p>Где на Земле планеты вашего рождения стояли на четырёх углах неба.</p>
-    </header>
 
     <section aria-labelledby="hBirth">
       <div class="sec-h"><h2 id="hBirth">Данные рождения</h2></div>
@@ -444,12 +608,30 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
       </form>
     </section>
 
-    <section aria-labelledby="hAngles">
+    <section class="for-natal" aria-labelledby="hNatSet">
+      <div class="sec-h"><h2 id="hNatSet">Натальная карта</h2></div>
+      <div class="layer-body">
+        <div class="field"><label for="natHouse">Система домов</label><select class="inp" id="natHouse"></select></div>
+        <div class="seg" id="natAspMode" role="group" aria-label="Аспекты">
+          <button type="button" data-m="major">Мажорные аспекты</button>
+          <button type="button" data-m="minor">+ минорные</button>
+        </div>
+        <div class="seg" id="natPts" role="group" aria-label="Точки">
+          <button type="button" data-p="nodes">Узлы</button>
+          <button type="button" data-p="lilith">Лилит</button>
+          <button type="button" data-p="fortune">Парс Фортуны</button>
+          <button type="button" data-p="angles">Аспекты к ASC и MC</button>
+        </div>
+        <p class="layer-hint">Орбы: соединение и оппозиция 8°, трин и квадрат 7°, секстиль 5°, для Солнца и Луны на 2° шире; к узлам и Лилит — до 5°. Минорные аспекты — 1,5–3°.</p>
+      </div>
+    </section>
+
+    <section class="for-map" aria-labelledby="hAngles">
       <div class="sec-h"><h2 id="hAngles">Линии</h2><span class="aside">нажмите, чтобы скрыть</span></div>
       <div class="angles" id="angles"></div>
     </section>
 
-    <section aria-labelledby="hPlanets">
+    <section class="for-map" aria-labelledby="hPlanets">
       <div class="sec-h"><h2 id="hPlanets">Планеты</h2><span class="aside" id="planetsAside">положение в знаке</span></div>
       <div class="filters">
         <button type="button" class="pill" data-set="all">Все</button>
@@ -460,7 +642,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
       <ul class="planets" id="planets"></ul>
     </section>
 
-    <section aria-labelledby="hAsp">
+    <section class="for-map" aria-labelledby="hAsp">
       <div class="sec-h"><h2 id="hAsp">Аспектные линии</h2>
         <button type="button" class="switch" id="aspOn" role="switch" aria-checked="false" aria-labelledby="hAsp"><span class="knob"></span><span class="sw-t">Выкл</span></button></div>
       <p class="layer-note">Где планета образует секстиль, квадрат или трин к MC или Асценденту. Это более мягкие линии рядом с основными.</p>
@@ -472,7 +654,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
       </div>
     </section>
 
-    <section aria-labelledby="hPar">
+    <section class="for-map" aria-labelledby="hPar">
       <div class="sec-h"><h2 id="hPar">Параны</h2>
         <button type="button" class="switch" id="parOn" role="switch" aria-checked="false" aria-labelledby="hPar"><span class="knob"></span><span class="sw-t">Выкл</span></button></div>
       <p class="layer-note">Широты, на которых две планеты в сутки рождения одновременно стояли на углах. Паран действует полосой ±1° по широте вокруг всего мира.</p>
@@ -484,7 +666,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
       </div>
     </section>
 
-    <section aria-labelledby="hDyn">
+    <section class="for-map" aria-labelledby="hDyn">
       <div class="sec-h"><h2 id="hDyn">Динамика</h2></div>
       <p class="layer-note">Транзиты и прогрессии поверх вашей карты: куда планеты «приходят» на выбранную дату.</p>
       <div class="seg" id="dynMode" role="group" aria-label="Режим">
@@ -507,6 +689,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
       <p>MC — где планета стояла в зените, IC — в надире, ASC — где она восходила, DSC — где заходила. Линии зависят только от момента рождения; город нужен, чтобы перевести местное время во всемирное.</p>
       <p>Положения планет геоцентрические, видимые, на истинный экватор даты (Astronomy Engine, точность около угловой минуты). Горизонт геометрический, без рефракции. Узел — средний.</p>
       <p>Аспектные линии считаются по эклиптике: MC или Асцендент совпадает с градусом планеты ± 60°, 90° или 120°. Параны — по прямым восхождениям и склонениям, как и основные линии. Транзиты и вторичные прогрессии (день после рождения за год жизни) наложены на звёздное время рождения, как в циклокартографии.</p>
+      <p>Натальная карта: тропический зодиак, дома по выбранной системе (по умолчанию Плацидус), средний узел и средняя Лилит (апогей лунной орбиты). Парс Фортуны: днём ASC + Луна − Солнце, ночью ASC + Солнце − Луна.</p>
       <p>Часовые пояса берутся из базы IANA с историей: летнее и декретное время, переходы 1991, 2011 и 2014 годов. Если в документах время другое, задайте смещение вручную.</p>
     </section>
   </aside>
@@ -516,6 +699,8 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 <script src="js/data.js"></script>
 <script src="js/acg-core.js"></script>
 <script src="js/meanings.js"></script>
+<script src="js/natal.js"></script>
+<script src="js/natal-view.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
