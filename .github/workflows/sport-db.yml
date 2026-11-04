@@ -1,0 +1,100 @@
+# Football base for checking the "Спорт" judgement: odds and the chart before every match, the result after it.
+# Runs after each run of the ESPN copy (and every three hours on its own, in case that one stalls);
+# by hand it adds past seasons. The base is the `football-db` branch. See tools/sport_db.js.
+name: Football base
+
+on:
+  workflow_run:
+    workflows: ['Sport data mirror']
+    types: [completed]
+  schedule:
+    - cron: '41 */3 * * *'
+  workflow_dispatch:
+    inputs:
+      seasons:
+        description: 'past seasons, e.g. 2018-2025 (2018 = from August 2018 to July 2019); empty: the last week and the next three days'
+        default: ''
+      leagues:
+        description: 'leagues, comma-separated (empty: eng.1, esp.1, uefa.champions, uefa.europa, uefa.europa.conf)'
+        default: ''
+      rejudge:
+        description: 'recompute the judgement of the whole base with the current js/sport.js'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: football-db
+  cancel-in-progress: false
+
+jobs:
+  base:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: site
+          sparse-checkout: |
+            js
+            tools
+
+      - name: Astronomy Engine
+        run: npm i -s --no-save --prefix "$RUNNER_TEMP/n" astronomy-engine@2.1.19
+
+      - name: GeoNames cache
+        uses: actions/cache@v4
+        with:
+          path: geonames
+          key: geonames-cities500-v1
+
+      - name: GeoNames (towns with stadiums)
+        run: |
+          if [ ! -s geonames/cities500.txt ]; then
+            mkdir -p geonames && cd geonames
+            curl -fsSL --retry 3 -o c.zip https://download.geonames.org/export/dump/cities500.zip && unzip -oq c.zip cities500.txt && rm c.zip
+            curl -fsSL --retry 3 -o countryInfo.txt https://download.geonames.org/export/dump/countryInfo.txt
+          fi
+          wc -l geonames/cities500.txt
+
+      - name: The base
+        run: |
+          git clone -q --depth 1 --branch football-db "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" db \
+            || { mkdir db && git -C db init -q -b football-db && git -C db remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"; }
+          git -C db config user.name "github-actions[bot]"
+          git -C db config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Update
+        env:
+          ASTRONOMY_JS: ${{ runner.temp }}/n/node_modules/astronomy-engine
+          SEASONS: ${{ inputs.seasons }}
+          LEAGUES: ${{ inputs.leagues }}
+          REJUDGE: ${{ inputs.rejudge }}
+        run: |
+          publish() {
+            cp site/tools/football-db-README.md db/README.md
+            git -C db add -A
+            git -C db diff --cached --quiet && return 0
+            git -C db commit -q -m "$1"
+            for i in 1 2 3 4; do
+              git -C db push -q origin football-db && return 0
+              sleep $((i * 15))
+            done
+            echo "::warning::could not push the base this time"
+          }
+          lg=${LEAGUES:+--leagues $LEAGUES}
+          if [ "$REJUDGE" = "true" ]; then
+            node site/tools/sport_db.js db --rejudge
+            publish "Rejudge with js/sport.js $(git -C site log -1 --format=%h -- js/sport.js)"
+          elif [ -n "$SEASONS" ]; then
+            # one season at a time, each saved before the next starts
+            for y in $(seq ${SEASONS%-*} ${SEASONS#*-}); do
+              node site/tools/sport_db.js db --geonames geonames --months "${y}07-$((y + 1))06" $lg || echo "::warning::season $y did not finish"
+              publish "Season $y/$((y + 1))"
+            done
+          else
+            node site/tools/sport_db.js db --geonames geonames $lg
+            publish "Matches $(date -u +%Y-%m-%dT%H:%MZ)"
+          fi
