@@ -2,7 +2,7 @@
    SVG wheel and tables. Reads the shared app state via the object passed to init(). */
 (function () {
   'use strict';
-  const ACG = window.ACG, N = window.NATAL, F = window.FEAT;
+  const ACG = window.ACG, N = window.NATAL, F = window.FEAT, H = window.HORARY;
   const $ = (id) => document.getElementById(id);
   const VS = '︎';
   const g = (s) => s + VS;
@@ -22,7 +22,7 @@
   let natal = null;     // the chart drawn as the main wheel (natal, solar or composite)
   let outer = null;     // partner's points in the outer ring (synastry)
   let cross = [];       // synastry aspects
-  let hl = null, app = null, solarInfo = null, natB = null;
+  let hl = null, app = null, solarInfo = null, natB = null, horInfo = null, horCache = null;
 
   function opts() {
     const st = app.state;
@@ -34,8 +34,15 @@
     st.solar = Object.assign({ year: null, place: null }, st.solar || {});
     return st.solar;
   }
+  const HOR_POINTS = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Node', 'SNode', 'Fortune'];
+  function horOpts() {
+    const st = app.state;
+    st.horary = Object.assign({ date: null, time: null, place: null, q: '', base: 1, rel: 7 }, st.horary || {});
+    return st.horary;
+  }
   const visible = (id) => {
     const o = opts();
+    if (o.mode === 'horary') return HOR_POINTS.includes(id);
     if (id === 'Node' || id === 'SNode') return o.nodes;
     if (id === 'Lilith') return o.lilith;
     if (id === 'Chiron') return o.chiron;
@@ -235,7 +242,7 @@
 
   function renderAspects() {
     if (outer) return renderCrossAspects();
-    const pts = natal.points.filter((p) => visible(p.id) && !p.noAspects).concat(opts().angles ? natal.angles : []);
+    const pts = natal.points.filter((p) => visible(p.id) && !p.noAspects).concat(opts().angles && opts().mode !== 'horary' ? natal.angles : []);
     const idx = (p) => pts.findIndex((q) => q.id === p.id);
     const M = {};
     for (const x of natal.aspects) { const i = idx(x.A), j = idx(x.B); if (i < 0 || j < 0) continue; M[Math.max(i, j) + ':' + Math.min(i, j)] = x; }
@@ -293,6 +300,129 @@
     $('natSolarList').onclick = (e) => { const li = e.target.closest('li[data-i]'); if (li) { solarOpts().place = { name: top[+li.dataset.i].city.ru, country: top[+li.dataset.i].city.c, lat: top[+li.dataset.i].city.lat, lon: top[+li.dataset.i].city.lon, tz: top[+li.dataset.i].city.tz }; changed(); syncSolarControls(); } };
   }
 
+  /* -------------------------------- horary -------------------------------- */
+  const HG = (id) => `<span class="tg" style="color:${BODY[id].color}">${g(BODY[id].glyph)}</span>`;
+  const HN = (id) => `${HG(id)} ${H.RU[id]}`;
+  const INS = { Sun: 'Солнцем', Moon: 'Луной', Mercury: 'Меркурием', Venus: 'Венерой', Mars: 'Марсом', Jupiter: 'Юпитером', Saturn: 'Сатурном' };
+  const meets = (x, asp) => (asp === 0 ? `соединение с ${INS[x]}` : `${H.ASP[asp].ru} к ${H.DAT[x]}`);
+  const ASP_NATURE = { 0: 'соединение — встреча напрямую', 60: 'секстиль — легко, при небольшом усилии', 120: 'трин — легко и естественно', 90: 'квадрат — через трудности и препятствия', 180: 'оппозиция — случится, но часто с сожалением' };
+  const VERDICT = { yes: ['Да', 'good'], via: ['Да, через посредника', 'good'], maybe: ['Под вопросом', 'warn'], no: ['Скорее нет', 'bad'], look: ['Смотрите состояние планеты', 'warn'], past: ['Уже было', 'warn'] };
+  const whenText = (ms, tz) => localTime(ms, tz).text;
+  function inDays(ms, t0) {
+    const h = (ms - t0) / 3600000;
+    if (h < 48) return `${Math.max(1, Math.round(h))} ${plural(Math.max(1, Math.round(h)), 'час', 'часа', 'часов')}`;
+    const d = Math.round(h / 24);
+    return `${d} ${plural(d, 'день', 'дня', 'дней')}`;
+  }
+  const andJoin = (list) => (list.length < 2 ? list.join('') : `${list.slice(0, -1).join(', ')} и ${list[list.length - 1]}`);
+  const recText = (who, host, kinds) => kinds.length ? `${H.RU[who]} стоит в ${andJoin(kinds.map((k) => ({ domicile: 'обители', exalt: 'экзальтации', trip: 'триплицитете', term: 'термах', face: 'фасе', detriment: 'изгнании', fall: 'падении' }[k])))} ${H.GEN[host]}` : '';
+  function pairHtml(p, an, tz) {
+    if (p.same) return `<p>${esc(p.label)}: одна планета, ${HN(p.a)}.</p>`;
+    const lines = [];
+    const now = `${H.ASP[p.now.asp].g} ${H.ASP[p.now.asp].ru}, орб ${orbText(p.now.orb)}, ${p.now.applying ? 'сходящийся' : 'расходящийся'}`;
+    lines.push(`<p class="hp-h">${HN(p.a)} <span class="muted">и</span> ${HN(p.b)} <span class="muted">· ${esc(p.label)}</span></p>`);
+    if (p.perfects) {
+      lines.push(`<p><b>${H.ASP[p.asp].g} ${H.ASP[p.asp].ru} станет точным</b> через ${orbText(p.degrees)} — в небе ${whenText(p.t, tz)} (через ${inDays(p.t, an.t0)}). Характер: ${ASP_NATURE[p.asp]}.</p>`);
+      lines.push(`<p class="muted">Срок по Фроули: около ${Math.max(1, Math.round(p.degrees))} единиц; к перфекции идёт ${H.RU[p.timing.fast]} (${ACG.SIGNS[Math.floor(n360(an.P[p.timing.fast].lon) / 30)][1]}, ${RN[an.P[p.timing.fast].house]} дом) — единицы скорее ${p.timing.units}. Кардинальные знаки и угловые дома ускоряют, фиксированные знаки и падающие дома замедляют; единицу выбирайте и по смыслу вопроса.</p>`);
+      if (p.prohibit.length) lines.push(`<p class="hp-warn">Возможный запрет: раньше ${p.prohibit.slice(0, 2).map((x) => `${H.RU[x.x]} образует ${meets(x.s, x.asp)} (через ${inDays(x.t, an.t0)})`).join('; ')}. Если эта планета мешает по смыслу вопроса, дело может сорваться.</p>`);
+    } else {
+      if (!p.now.applying && p.now.orb < 1) lines.push(`<p class="hp-good">Аспект (${H.ASP[p.now.asp].ru}) только что был точным: событие, скорее всего, уже произошло или происходит сейчас.</p>`);
+      lines.push(`<p>Сейчас: ${now}. До смены знака (${H.RU[p.signChange.id]} уходит через ${inDays(p.signChange.t, an.t0)}) точного аспекта не будет.</p>`);
+      if (p.afterSign) lines.push(`<p class="muted">Аспект (${H.ASP[p.afterSign.asp].ru}) станет точным уже после смены знака, ${whenText(p.afterSign.t, tz)}.</p>`);
+      if (p.refranation) lines.push(`<p class="hp-warn">Рефранация: ${H.RU[p.refranation.id]} разворачивается до перфекции.</p>`);
+      for (const t of p.translation) lines.push(`<p class="hp-good">Перенос света: ${HN(t.x)} отходит от ${H.GEN[t.from]} и через ${inDays(t.t, an.t0)} образует ${meets(t.to, t.asp)}.</p>`);
+      for (const c of p.collection) lines.push(`<p class="hp-good">Сбор света: оба сигнификатора приходят к ${H.DAT[c.x]} (${H.ASP[c.aspA].ru} и ${H.ASP[c.aspB].ru}).</p>`);
+    }
+    const r1 = recText(p.a, p.b, p.recAB), r2 = recText(p.b, p.a, p.recBA);
+    lines.push(`<p class="muted">Рецепция: ${[r1, r2].filter(Boolean).join('; ') || 'нет'}${p.mutual ? ' — взаимная рецепция' : ''}. Планета-хозяин относится к гостю благосклонно, если он в её обители или экзальтации, и с неприязнью — если в её изгнании или падении.</p>`);
+    return `<div class="hp">${lines.join('')}</div>`;
+  }
+  function renderHoraryCard() {
+    const card = $('natHoraryCard');
+    card.hidden = opts().mode !== 'horary' || !horInfo;
+    if (card.hidden) return;
+    const an = horInfo.an, tz = horInfo.place.tz, ho = horOpts();
+    const [label, cls] = VERDICT[an.verdict.v];
+    $('horVerdict').innerHTML = `<div class="hv ${cls}"><b>${label}</b><span>${esc(an.verdict.t)}</span></div>`;
+    $('horHouseNote').textContent = an.base === 1 ? `Дом вопроса: ${RN[an.qh]}` : `Дом вопроса: ${RN[an.qh]} (${RN[an.rel]} от ${RN[an.base]})`;
+    const roles = [[an.sigBase, an.base === 1 ? 'Вы (управитель I)' : `О ком вопрос (управитель ${RN[an.base]})`]];
+    if (an.base === 1) roles.push(['Moon', 'Вы (Луна)']);
+    roles.push([an.sigQ, `Предмет вопроса (управитель ${RN[an.qh]})`]);
+    const tag = (k) => `<span class="tag ${['detriment', 'fall', 'peregrine'].includes(k) ? 'bad' : 'good'}">${H.DIGN_RU[k]}</span>`;
+    const atag = ([t, v]) => `<span class="tag ${v > 0 ? 'good' : v < 0 ? 'bad' : ''}">${t}</span>`;
+    $('horSig').innerHTML = roles.map(([id, role]) => {
+      const p = an.P[id];
+      return `<li><span class="hs-role">${role}</span>
+        <span class="hs-main"><span class="nm">${HN(id)}${p.retro ? ' <span class="rx">R</span>' : ''}</span><span class="ps">${signCell(p.lon)}</span><span class="hs">${RN[p.house]} дом${p.nearCusp ? ' <small title="в пределах 5° до куспида, читается в следующем доме">у куспида</small>' : ''}</span></span>
+        <span class="hs-tags">${p.ess.map(tag).join(' ')} ${p.acc.map(atag).join(' ')}</span></li>`;
+    }).join('');
+    $('horPairs').innerHTML = an.pairs.map((p) => pairHtml(p, an, tz)).join('');
+    const M = an.P.Moon, ms = pos(M.lon);
+    const next = an.moonNext.map((x) => `${H.ASP[x.asp].g} ${meets(x.id, x.asp)} через ${inDays(x.t, an.t0)}`);
+    const prev = an.moonPrev[0];
+    $('horMoon').innerHTML = `<p>Луна: ${ms.text} ${esc(ms.name)}, ${RN[M.house]} дом. ${prev ? `Последний аспект — ${meets(prev.id, prev.asp)}, ${inDays(an.t0, prev.t)} назад.` : 'В этом знаке Луна ещё не делала аспектов.'}</p>
+      <p>${an.voc ? '<b>Луна без курса</b>: до ухода из знака аспектов больше не будет.' : `Дальше: ${next.join(', ')}.`} Из знака Луна уйдёт через ${inDays(an.exit.Moon, an.t0)}.</p>`;
+    $('horWarn').innerHTML = an.warn.length ? an.warn.map((w) => `<li>${esc(w.t)}</li>`).join('') : '<li class="muted">Препятствий к суждению нет.</li>';
+  }
+  function horaryChart() {
+    const ho = horOpts(), place = ho.place || app.state.place;
+    if (!ho.date || !ho.time) setHoraryNow(false);
+    const [y, m, d] = ho.date.split('-').map(Number), [hh, mi] = ho.time.split(':').map(Number);
+    const conv = ACG.localToUtc(y, m, d, hh, mi, place.tz || 'UTC');
+    const key = [conv.utc, place.lat, place.lon, ho.base, ho.rel, app.state.nodeMode].join('|');
+    if (horCache && horCache.key === key) return horCache.v;
+    const chart = ACG.computeChart(conv.utc, { node: app.state.nodeMode });
+    chart.bodies.forEach((b) => { if (b.id === 'Node') b.retro = b.speed < 0.005; });
+    const nat = N.computeNatal(chart, place.lat, place.lon, { house: 'R', minor: false, points: (id) => HOR_POINTS.includes(id), anglesAspects: false });
+    // Lot of Fortune as Lilly and Frawley take it in horary: ASC + Moon − Sun by day and by night
+    const f = nat.points.find((p) => p.id === 'Fortune'), sun = nat.points.find((p) => p.id === 'Sun'), moon = nat.points.find((p) => p.id === 'Moon');
+    if (f) { f.lon = n360(nat.asc + moon.lon - sun.lon); f.sign = Math.floor(f.lon / 30); f.house = N.houseOf(f.lon, nat.cusps); }
+    const v = { utc: conv.utc, place, chart, nat, an: H.analyse(chart, nat, { base: ho.base, rel: ho.rel }) };
+    horCache = { key, v };
+    return v;
+  }
+  // the question's moment: now, at the question's place
+  function setHoraryNow(redraw) {
+    const ho = horOpts(), place = ho.place || app.state.place, now = Date.now();
+    const loc = new Date(now + ACG.tzOffsetMin(place.tz || 'UTC', now) * 60000);
+    ho.date = `${loc.getUTCFullYear()}-${pad(loc.getUTCMonth() + 1)}-${pad(loc.getUTCDate())}`;
+    ho.time = `${pad(loc.getUTCHours())}:${pad(loc.getUTCMinutes())}`;
+    if (redraw) { syncHoraryControls(); changed(); }
+  }
+  function syncHoraryControls() {
+    const ho = horOpts();
+    $('horQ').value = ho.q || '';
+    $('horDate').value = ho.date || '';
+    $('horTime').value = ho.time || '';
+    if (document.activeElement !== $('horPlace')) $('horPlace').value = app.placeLabel(ho.place || app.state.place);
+    $('horBase').value = String(ho.base);
+    $('horRel').value = String(ho.rel);
+  }
+  function initHoraryControls() {
+    $('horBase').innerHTML = H.BASES.map(([n, t]) => `<option value="${n}">${t}</option>`).join('');
+    $('horRel').innerHTML = H.HOUSES.map((t, i) => (i ? `<option value="${i}">${RN[i]} — ${t}</option>` : '')).join('');
+    const ho = () => horOpts();
+    $('horQ').addEventListener('change', (e) => { ho().q = e.target.value.trim().slice(0, 140); changed(); });
+    $('horDate').addEventListener('change', (e) => { if (e.target.value) { ho().date = e.target.value; changed(); } });
+    $('horTime').addEventListener('change', (e) => { if (e.target.value) { ho().time = e.target.value.slice(0, 5); changed(); } });
+    $('horNow').addEventListener('click', () => setHoraryNow(true));
+    $('horBase').addEventListener('change', (e) => { ho().base = +e.target.value; changed(); });
+    $('horRel').addEventListener('change', (e) => { ho().rel = +e.target.value; changed(); });
+    app.makePlaceSearch($('horPlace'), $('horSuggest'), () => ho().place || app.state.place, (p) => { ho().place = p; changed(); });
+    $('horHome').addEventListener('click', () => { ho().place = null; syncHoraryControls(); changed(); });
+    $('horHere').addEventListener('click', () => {
+      if (!navigator.geolocation) { $('horHereNote').textContent = 'Браузер не умеет определять место.'; return; }
+      $('horHereNote').textContent = 'Определяем место…';
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const lat = pos.coords.latitude, lon = pos.coords.longitude, near = app.nearestCity(lat, lon);
+        ho().place = { name: near && near.km < 40 ? near.city.ru : `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`, country: near ? near.city.c : '', lat, lon, tz: near ? near.city.tz : 'UTC' };
+        $('horHereNote').textContent = '';
+        syncHoraryControls(); changed();
+      }, () => { $('horHereNote').textContent = 'Не удалось определить место: разрешите доступ к геопозиции или выберите город.'; }, { timeout: 10000, maximumAge: 600000 });
+    });
+    syncHoraryControls();
+  }
+
   /* ------------------------------- headings ------------------------------- */
   function renderHead() {
     const st = app.state, mode = opts().mode;
@@ -300,7 +430,11 @@
     const [y, m, d] = st.date.split('-').map(Number);
     const birth = `${d} ${MONTHS[m - 1]} ${y} · ${st.time} · ${st.place.name}`;
     let title = birth, sub = '';
-    if (mode === 'solar' && solarInfo) {
+    if (mode === 'horary' && horInfo) {
+      const P = horInfo.place, lt = localTime(horInfo.utc, P.tz);
+      title = horOpts().q ? `«${horOpts().q}»` : 'Хорарная карта';
+      sub = `${lt.text} (${offText(lt.off)}) · ${P.name} · ${fmtLat(P.lat)} · ${fmtLon(P.lon)} · дома: Региомонтан`;
+    } else if (mode === 'solar' && solarInfo) {
       const P = solarInfo.place, lt = localTime(solarInfo.utc, P.tz), sp = pos(solarInfo.sunLon);
       title = `Соляр ${solarInfo.year} · ${P.name}`;
       sub = `Солнце возвращается в ${sp.text}${pad(sp.sec)}″ ${sp.name}: ${lt.text} (${offText(lt.off)}) · ${fmtLat(P.lat)} · ${fmtLon(P.lon)} · дома: ${sys.ru}`;
@@ -312,10 +446,10 @@
       const P = st.place, conv = app.conv, u = new Date(conv.utc);
       sub = `${fmtLat(P.lat)} · ${fmtLon(P.lon)} · UTC ${pad(u.getUTCHours())}:${pad(u.getUTCMinutes())} (${offText(conv.offset)}) · дома: ${sys.ru}`;
     }
-    $('natH').textContent = mode === 'solar' ? 'Соляр' : mode === 'synastry' ? 'Совместимость' : 'Натальная карта';
+    $('natH').textContent = mode === 'solar' ? 'Соляр' : mode === 'synastry' ? 'Совместимость' : mode === 'horary' ? 'Хорар' : 'Натальная карта';
     $('natTitle').textContent = title;
     $('natSub').textContent = sub;
-    const note = mode === 'synastry' && !natB ? 'Добавьте данные партнёра в панели слева (на телефоне — ниже), чтобы увидеть синастрию и композит.' : natal.note;
+    const note = mode === 'synastry' && !natB ? 'Добавьте данные партнёра в панели слева (на телефоне — ниже), чтобы увидеть синастрию и композит.' : mode === 'horary' ? '' : natal.note;
     $('natNote').textContent = note || '';
     $('natNote').hidden = !note;
   }
@@ -347,8 +481,13 @@
     syncSeg();
     $('natAspMode').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; opts().minor = b.dataset.m === 'minor'; syncSeg(); changed(); });
     $('natPts').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.p; opts()[k] = !opts()[k]; syncSeg(); changed(); });
-    $('natMode').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; opts().mode = b.dataset.m; hl = null; syncSeg(); changed(); });
+    $('natMode').addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.m === 'horary' && opts().mode !== 'horary' && !horOpts().date) setHoraryNow(false);
+      opts().mode = b.dataset.m; hl = null; syncSeg(); if (b.dataset.m === 'horary') syncHoraryControls(); changed();
+    });
     $('natSyn').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; opts().syn = b.dataset.s; hl = null; syncSeg(); changed(); });
+    if (H) initHoraryControls();
     // solar return controls
     syncSolarControls();
     $('solYear').addEventListener('change', (e) => { const v = parseInt(e.target.value, 10); solarOpts().year = v >= 1800 && v <= 2100 ? v : null; changed(); syncSolarControls(); });
@@ -372,10 +511,13 @@
     if (!app || !app.chart || $('natalView').hidden) return;
     const o = opts(), P = app.state.place;
     const natOpts = { house: o.house, minor: o.minor, points: visible, anglesAspects: o.angles };
-    outer = null; cross = []; solarInfo = null; natB = null;
+    outer = null; cross = []; solarInfo = null; natB = null; horInfo = null;
     const natA = N.computeNatal(app.chart, P.lat, P.lon, natOpts);
     natal = natA;
-    if (o.mode === 'solar') {
+    if (o.mode === 'horary' && H) {
+      horInfo = horaryChart();
+      natal = horInfo.nat;
+    } else if (o.mode === 'solar') {
       const so = solarOpts(), year = so.year || defaultSolarYear(), place = so.place || P;
       const sunLon = app.chart.bodies.find((b) => b.id === 'Sun').elon;
       const utc = F.solarReturnUtc(app.chart.utcMs, sunLon, year);
@@ -396,8 +538,8 @@
       }
     }
     if (hl && !natal.points.some((p) => p.id === hl) && !(outer && outer.some((p) => p.id === hl))) hl = null;
-    $('natBalanceCard').hidden = !!outer;
-    renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard();
+    $('natBalanceCard').hidden = !!outer || o.mode === 'horary';
+    renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard(); renderHoraryCard();
   }
 
   window.NatalView = {

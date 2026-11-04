@@ -24,6 +24,9 @@
     'auth/requires-recent-login': 'Для этого нужно заново ввести текущий пароль.',
     'auth/user-disabled': 'Этот аккаунт отключён.',
     'auth/unauthorized-domain': 'Этот сайт не добавлен в Firebase (Authentication → Settings → Authorized domains).',
+    'auth/popup-blocked': 'Браузер не дал открыть окно входа Google. Разрешите всплывающие окна для сайта и нажмите ещё раз.',
+    'auth/account-exists-with-different-credential': 'Этот адрес уже зарегистрирован с паролем. Войдите по почте и паролю.',
+    'auth/web-storage-unsupported': 'Браузер блокирует хранение данных входа. Выключите приватный режим или разрешите cookies.',
     'permission-denied': 'Нет доступа к данным. Проверьте правила Firestore.',
     'unavailable': 'Сервер недоступен. Попробуйте чуть позже.',
   };
@@ -120,6 +123,7 @@
   const field = (id, label, type, extra) => `<div class="field"><label for="${id}">${label}</label><input class="inp" id="${id}" name="${id}" type="${type}" ${extra || ''}></div>`;
   const head = (title) => `<div class="acc-head"><h2 id="accTitle">${title}</h2><button type="button" class="icon-btn" data-act="close" aria-label="Закрыть"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 5l10 10M15 5L5 15"/></svg></button></div>`;
   const noteHtml = () => note ? `<div class="acc-msg${note.ok ? ' ok' : ''}" role="status">${esc(note.t)}</div>` : '';
+  const googleBtn = () => `<div class="acc-or"><span>или</span></div><button type="button" class="btn-line btn-google" data-act="google">Войти через Google</button>`;
   const btn = (text) => `<button type="submit" class="btn-main"${busy ? ' disabled' : ''}>${busy ? 'Подождите…' : text}</button>`;
 
   function render() {
@@ -133,6 +137,7 @@
           ${field('accPass', 'Пароль', 'password', 'autocomplete="current-password" required')}
           ${btn('Войти')}
         </form>
+        ${googleBtn()}
         <div class="acc-links"><button type="button" class="link-btn" data-act="reset">Забыли пароль?</button><button type="button" class="link-btn" data-act="register">Зарегистрироваться</button></div>
       </div>`;
     } else if (screen === 'register') {
@@ -145,6 +150,7 @@
           <p class="muted">Пароль — не короче 6 символов. После регистрации придёт письмо со ссылкой для подтверждения почты.</p>
           ${btn('Создать аккаунт')}
         </form>
+        ${googleBtn()}
         <div class="acc-links"><button type="button" class="link-btn" data-act="login">Уже есть аккаунт? Войти</button></div>
       </div>`;
     } else if (screen === 'reset') {
@@ -181,7 +187,7 @@
           ${partnerReady ? `<button type="button" class="link-btn" data-act="savePartner" style="margin-top:6px">Сохранить и карту партнёра${p.name ? ` (${esc(p.name)})` : ''}</button>` : ''}
         </section>
         <section class="acc-sec"><h3>Мои карты</h3><ul class="acc-list" id="accCharts"></ul></section>
-        <div class="acc-links"><button type="button" class="link-btn" data-act="password">Сменить пароль</button><button type="button" class="link-btn" data-act="logout">Выйти</button></div>
+        <div class="acc-links">${hasPassword() ? '<button type="button" class="link-btn" data-act="password">Сменить пароль</button>' : `<span class="muted">${viaGoogle() ? 'Вход через Google' : ''}</span>`}<button type="button" class="link-btn" data-act="logout">Выйти</button></div>
       </div>`;
     }
     dlg.innerHTML = h;
@@ -200,10 +206,28 @@
   }
 
   /* -------------------------------- actions -------------------------------- */
+  const providers = () => (user && user.providerData ? user.providerData.map((p) => p && p.providerId) : []);
+  const hasPassword = () => providers().includes('password');
+  const viaGoogle = () => providers().includes('google.com');
+  // the popup must open within the tap, so call it right away when the SDK is already loaded
+  async function googleSignIn() {
+    if (!auth) await boot();
+    const provider = new fb.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    try {
+      await auth.signInWithPopup(provider);     // onAuthStateChanged switches the dialog to the profile
+    } catch (e) {
+      if (e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request')) return;
+      if (e && e.code === 'auth/operation-not-allowed') note = { t: 'Вход через Google ещё не включён в Firebase (Authentication → Sign-in method → Google).' };
+      else note = { t: errText(e) };
+      render();
+    }
+  }
   const cleanPlace = (p) => ({ name: p.name || '', country: p.country || '', lat: +p.lat, lon: +p.lon, tz: p.tz || 'UTC' });
   async function act(a, id) {
     if (a === 'close') { dlg.close(); return; }
     if (['login', 'register', 'reset', 'password', 'profile'].includes(a)) { screen = a; note = null; render(); return; }
+    if (a === 'google') { await googleSignIn(); return; }
     try {
       await boot();
       const c = charts.find((x) => x.id === id);

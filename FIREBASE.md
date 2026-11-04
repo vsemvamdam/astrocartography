@@ -6,7 +6,7 @@
 
 1. Создайте проект на [console.firebase.google.com](https://console.firebase.google.com).
 2. **Firestore → Create database**: Standard, ID `(default)`, регион `europe-west3` или `eur3`, режим Production. На вкладке **Rules** вставьте содержимое `firestore.rules` и нажмите **Publish**.
-3. **Authentication → Get started → Sign-in method**: включите **Email/Password**.
+3. **Authentication → Get started → Sign-in method**: включите **Email/Password** и **Google** (у Google укажите публичное название проекта и почту поддержки).
 4. **Authentication → Settings → Authorized domains**: добавьте домен сайта, например `vsemvamdam.github.io`.
 5. **Project settings → Your apps → Web (`</>`)**: зарегистрируйте приложение и скопируйте `firebaseConfig` в `js/firebase-config.js`:
 

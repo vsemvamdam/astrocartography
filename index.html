@@ -158,8 +158,9 @@ button { cursor: pointer; touch-action: manipulation; }
 }
 body:not([data-view="map"]) .for-map, body:not([data-view="natal"]) .for-natal,
 body[data-view="tools"] .for-partner, body[data-view="natal"]:not([data-natmode="synastry"]) .for-partner,
-body:not([data-natmode="solar"]) .for-solar, body[data-view="tools"] .not-tools { display: none !important; }
+body:not([data-natmode="solar"]) .for-solar, body:not([data-natmode="horary"]) .for-horary, body[data-view="tools"] .not-tools { display: none !important; }
 body[data-view="map"] .for-partner { order: 5; }
+body[data-natmode="horary"] .for-natal { display: none !important; }
 .panel .notes { order: 10; }
 @media (max-width: 599.98px) {
   .map-head { column-gap: 8px; top: calc(10px + var(--inset-top, 0px)); }
@@ -511,6 +512,47 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .sol-val { font-family: var(--f-mono); font-size: 22px; color: #9BE07A; }
 .sol-val.neg { color: var(--danger); }
 #wheel .w-planet-o { font-size: 38px; }
+.hor-ctl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--rule); }
+@media (min-width: 900px) { .hor-ctl { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .hor-ctl .hor-q, .hor-ctl .hor-where, .hor-ctl .layer-hint { grid-column: 1 / -1; } }
+.hor-ctl .hor-when, .hor-ctl .hor-where { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.hor-ctl .hor-when .field { flex: 1 1 140px; }
+.hor-ctl .hor-where .field { flex: 1 1 240px; }
+.hor-ctl .pill { min-height: 46px; }
+.hor-ctl .layer-hint:empty { display: none; }
+.hor-ctl label .muted { margin-left: 6px; color: var(--brass); }
+.hv { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: var(--r); border: 1px solid; }
+.hv b { font-family: var(--f-display); font-weight: 400; font-size: 26px; letter-spacing: .03em; }
+.hv span { font-size: 14px; line-height: 1.5; }
+.hv.good { border-color: rgba(155,224,122,.4); background: rgba(155,224,122,.06); }
+.hv.good b { color: #9BE07A; }
+.hv.bad { border-color: rgba(255,138,122,.4); background: rgba(255,138,122,.06); }
+.hv.bad b { color: var(--danger); }
+.hv.warn { border-color: rgba(217,181,110,.45); background: rgba(217,181,110,.07); }
+.hv.warn b { color: var(--brass); }
+.hor-card .tg { font-family: var(--f-glyph); font-size: 17px; line-height: 1; }
+.hor-sig { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.hor-sig li { display: flex; flex-direction: column; gap: 6px; padding: 10px 2px; border-bottom: 1px solid var(--rule); }
+.hor-sig .hs-role { font-size: 12px; color: var(--muted); }
+.hor-sig .hs-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; font-size: 14px; }
+.hor-sig .nm { font-weight: 500; }
+.hor-sig .ps .pos { font-family: var(--f-mono); font-size: 13px; }
+.hor-sig .ps .sec { font-size: 11px; color: var(--muted); }
+.hor-sig .ps .sg { font-family: var(--f-glyph); font-size: 16px; }
+.hor-sig .ps .sgn { color: var(--muted); font-size: 12.5px; }
+.hor-sig .hs { font-family: var(--f-mono); font-size: 13px; }
+.hor-sig .hs small { font-size: 10.5px; color: var(--brass); margin-left: 4px; font-family: var(--f-body); }
+.hor-sig .rx { color: var(--danger); font-size: 11px; font-weight: 600; }
+.hor-card .hs-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.hor-card .bal-note { margin-top: 14px; }
+.hp { padding: 10px 0; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 6px; }
+.hp:last-child { border-bottom: 0; }
+.hp p, #horMoon p { margin: 0; font-size: 13.5px; line-height: 1.55; max-width: 80ch; }
+.hp p.muted { font-size: 12.5px; }
+.hp .hp-h { font-weight: 500; }
+.hp .hp-warn { color: #F2C58A; }
+.hp .hp-good { color: #B9EBA1; }
+#horMoon { display: flex; flex-direction: column; gap: 6px; }
+.hor-warn { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; line-height: 1.5; }
 #wheel .w-deg-s { font-size: 19px; }
 
 /* chips with a planet glyph: reasons in rankings */
@@ -599,6 +641,9 @@ details.more[open] summary { margin-bottom: 8px; }
 .btn-line:hover { border-color: var(--brass); }
 .acc-msg { padding: 9px 12px; border-radius: var(--r); font-size: 13px; line-height: 1.45; border: 1px solid rgba(255,138,122,.35); color: var(--danger); background: rgba(255,138,122,.06); }
 .acc-msg.ok { border-color: rgba(155,224,122,.35); color: #B9EBA1; background: rgba(155,224,122,.06); }
+.acc-or { display: flex; align-items: center; gap: 10px; color: var(--faint); font-size: 12px; }
+.acc-or::before, .acc-or::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.btn-google { min-height: 46px; font-weight: 500; font-size: 15px; }
 .acc-links { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 .acc-who { display: flex; flex-direction: column; gap: 2px; }
 .acc-who b { font-weight: 600; font-size: 15px; word-break: break-all; }
@@ -691,6 +736,7 @@ details.more[open] summary { margin-bottom: 8px; }
           <button type="button" data-m="natal">Натал</button>
           <button type="button" data-m="solar">Соляр</button>
           <button type="button" data-m="synastry">Совместимость</button>
+          <button type="button" data-m="horary">Хорар</button>
         </div>
         <div class="seg" id="natSyn" role="group" aria-label="Вид совместимости" hidden>
           <button type="button" data-s="syn">Синастрия</button>
@@ -704,12 +750,43 @@ details.more[open] summary { margin-bottom: 8px; }
         </div>
         <button type="button" class="pill sol-home" id="solHome">Место рождения</button>
       </div>
+      <div class="hor-ctl for-horary">
+        <div class="field hor-q"><label for="horQ">Вопрос</label><input class="inp" type="text" id="horQ" maxlength="140" placeholder="Например: получу ли я эту работу?" autocomplete="off"></div>
+        <div class="field"><label for="horBase">Чей вопрос</label><select class="inp" id="horBase"></select></div>
+        <div class="field hor-rel"><label for="horRel">О чём он <span class="muted" id="horHouseNote"></span></label><select class="inp" id="horRel"></select></div>
+        <div class="hor-when">
+          <div class="field"><label for="horDate">Дата вопроса</label><input class="inp" type="date" id="horDate" min="1800-01-01" max="2100-12-31"></div>
+          <div class="field"><label for="horTime">Время</label><input class="inp" type="time" id="horTime"></div>
+          <button type="button" class="pill" id="horNow">Сейчас</button>
+        </div>
+        <div class="hor-where">
+          <div class="field"><label for="horPlace">Где вы, когда задаёте вопрос</label>
+            <div class="place-box"><input class="inp" type="text" id="horPlace" spellcheck="false" autocapitalize="words"><ul class="suggest" id="horSuggest" role="listbox" hidden></ul></div>
+          </div>
+          <button type="button" class="pill" id="horHere">Где я</button>
+          <button type="button" class="pill" id="horHome">Место рождения</button>
+        </div>
+        <p class="layer-hint" id="horHereNote"></p>
+      </div>
       <header class="natal-head">
         <h1 id="natH">Натальная карта</h1>
         <p class="nt" id="natTitle"></p>
         <p class="ns" id="natSub"></p>
         <p class="nat-note" id="natNote" hidden></p>
       </header>
+      <section class="nat-card hor-card" id="natHoraryCard" hidden>
+        <h3>Суждение по Фроули <span>подсказка для разбора, не приговор</span></h3>
+        <div id="horVerdict"></div>
+        <h4 class="nat-h4">Сигнификаторы</h4>
+        <ul class="hor-sig" id="horSig"></ul>
+        <h4 class="nat-h4">Придут ли они к аспекту</h4>
+        <div id="horPairs"></div>
+        <h4 class="nat-h4">Луна</h4>
+        <div id="horMoon"></div>
+        <h4 class="nat-h4">Перед суждением</h4>
+        <ul class="hor-warn" id="horWarn"></ul>
+        <p class="bal-note">Метод Джона Фроули («Учебник хорарной астрологии»): карта на момент, когда вопрос задан и понят, на место, где вы находитесь. Дома Региомонтана, семь планет без Урана, Нептуна и Плутона, достоинства по таблице Лилли (термы Птолемея, Марс управляет водным триплицитетом днём и ночью). Ответ «да» — если сигнификаторы приходят к точному аспекту до смены знака; учитываются запрет, рефранация, перенос и сбор света. Планета в пределах 5° до куспида читается в следующем доме. Парс Фортуны — ASC + Луна − Солнце днём и ночью.</p>
+      </section>
       <div class="natal-grid top">
         <figure class="wheel-box">
           <svg id="wheel" viewBox="-62 -62 1124 1124" role="img" aria-label="Колесо натальной карты"></svg>
@@ -936,6 +1013,7 @@ details.more[open] summary { margin-bottom: 8px; }
 <script src="js/meanings.js"></script>
 <script src="js/natal.js"></script>
 <script src="js/features.js"></script>
+<script src="js/horary.js"></script>
 <script src="js/natal-view.js"></script>
 <script src="js/tools-view.js"></script>
 <script src="js/firebase-config.js"></script>
