@@ -120,6 +120,8 @@
     asp: { on: false, planet: 'Sun', set: { 60: true, 90: true, 120: true }, to: { MC: true, ASC: true } },
     par: { on: false, planet: 'Sun' },
     dyn: { mode: 'off' },
+    best: { on: false, goal: 'love', country: '', size: 'big', who: 'me' },
+    partner: null, partnerLines: false,
   };
   function loadState() {
     const base = JSON.parse(JSON.stringify(EXAMPLE));
@@ -134,6 +136,7 @@
         st.asp.to = Object.assign({}, EXAMPLE.asp.to, s.asp && s.asp.to);
         st.par = Object.assign({}, EXAMPLE.par, s.par);
         st.dyn = Object.assign({}, EXAMPLE.dyn, s.dyn);
+        st.best = Object.assign({}, EXAMPLE.best, s.best);
         if (st.showNatal == null) st.showNatal = true;
         return st;
       }
@@ -146,7 +149,8 @@
   const bodyOn = (id) => state.bodies[id] !== false;
   const bodyById = (id) => ACG.BODIES.find((b) => b.id === id);
 
-  let chart = null, dyn = null;
+  let chart = null, dyn = null, partnerChart = null, partnerConv = null;
+  let BEST = [];           // ranked cities for the current goal
   let LINES = [], PARANS = [];
   let selected = null;     // tapped point {lat, lon}
   let lineCard = null;     // line shown in the card
@@ -156,7 +160,8 @@
 
   /* --------------------------------- lines -------------------------------- */
   const DASH = { MC: [], IC: [0.1, 4.2], ASC: [7, 4.5], DSC: [8, 3.5, 1.6, 3.5] };
-  const KIND_ORDER = { paran: 0, aspect: 1, transit: 2, prog: 2, natal: 3 };
+  const KIND_ORDER = { paran: 0, aspect: 1, transit: 2, prog: 2, partner: 2, natal: 3 };
+  const partnerName = () => (state.partner && state.partner.name) || 'Партнёр';
 
   function angleLine(kind, b, a) {
     const v = a === 'MC' || a === 'IC';
@@ -168,10 +173,10 @@
       body: b, angle: a, color: b.color, dash: DASH[a],
       width: natal ? (a === 'IC' ? 2.1 : 1.6) : (a === 'IC' ? 1.8 : 1.3),
       cap: a === 'IC' ? 'round' : 'butt', casing: !natal,
-      glyph: b.glyph, tag: (kind === 'transit' ? 'т ' : kind === 'prog' ? 'п ' : '') + a,
+      glyph: b.glyph, tag: (kind === 'transit' ? 'т ' : kind === 'prog' ? 'п ' : '') + a + (kind === 'partner' ? '²' : ''),
       label: v ? (natal ? 'top' : 'bottom') : 'curve',
       labelFrac: natal ? (a === 'ASC' ? 0.36 : 0.62) : (a === 'ASC' ? 0.27 : 0.72),
-      maxKm: natal ? 1000 : 800,
+      maxKm: natal || kind === 'partner' ? 1000 : 800,
     };
   }
   function aspectLine(L, to) {
@@ -198,6 +203,7 @@
     const angOn = (a) => !!state.angles[a];
     if (state.showNatal) for (const b of chart.bodies) if (bodyOn(b.id)) for (const a of ANG) if (angOn(a) && (a !== 'ASC' && a !== 'DSC' || b.asc.length)) LINES.push(angleLine('natal', b, a));
     if (dyn) for (const b of dyn.bodies) if (bodyOn(b.id)) for (const a of ANG) if (angOn(a)) LINES.push(angleLine(dyn.mode, b, a));
+    if (partnerChart && state.partnerLines) for (const b of partnerChart.bodies) if (bodyOn(b.id)) for (const a of ANG) if (angOn(a) && (a !== 'ASC' && a !== 'DSC' || b.asc.length)) LINES.push(angleLine('partner', b, a));
     if (state.asp.on) {
       const pick = state.asp.planet;
       const pf = pick === 'all' ? bodyOn : (id) => id === pick;
@@ -573,6 +579,29 @@
       ctx.strokeText(P.name, x + 12, py); ctx.fillStyle = COL.brass; ctx.fillText(P.name, x + 12, py);
     });
 
+    // top cities for the chosen goal: numbered badges
+    if (state.best.on && BEST.length) {
+      const top = BEST.slice(0, 10);
+      for (let i = top.length - 1; i >= 0; i--) {
+        const c = top[i].city, y = -millerY(c.lat) * s + v.ty;
+        if (y < 0 || y > H) continue;
+        copies(c.lon, (x) => {
+          ctx.beginPath(); ctx.arc(x, y, 10, 0, 2 * Math.PI);
+          ctx.fillStyle = COL.brass; ctx.fill();
+          ctx.lineWidth = 2; ctx.strokeStyle = COL.ink; ctx.stroke();
+          ctx.fillStyle = COL.ink; ctx.font = `700 11px ${FONT_UI}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(String(i + 1), x, y + 0.5); ctx.textAlign = 'start';
+          const font = `600 12px ${FONT_UI}`, w = measure(c.ru, font), r = { x: x + 13, y: y - 9, w: w + 4, h: 18 };
+          placed.push({ x: x - 11, y: y - 11, w: 22, h: 22 });
+          if (!hits(r, placed)) {
+            placed.push(r);
+            ctx.font = font; ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(7,12,22,.9)'; ctx.lineJoin = 'round';
+            ctx.strokeText(c.ru, x + 14, y); ctx.fillStyle = '#F3E3BF'; ctx.fillText(c.ru, x + 14, y);
+          }
+        });
+      }
+    }
+
     if (selected) {
       const sy = -millerY(selected.lat) * s + v.ty;
       copies(selected.lon, (x) => {
@@ -769,6 +798,7 @@
         const m = L.kind === 'transit' ? 'Транзит' : 'Прогрессия';
         return { html: `${m}: ${esc(b.ru)} · <b>${L.angle}</b>`, glyphs: g(b.glyph), kw: `${b.kw} · ${ACG.ANGLES[L.angle].kw}`, sub: `${m.toLowerCase()} на ${dynDateRu()} · ${ANGLE_NAME[L.angle]}` };
       }
+      case 'partner': return { html: `${esc(partnerName())}: ${esc(b.ru)} · <b>${L.angle}</b>`, glyphs: g(b.glyph), kw: `${b.kw} · ${ACG.ANGLES[L.angle].kw}`, sub: `линия партнёра · ${ANGLE_NAME[L.angle]}` };
       case 'aspect': return { html: `${esc(b.ru)} <b>${g(L.aspect.glyph)} ${L.to}</b>`, glyphs: g(b.glyph), kw: `${L.aspect.ru} ${L.aspect.a}° ${L.to === 'MC' ? 'к MC' : 'к Асценденту'} · ${b.kw}`, sub: `аспектная линия · ${L.aspect.ru.toLowerCase()} ${L.aspect.a}° ${L.to === 'MC' ? 'к MC' : 'к Асценденту'}` };
       case 'paran': {
         const p = L.paran;
@@ -784,6 +814,7 @@
       const m = L.kind === 'transit' ? 'Транзит' : 'Прогрессия';
       return [`${m} на ${dynDateRu()}: ${b.ru} ${VERB[L.angle]} в этих местах относительно вашей натальной карты. Влияние временное — оно сильнее, пока планета держится у линии.`, MEAN[b.id][L.angle]];
     }
+    if (L.kind === 'partner') return [`Это линия из карты партнёра (${partnerName()}): здесь у него или у неё ${b.ru} ${VERB[L.angle]}.`, MEAN[b.id][L.angle]];
     if (L.kind === 'aspect') {
       const where = L.to === 'MC' ? 'к MC — точке карьеры и статуса' : 'к Асценденту — точке личности и самочувствия';
       return [`Здесь ${b.ru} образует ${L.aspect.ru.toLowerCase()} (${L.aspect.a}°) ${where}: ${L.aspect.tone}.`, `Темы планеты: ${b.kw}. Аспектные линии слабее основных, их обычно учитывают в пределах 300–500 км.`];
@@ -870,7 +901,7 @@
     $('infoPlace').textContent = close ? `${near.city.ru}, ${near.city.c}${near.km >= 15 ? ` · ${Math.round(near.km)} км` : ''}` : 'Точка на карте';
     $('infoCoord').textContent = `${fmtLat(lat)} · ${fmtLon(lon)}`;
 
-    const groups = { natal: [], dyn: [], aspect: [], paran: [] };
+    const groups = { natal: [], partner: [], dyn: [], aspect: [], paran: [] };
     for (const L of LINES) {
       const km = lineDistKm(L, lat, lon, L.maxKm);
       if (km > L.maxKm) continue;
@@ -880,6 +911,7 @@
     Object.values(groups).forEach((a) => a.sort((x, y) => x.km - y.km));
     const sect = [
       ['natal', 'Линии рядом, до 1000 км'],
+      ['partner', `Линии партнёра (${esc(partnerName())}), до 1000 км`],
       ['dyn', dyn ? `${dyn.mode === 'transit' ? 'Транзиты' : 'Прогрессии'} на ${dynDateRu()}, до 800 км` : ''],
       ['aspect', 'Аспектные линии, до 500 км'],
       ['paran', 'Параны на этой широте, ±1°'],
@@ -1011,51 +1043,54 @@
     recompute();
   }
 
-  let sugItems = [], sugIdx = -1;
-  function renderSuggest() {
-    const q = bPlace.value;
-    sugItems = searchPlaces(q);
-    sugIdx = sugItems.length ? 0 : -1;
-    if (!q.trim()) { sug.hidden = true; bPlace.setAttribute('aria-expanded', 'false'); return; }
-    sug.innerHTML = sugItems.length ? sugItems.map((c, i) => c.coord
-      ? `<li role="option" id="sg${i}" data-i="${i}" aria-selected="${i === sugIdx}"><span class="s-name">Координаты ${num(c.lat, 2)}°, ${num(c.lon, 2)}°</span><span class="s-meta">${fmtLat(c.lat)} · ${fmtLon(c.lon)}</span></li>`
-      : `<li role="option" id="sg${i}" data-i="${i}" aria-selected="${i === sugIdx}"><span class="s-name">${esc(c.ru)}${c.en && normName(c.en) !== c.k ? ` <span class="s-meta">${esc(c.en)}</span>` : ''}</span><span class="s-meta">${esc(c.c)} · ${fmtLat(c.lat)} · ${fmtLon(c.lon)}</span></li>`).join('')
-      : `<li class="s-none">Не нашли такой город. Введите координаты через запятую (например 52.3, 104.2) или укажите точку на карте.</li>`;
-    sug.hidden = false;
-    bPlace.setAttribute('aria-expanded', 'true');
-    bPlace.setAttribute('aria-activedescendant', sugIdx >= 0 ? `sg${sugIdx}` : '');
+  // City search with suggestions, reused by every place field on the page
+  function makePlaceSearch(input, list, current, onChoose) {
+    let items = [], idx = -1;
+    const label = () => (current() ? placeLabel(current()) : '');
+    const opt = (i) => `${input.id}-o${i}`;
+    function render() {
+      const q = input.value;
+      items = searchPlaces(q);
+      idx = items.length ? 0 : -1;
+      if (!q.trim()) { list.hidden = true; input.setAttribute('aria-expanded', 'false'); return; }
+      list.innerHTML = items.length ? items.map((c, i) => c.coord
+        ? `<li role="option" id="${opt(i)}" data-i="${i}" aria-selected="${i === idx}"><span class="s-name">Координаты ${num(c.lat, 2)}°, ${num(c.lon, 2)}°</span><span class="s-meta">${fmtLat(c.lat)} · ${fmtLon(c.lon)}</span></li>`
+        : `<li role="option" id="${opt(i)}" data-i="${i}" aria-selected="${i === idx}"><span class="s-name">${esc(c.ru)}${c.en && normName(c.en) !== c.k ? ` <span class="s-meta">${esc(c.en)}</span>` : ''}</span><span class="s-meta">${esc(c.c)} · ${fmtLat(c.lat)} · ${fmtLon(c.lon)}</span></li>`).join('')
+        : `<li class="s-none">Не нашли такой город. Введите координаты через запятую (например 52.3, 104.2).</li>`;
+      list.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      input.setAttribute('aria-activedescendant', idx >= 0 ? opt(idx) : '');
+    }
+    function pick(i) {
+      const c = items[i];
+      if (!c) return;
+      let p;
+      if (c.coord) { const near = nearestCity(c.lat, c.lon); p = { name: `${num(c.lat, 2)}°, ${num(c.lon, 2)}°`, country: '', lat: c.lat, lon: c.lon, tz: near ? near.city.tz : 'UTC' }; }
+      else p = { name: c.ru, country: c.c, lat: c.lat, lon: c.lon, tz: c.tz };
+      list.hidden = true; input.setAttribute('aria-expanded', 'false');
+      onChoose(p);
+      input.value = label() || placeLabel(p);
+      input.blur();
+    }
+    input.setAttribute('role', 'combobox'); input.setAttribute('aria-autocomplete', 'list'); input.setAttribute('aria-controls', list.id);
+    input.addEventListener('focus', () => input.select());
+    input.addEventListener('input', render);
+    input.addEventListener('keydown', (e) => {
+      if (list.hidden) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        idx = (idx + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+        list.querySelectorAll('li[role=option]').forEach((li, i) => li.setAttribute('aria-selected', String(i === idx)));
+        const cur = $(opt(idx)); if (cur) cur.scrollIntoView({ block: 'nearest' });
+        input.setAttribute('aria-activedescendant', opt(idx));
+      } else if (e.key === 'Enter') { e.preventDefault(); pick(idx); }
+      else if (e.key === 'Escape') { list.hidden = true; input.value = label(); }
+    });
+    list.addEventListener('pointerdown', (e) => { const li = e.target.closest('li[data-i]'); if (li) { e.preventDefault(); pick(+li.dataset.i); } });
+    input.addEventListener('blur', () => setTimeout(() => { list.hidden = true; input.setAttribute('aria-expanded', 'false'); input.value = label(); }, 150));
+    input.value = label();
   }
-  function choose(i) {
-    const c = sugItems[i];
-    if (!c) return;
-    if (c.coord) {
-      const near = nearestCity(c.lat, c.lon);
-      setPlace({ name: `${num(c.lat, 2)}°, ${num(c.lon, 2)}°`, country: '', lat: c.lat, lon: c.lon, tz: near ? near.city.tz : 'UTC' });
-    } else setPlace({ name: c.ru, country: c.c, lat: c.lat, lon: c.lon, tz: c.tz });
-    sug.hidden = true; bPlace.setAttribute('aria-expanded', 'false');
-    bPlace.blur();
-  }
-  bPlace.addEventListener('focus', () => { bPlace.select(); });
-  bPlace.addEventListener('input', renderSuggest);
-  bPlace.addEventListener('keydown', (e) => {
-    if (sug.hidden) return;
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      sugIdx = (sugIdx + (e.key === 'ArrowDown' ? 1 : -1) + sugItems.length) % sugItems.length;
-      sug.querySelectorAll('li[role=option]').forEach((li, i) => li.setAttribute('aria-selected', String(i === sugIdx)));
-      const cur = $('sg' + sugIdx); if (cur) cur.scrollIntoView({ block: 'nearest' });
-      bPlace.setAttribute('aria-activedescendant', 'sg' + sugIdx);
-    } else if (e.key === 'Enter') { e.preventDefault(); choose(sugIdx); }
-    else if (e.key === 'Escape') { sug.hidden = true; bPlace.value = placeLabel(state.place); }
-  });
-  sug.addEventListener('pointerdown', (e) => {
-    const li = e.target.closest('li[data-i]');
-    if (li) { e.preventDefault(); choose(+li.dataset.i); }
-  });
-  bPlace.addEventListener('blur', () => setTimeout(() => {
-    sug.hidden = true; bPlace.setAttribute('aria-expanded', 'false');
-    bPlace.value = placeLabel(state.place);
-  }, 150));
+  makePlaceSearch(bPlace, sug, () => state.place, setPlace);
   $('birthForm').addEventListener('submit', (e) => e.preventDefault());
 
   /* ------------------------------ angle chips ----------------------------- */
@@ -1195,6 +1230,94 @@
   $('dynToday').addEventListener('click', () => { state.dynDate = todayISO; $('dynDate').value = todayISO; dynChanged(); });
   $('showNatal').addEventListener('change', (e) => { state.showNatal = e.target.checked; layersChanged(); });
 
+  /* ------------------------------ best cities ----------------------------- */
+  const F = window.FEAT;
+  const BIG = CITIES.filter((c) => c.pop >= 150000), ALL = CITIES.filter((c) => c.pop >= 20000);
+  (function initBest() {
+    $('bestGoal').innerHTML = F.GOALS.map((x) => `<button type="button" data-g="${x.id}">${x.ru}</button>`).join('');
+    const countries = [...new Set(CITIES.map((c) => c.c))].sort((a, b) => a.localeCompare(b, 'ru'));
+    $('bestCountry').innerHTML = '<option value="">Весь мир</option>' + countries.map((c) => `<option>${esc(c)}</option>`).join('');
+    const sync = () => {
+      setSwitch($('bestOn'), state.best.on); $('bestBody').hidden = !state.best.on;
+      $('bestGoal').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.g === state.best.goal)));
+      $('bestWho').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.w === state.best.who)));
+      $('bestCountry').value = state.best.country; $('bestSize').value = state.best.size;
+    };
+    sync();
+    const changed = () => { sync(); saveState(); rankCities(); requestDraw(); };
+    $('bestOn').addEventListener('click', () => { state.best.on = !state.best.on; changed(); });
+    $('bestGoal').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { state.best.goal = b.dataset.g; changed(); } });
+    $('bestWho').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { state.best.who = b.dataset.w; changed(); } });
+    $('bestCountry').addEventListener('change', (e) => { state.best.country = e.target.value; changed(); });
+    $('bestSize').addEventListener('change', (e) => { state.best.size = e.target.value; changed(); });
+    $('bestList').addEventListener('click', (e) => { const li = e.target.closest('li[data-i]'); if (li) focusCity(BEST[+li.dataset.i].city); });
+  })();
+  function rankCities() {
+    $('bestWho').hidden = !partnerChart;
+    if (!state.best.on || !chart) { BEST = []; return; }
+    const pair = state.best.who === 'pair' && partnerChart;
+    const pool = (state.best.size === 'all' ? ALL : BIG).filter((c) => !state.best.country || c.c === state.best.country);
+    const charts = [{ chart, who: 'Вы' }].concat(pair ? [{ chart: partnerChart, who: partnerName() }] : []);
+    BEST = F.scoreCities(charts, pool, state.best.goal).slice(0, 30);
+    const top = BEST.length ? BEST[0].score : 1;
+    $('bestList').innerHTML = BEST.length ? BEST.slice(0, 20).map((r, i) => {
+      const chips = r.parts.slice(0, 4).map((pt) => `<span class="lc-chip ${pt.s < 0 ? 'neg' : ''}" style="--c:${pt.body.color}"><i>${g(pt.body.glyph)}</i>${pt.angle}${pair ? `<small>${esc(pt.who === 'Вы' ? 'вы' : pt.who)}</small>` : ''} <small>${Math.round(pt.km)} км</small></span>`).join('');
+      return `<li data-i="${i}" tabindex="0"><span class="bl-n">${i + 1}</span><span class="bl-main"><span class="bl-city">${esc(r.city.ru)}<small>${esc(r.city.c)}</small></span><span class="bl-chips">${chips}</span></span><span class="bl-score"><b>${num(r.score, 1)}</b><i style="width:${Math.max(6, Math.round(r.score / top * 100))}%"></i></span></li>`;
+    }).join('') : '<li class="par-empty">Нет городов, где линии помогают этой цели. Попробуйте другую страну или «все города».</li>';
+  }
+  $('bestList').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const li = e.target.closest('li[data-i]'); if (li) focusCity(BEST[+li.dataset.i].city); } });
+  // fly the map to a city and show the lines around it
+  function focusCity(c) {
+    if (location.hash === '#natal' || location.hash === '#tools') location.hash = '#map';
+    const v = view;
+    const s1 = Math.max(v.s, (v.w / 360) * 5);
+    v.s = s1; v.tx = v.w / 2 - c.lon * s1; v.ty = (v.headH + v.h) / 2 + millerY(c.lat) * s1;
+    clampView();
+    selected = { lat: c.lat, lon: c.lon }; lineCard = null; focusKey = null; expandedKey = null;
+    renderInfo(); requestDraw();
+    if (innerWidth < 900) wrap.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  }
+
+  /* -------------------------------- partner -------------------------------- */
+  function computePartner() {
+    partnerChart = null; partnerConv = null;
+    const p = state.partner;
+    const m = p && /^(\d{4})-(\d{2})-(\d{2})$/.exec(p.date || ''), t = p && /^(\d{1,2}):(\d{2})/.exec(p.time || '');
+    if (!p || !m || !t || !p.place) { renderPartnerStatus(); return; }
+    try { partnerConv = ACG.localToUtc(+m[1], +m[2], +m[3], +t[1], +t[2], p.place.tz || 'UTC', p.manualOffset); }
+    catch (e) { partnerConv = ACG.localToUtc(+m[1], +m[2], +m[3], +t[1], +t[2], 'UTC', 0); }
+    partnerChart = ACG.computeChart(partnerConv.utc, { node: state.nodeMode });
+    partnerChart.bodies.forEach((b) => { if (b.id === 'Node') b.retro = b.speed < 0.005; });
+    renderPartnerStatus();
+  }
+  function renderPartnerStatus() {
+    const p = state.partner;
+    $('pClear').hidden = !p;
+    $('pStatus').textContent = partnerChart ? `UTC ${new Date(partnerConv.utc).toISOString().slice(0, 16).replace('T', ' ')} · ${fmtOffset(partnerConv.offset)}` : 'Заполните дату, время и место — появятся синастрия, композит и карта пары.';
+  }
+  function setPartner(p) {
+    state.partner = p;
+    $('pName').value = p ? p.name || '' : ''; $('pDate').value = p ? p.date || '' : ''; $('pTime').value = p ? p.time || '' : '';
+    $('pPlace').value = p && p.place ? placeLabel(p.place) : '';
+    partnerChanged();
+  }
+  function partnerChanged() {
+    computePartner(); saveState(); buildLines(); rankCities();
+    if (selected || lineCard) renderInfo();
+    requestDraw();
+    if (window.NatalView) NatalView.update();
+  }
+  (function initPartner() {
+    const ensure = () => (state.partner = state.partner || { name: '', date: '', time: '12:00', place: null });
+    $('pName').addEventListener('input', (e) => { ensure().name = e.target.value.trim(); saveState(); if (window.NatalView) NatalView.update(); });
+    for (const id of ['pDate', 'pTime']) $(id).addEventListener('change', (e) => { ensure()[id === 'pDate' ? 'date' : 'time'] = e.target.value; partnerChanged(); });
+    makePlaceSearch($('pPlace'), $('pSuggest'), () => state.partner && state.partner.place, (pl) => { ensure().place = pl; partnerChanged(); });
+    $('pClear').addEventListener('click', () => { state.partnerLines = false; $('pLines').checked = false; setPartner(null); });
+    $('pLines').checked = !!state.partnerLines;
+    $('pLines').addEventListener('change', (e) => { state.partnerLines = e.target.checked; saveState(); buildLines(); requestDraw(); });
+    if (state.partner) setPartner(state.partner);
+  })();
+
   /* ------------------------------- compute -------------------------------- */
   let currentOffset = null, lastConv = null;
   function showStatus(msg) { $('status').textContent = msg || ''; $('status').hidden = !msg; }
@@ -1222,6 +1345,8 @@
     // nodes are conventionally retrograde; mark them direct only when clearly moving forward
     chart.bodies.forEach((b) => { if (b.id === 'Node') b.retro = b.speed < 0.005; });
     computeDyn();
+    computePartner();
+    rankCities();
 
     const u = new Date(conv.utc);
     const utcStr = `${pad(u.getUTCDate())}.${pad(u.getUTCMonth() + 1)}.${u.getUTCFullYear()} ${pad(u.getUTCHours())}:${pad(u.getUTCMinutes())}`;
@@ -1243,34 +1368,51 @@
     measureHead();
     requestDraw();
     if (window.NatalView) NatalView.update();
+    if (window.ToolsView) ToolsView.update();
   }
 
   /* --------------------------------- views -------------------------------- */
+  // load a saved chart into the form (from the personal account)
+  function loadChart(d) {
+    state.date = d.date; state.time = d.time; state.place = d.place; state.manualOffset = d.manualOffset == null ? null : d.manualOffset;
+    bDate.value = d.date; bTime.value = d.time; bPlace.value = placeLabel(d.place);
+    $('manualTz').checked = state.manualOffset != null; $('manualOffset').hidden = state.manualOffset == null;
+    if (state.manualOffset != null) $('manualOffset').value = String(state.manualOffset);
+    userEdited(); recompute(); fitWorld(); requestDraw();
+  }
   const APP = {
     state,
     save: saveState,
     get chart() { return chart; },
     get conv() { return lastConv; },
+    get partnerChart() { return partnerChart; },
+    get partnerConv() { return partnerConv; },
     recompute: () => recompute(),
+    cities: CITIES,
+    placeLabel, makePlaceSearch, nearestCity, focusCity, setPartner, loadChart, fmtOffset,
+    current: () => ({ date: state.date, time: state.time, place: state.place, manualOffset: state.manualOffset }),
   };
+  window.ACG_APP = APP;
+  const VIEWS = ['map', 'natal', 'tools'];
   function setView(v) {
-    const natal = v === 'natal';
-    document.body.dataset.view = natal ? 'natal' : 'map';
-    wrap.hidden = natal;
-    $('natalView').hidden = !natal;
+    if (!VIEWS.includes(v)) v = 'map';
+    document.body.dataset.view = v;
+    wrap.hidden = v !== 'map';
+    $('natalView').hidden = v !== 'natal';
+    $('toolsView').hidden = v !== 'tools';
     document.querySelectorAll('.tab').forEach((t) => {
-      if (t.dataset.view === (natal ? 'natal' : 'map')) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+      if (t.dataset.view === v) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
     });
-    if (natal) {
-      if ($('app').classList.contains('map-only')) $('expand').click();
-      NatalView.update();
-    } else {
-      requestAnimationFrame(() => { resize(); if (!view.ready) return; measureHead(); requestDraw(); });
-    }
+    if (v !== 'map' && $('app').classList.contains('map-only')) $('expand').click();
+    if (v === 'natal') NatalView.update();
+    else if (v === 'tools') ToolsView.update();
+    else requestAnimationFrame(() => { resize(); if (!view.ready) return; measureHead(); requestDraw(); });
   }
-  const viewFromHash = () => (location.hash === '#natal' ? 'natal' : 'map');
+  const viewFromHash = () => (location.hash || '#map').slice(1);
   window.addEventListener('hashchange', () => setView(viewFromHash()));
   if (window.NatalView) NatalView.init(APP);
+  if (window.ToolsView) ToolsView.init(APP);
+  if (window.Account) Account.init(APP);
 
   /* --------------------------------- boot --------------------------------- */
   const ro = new ResizeObserver(() => resize());

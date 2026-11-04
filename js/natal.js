@@ -210,5 +210,5 @@
     return { ...H, ramc, eps, lat, lon, points: pts, angles, aspects, isDay: sunAbove, elements: el, crosses: cr, rulers: RULERS };
   }
 
-  root.NATAL = { HOUSE_SYSTEMS, ASPECTS, RULERS, computeNatal, computeHouses, houseOf, ascFor, mcFor, dignity, lilithLon };
+  root.NATAL = { HOUSE_SYSTEMS, ASPECTS, RULERS, EXALT, computeNatal, computeHouses, computeAspects, houseOf, ascFor, mcFor, dignity, lilithLon };
 })(typeof window !== 'undefined' ? window : globalThis);

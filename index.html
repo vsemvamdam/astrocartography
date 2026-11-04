@@ -134,16 +134,33 @@ button { cursor: pointer; touch-action: manipulation; }
 .tab { padding: 7px 15px; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; white-space: nowrap; text-align: center; }
 .tab:hover { color: var(--fg); }
 .tab[aria-current="page"] { background: var(--brass); color: var(--brass-ink); }
+.tab .s { display: none; }
+.acc-btn { flex: none; display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 6px 13px 6px 11px; border-radius: 999px; border: 1px solid var(--rule); background: var(--panel); color: var(--fg); font-size: 14px; font-weight: 500; max-width: 220px; }
+.acc-btn:hover { border-color: var(--brass); }
+.acc-btn .acc-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acc-btn.in svg { color: var(--brass); }
 @media (max-width: 599.98px) {
   .tb-brand { font-size: 18px; }
   .tab { padding: 7px 11px; font-size: 13.5px; }
 }
-@media (max-width: 519.98px) {
+@media (max-width: 899.98px) { .tb-brand { font-size: 19px; } }
+@media (max-width: 759.98px) {
   .tb-brand { display: none; }
   .tabs { flex: 1; }
   .tab { flex: 1; }
+  .acc-btn { padding: 6px 10px; }
+  .acc-btn .acc-t { display: none; }
 }
-body[data-view="natal"] .for-map, body:not([data-view="natal"]) .for-natal { display: none !important; }
+@media (max-width: 519.98px) {
+  .tab .l { display: none; }
+  .tab .s { display: inline; }
+  .tab { padding: 7px 6px; }
+}
+body:not([data-view="map"]) .for-map, body:not([data-view="natal"]) .for-natal,
+body[data-view="tools"] .for-partner, body[data-view="natal"]:not([data-natmode="synastry"]) .for-partner,
+body:not([data-natmode="solar"]) .for-solar, body[data-view="tools"] .not-tools { display: none !important; }
+body[data-view="map"] .for-partner { order: 5; }
+.panel .notes { order: 10; }
 @media (max-width: 599.98px) {
   .map-head { column-gap: 8px; top: calc(10px + var(--inset-top, 0px)); }
   .mh-title { font-size: 14px; letter-spacing: .12em; }
@@ -389,7 +406,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .natal-head .ns { margin: 6px 0 0; font-family: var(--f-mono); font-size: 12px; color: var(--muted); line-height: 1.6; }
 .nat-note { margin: 10px 0 0; padding: 8px 12px; border-radius: var(--r); border: 1px solid rgba(217,181,110,.3); background: rgba(217,181,110,.07); color: #E9D7B2; font-size: 13px; max-width: 70ch; }
 .natal-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); align-items: start; }
-@media (min-width: 1360px) { .natal-grid.top { grid-template-columns: minmax(0, 1.05fr) minmax(400px, 1fr); } }
+@media (min-width: 1360px) { .natal-grid.top { grid-template-columns: minmax(0, 1.05fr) minmax(400px, 1fr); } .natal-grid.top .wheel-box { position: sticky; top: 12px; } }
 @media (min-width: 1100px) { .natal-grid.bottom { grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); } }
 .nat-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; container-type: inline-size; }
 @container (max-width: 600px) { .nat-table .sgn { display: none; } }
@@ -480,6 +497,123 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 #wheel .w-pt:focus-visible .w-hit, #wheel .w-pt.on .w-hit { stroke: var(--brass); stroke-width: 2; }
 #wheel .dim { opacity: .14; }
 
+/* ------------------------- natal modes and solar ------------------------- */
+.nat-modes { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.nat-modes .seg button { font-size: 14px; padding: 7px 15px; }
+.sol-ctl { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; padding: 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--rule); }
+.sol-ctl .sol-year { flex: 0 0 120px; }
+.sol-ctl .sol-where { flex: 1 1 240px; }
+.sol-ctl .pill, .tool-ctl .pill { min-height: 46px; }
+.nat-h4, .tool-out h4 { margin: 18px 0 8px; font-size: 12.5px; font-weight: 600; color: var(--fg); }
+.muted { color: var(--muted); }
+.sol-now { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.sol-place { font-family: var(--f-display); font-size: 22px; letter-spacing: .03em; }
+.sol-val { font-family: var(--f-mono); font-size: 22px; color: #9BE07A; }
+.sol-val.neg { color: var(--danger); }
+#wheel .w-planet-o { font-size: 38px; }
+#wheel .w-deg-s { font-size: 19px; }
+
+/* chips with a planet glyph: reasons in rankings */
+.lc-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); font-size: 12px; white-space: nowrap; color: var(--fg); }
+.lc-chip i { font-style: normal; font-family: var(--f-glyph); font-size: 14px; color: var(--c); }
+.lc-chip small { color: var(--muted); font-size: 11px; }
+.lc-chip.neg { border-style: dashed; color: var(--danger); }
+
+/* ranked lists: best cities and solar return places */
+.best-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.best-list li { display: grid; grid-template-columns: 26px minmax(0, 1fr) 58px; gap: 10px; align-items: center; padding: 10px 2px; border-bottom: 1px solid var(--rule); cursor: pointer; }
+.best-list li:hover, .best-list li:focus-visible { background: var(--raise); }
+.best-list li.par-empty { display: block; cursor: default; }
+.bl-n { font-family: var(--f-mono); font-size: 13px; color: var(--brass); text-align: center; }
+.bl-main { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.bl-city { font-weight: 500; font-size: 14.5px; }
+.bl-city small { margin-left: 6px; font-weight: 400; font-size: 12px; color: var(--muted); }
+.bl-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.bl-score { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.bl-score b { font-family: var(--f-mono); font-weight: 500; font-size: 13.5px; }
+.bl-score i { display: block; height: 3px; border-radius: 2px; background: var(--brass); }
+.wide-row { grid-column: 1 / -1; margin: 0; }
+
+/* ---------------------------------- tools --------------------------------- */
+.tool-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+.tool-nav button { border: 1px solid #24344F; background: transparent; border-radius: 999px; padding: 7px 13px; font-size: 13.5px; color: var(--muted); min-height: 38px; }
+.tool-nav button:hover { color: var(--fg); }
+.tool-nav button[aria-pressed="true"] { background: var(--brass); border-color: var(--brass); color: var(--brass-ink); font-weight: 500; }
+@media (max-width: 599.98px) {
+  .tool-nav { flex-wrap: nowrap; overflow-x: auto; margin-inline: -16px; padding-inline: 16px; scrollbar-width: none; }
+  .tool-nav::-webkit-scrollbar { display: none; }
+  .tool-nav button { flex: none; }
+}
+.tool-ctl { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; }
+.tool-ctl > .field:first-child { flex: 0 1 190px; }
+.tool-ctl .tool-where { flex: 1 1 220px; }
+.tool-out { display: flex; flex-direction: column; gap: 10px; }
+.tool-out > p { margin: 0; font-size: 13.5px; line-height: 1.55; max-width: 75ch; }
+.tool-out > p.muted { font-size: 12.5px; }
+.tool-out h4 { margin: 10px 0 0; }
+.tool-lead { display: flex; gap: 16px; align-items: center; }
+.tool-lead b { font-size: 16px; font-weight: 600; }
+.tool-lead p { margin: 4px 0 0; font-size: 13px; line-height: 1.5; }
+.big-glyph { flex: none; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--rule); background: var(--raise); font-family: var(--f-glyph); font-size: 36px; }
+.big-num { flex: none; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(217,181,110,.4); font-family: var(--f-display); font-size: 32px; color: var(--brass); }
+.two-col { display: grid; gap: 8px 24px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .two-col { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.tool-out .nat-table tr.on td { background: rgba(217,181,110,.12); }
+.chains { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.chains li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 9px 2px; border-bottom: 1px solid var(--rule); font-size: 13.5px; }
+.chains li > span:not(.arr):not(.cn):not(.tag):not(.muted) { font-family: var(--f-glyph); font-size: 17px; }
+.chains .arr { color: var(--faint); }
+.chains .tag { margin-left: 6px; }
+.eph-table { font-size: 12.5px; }
+.eph-table th { text-align: center; font-family: var(--f-glyph); font-size: 16px; }
+.eph-table td.eph { white-space: nowrap; font-family: var(--f-mono); font-size: 12px; padding: 5px 6px; text-align: center; }
+.eph-table td.eph .sg { margin-left: 2px; font-size: 13px; }
+.eph-table td.eph .rx { margin-left: 2px; }
+.tool-out .nat-table td:first-child { white-space: nowrap; }
+.tool-out .tg { font-family: var(--f-glyph); font-size: 17px; line-height: 1; margin-right: 2px; }
+.neg-t { color: var(--danger); }
+.pos-t { color: #9BE07A; }
+.d30 { display: block; width: 100%; min-width: 640px; height: auto; }
+.d30-axis { stroke: var(--brass); stroke-width: 1.5; }
+.d30-tick { stroke: #3A4D6E; }
+.d30-lab { fill: var(--muted); font-family: var(--f-mono); font-size: 13px; text-anchor: middle; }
+.d30-conn { stroke-width: 1; opacity: .5; }
+.d30-pl { font-family: var(--f-glyph); font-size: 24px; text-anchor: middle; }
+.d30-ang { fill: var(--brass); font-family: var(--f-mono); font-size: 14px; font-weight: 600; text-anchor: middle; }
+.d30-deg { fill: var(--fg); font-family: var(--f-mono); font-size: 12px; text-anchor: middle; }
+details.more summary { cursor: pointer; color: var(--brass); font-size: 13px; padding: 4px 0; }
+details.more[open] summary { margin-bottom: 8px; }
+
+/* ------------------------------ account dialog ----------------------------- */
+.acc-dlg { width: min(440px, calc(100% - 24px)); max-height: calc(100% - 24px); padding: 0; border-radius: 16px; border: 1px solid #2A3B58; background: var(--panel); color: var(--fg); box-shadow: 0 24px 60px rgba(0,0,0,.55); }
+.acc-dlg::backdrop { background: rgba(3, 7, 14, .72); }
+.acc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 10px 12px 18px; border-bottom: 1px solid var(--rule); }
+.acc-head h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 22px; letter-spacing: .04em; }
+.acc-body { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.acc-body form { display: flex; flex-direction: column; gap: 12px; }
+.acc-body .field > label { font-size: 12.5px; color: var(--muted); }
+.acc-body p { margin: 0; font-size: 13.5px; line-height: 1.5; }
+.btn-main { min-height: 46px; border: 0; border-radius: var(--r); background: var(--brass); color: var(--brass-ink); font-weight: 600; font-size: 15px; }
+.btn-main:disabled { opacity: .6; cursor: progress; }
+.btn-line { min-height: 40px; border: 1px solid #2A3B58; border-radius: var(--r); background: transparent; font-size: 14px; padding: 0 14px; }
+.btn-line:hover { border-color: var(--brass); }
+.acc-msg { padding: 9px 12px; border-radius: var(--r); font-size: 13px; line-height: 1.45; border: 1px solid rgba(255,138,122,.35); color: var(--danger); background: rgba(255,138,122,.06); }
+.acc-msg.ok { border-color: rgba(155,224,122,.35); color: #B9EBA1; background: rgba(155,224,122,.06); }
+.acc-links { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.acc-who { display: flex; flex-direction: column; gap: 2px; }
+.acc-who b { font-weight: 600; font-size: 15px; word-break: break-all; }
+.acc-who small { color: var(--muted); font-size: 12.5px; }
+.acc-sec h3 { margin: 4px 0 8px; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); }
+.acc-body form.acc-save { flex-direction: row; gap: 8px; }
+.acc-save .inp { flex: 1; min-width: 0; }
+.acc-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.acc-list li { padding: 10px 2px; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 6px; }
+.acc-list .al-n { font-weight: 500; }
+.acc-list .al-m { font-size: 12px; color: var(--muted); font-family: var(--f-mono); }
+.acc-list .al-b { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.acc-list .link-btn.del { color: var(--danger); }
+.acc-empty { color: var(--muted); font-size: 13px; padding: 10px 2px; }
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -488,9 +622,14 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
   <div class="tb-inner">
     <span class="tb-brand">Астрокартография</span>
     <nav class="tabs" aria-label="Разделы">
-      <a class="tab" href="#map" data-view="map">Карта мира</a>
-      <a class="tab" href="#natal" data-view="natal">Натальная карта</a>
+      <a class="tab" href="#map" data-view="map"><span class="l">Карта мира</span><span class="s">Карта</span></a>
+      <a class="tab" href="#natal" data-view="natal"><span class="l">Натальная карта</span><span class="s">Натал</span></a>
+      <a class="tab" href="#tools" data-view="tools">Инструменты</a>
     </nav>
+    <button type="button" class="acc-btn" id="accBtn" hidden aria-haspopup="dialog">
+      <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="7" r="3.2"/><path d="M3.5 17c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/></svg>
+      <span class="acc-t" id="accBtnText">Войти</span>
+    </button>
   </div>
 </header>
 
@@ -547,6 +686,24 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 
   <section class="natal" id="natalView" hidden aria-labelledby="natH">
     <div class="natal-inner">
+      <div class="nat-modes">
+        <div class="seg" id="natMode" role="group" aria-label="Что показать">
+          <button type="button" data-m="natal">Натал</button>
+          <button type="button" data-m="solar">Соляр</button>
+          <button type="button" data-m="synastry">Совместимость</button>
+        </div>
+        <div class="seg" id="natSyn" role="group" aria-label="Вид совместимости" hidden>
+          <button type="button" data-s="syn">Синастрия</button>
+          <button type="button" data-s="comp">Композит</button>
+        </div>
+      </div>
+      <div class="sol-ctl for-solar">
+        <div class="field sol-year"><label for="solYear">Год соляра</label><input class="inp" type="number" id="solYear" min="1800" max="2100" inputmode="numeric"></div>
+        <div class="field sol-where"><label for="solPlace">Где встречаете день рождения</label>
+          <div class="place-box"><input class="inp" type="text" id="solPlace" placeholder="Место рождения" spellcheck="false" autocapitalize="words"><ul class="suggest" id="solSuggest" role="listbox" hidden></ul></div>
+        </div>
+        <button type="button" class="pill sol-home" id="solHome">Место рождения</button>
+      </div>
       <header class="natal-head">
         <h1 id="natH">Натальная карта</h1>
         <p class="nt" id="natTitle"></p>
@@ -560,17 +717,44 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
         </figure>
         <div class="nat-side">
           <section class="nat-card"><h3>Планеты и точки</h3><div class="nat-scroll"><table class="nat-table" id="natPlanets"></table></div></section>
+          <section class="nat-card" id="natPartnerCard" hidden><h3 id="natPartnerTitle">Планеты партнёра</h3><div class="nat-scroll"><table class="nat-table" id="natPartner"></table></div></section>
           <section class="nat-card"><h3>Дома</h3><div class="nat-scroll"><table class="nat-table" id="natHouses"></table></div></section>
         </div>
       </div>
+      <section class="nat-card" id="natSolarCard" hidden>
+        <h3>Оценка соляра <span>чем выше, тем удачнее место</span></h3>
+        <div id="natSolarScore"></div>
+        <h4 class="nat-h4">Лучшие крупные города для этого соляра</h4>
+        <p class="bal-note">Учтены дома соляра, в которые попадают Солнце, Юпитер, Венера, Луна и вредители, и планеты на ASC и MC (до 6°). В списке не больше двух городов из одной страны. Нажмите на город, чтобы построить соляр там.</p>
+        <ol class="best-list" id="natSolarList"></ol>
+      </section>
       <div class="natal-grid bottom">
-        <section class="nat-card"><h3>Аспекты <span id="natAspCount"></span></h3>
+        <section class="nat-card"><h3 id="natAspTitle">Аспекты <span id="natAspCount"></span></h3>
           <div class="nat-scroll"><table class="asp-grid" id="natAspGrid"></table></div>
           <div class="asp-legend"><span><i style="background:var(--asp-hard)"></i>напряжённые</span><span><i style="background:var(--asp-soft)"></i>гармоничные</span><span><i style="background:var(--asp-minor)"></i>минорные</span><span>цифра — орб в градусах</span></div>
           <ul class="asp-list" id="natAspList"></ul>
         </section>
-        <section class="nat-card"><h3>Стихии и кресты</h3><div class="bal-wrap" id="natBalance"></div></section>
+        <section class="nat-card" id="natBalanceCard"><h3>Стихии и кресты</h3><div class="bal-wrap" id="natBalance"></div></section>
       </div>
+    </div>
+  </section>
+
+  <section class="natal tools" id="toolsView" hidden aria-labelledby="toolTitle">
+    <div class="natal-inner">
+      <nav class="tool-nav" id="toolList" aria-label="Инструменты"></nav>
+      <div class="tool-ctl" id="toolDateBox">
+        <div class="field"><label for="toolDate">Дата</label><input class="inp" type="date" id="toolDate" min="1800-01-01" max="2100-12-31"></div>
+        <button type="button" class="pill" id="toolToday">Сегодня</button>
+        <div class="field tool-where"><label for="toolPlace">Место</label>
+          <div class="place-box"><input class="inp" type="text" id="toolPlace" spellcheck="false" autocapitalize="words"><ul class="suggest" id="toolSuggest" role="listbox" hidden></ul></div>
+        </div>
+        <button type="button" class="pill" id="toolHome">Место рождения</button>
+      </div>
+      <header class="natal-head">
+        <h1 id="toolTitle">Инструменты</h1>
+        <p class="ns" id="toolSub"></p>
+      </header>
+      <div class="nat-card tool-out" id="toolOut"></div>
     </div>
   </section>
 
@@ -639,6 +823,41 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
       </div>
     </section>
 
+    <section class="for-partner" aria-labelledby="hPartner">
+      <div class="sec-h"><h2 id="hPartner">Партнёр</h2><button type="button" class="link-btn" id="pClear" hidden>Очистить</button></div>
+      <p class="layer-note">Данные второго человека: для синастрии, композита, общей астрокарты и городов для пары.</p>
+      <div class="form" id="partnerForm">
+        <div class="field wide" id="pSavedBox" hidden><label for="pSaved">Из сохранённых карт</label><select class="inp" id="pSaved"></select></div>
+        <div class="field wide"><label for="pName">Имя</label><input class="inp" type="text" id="pName" placeholder="Например, Маша" autocomplete="off" spellcheck="false" autocapitalize="words"></div>
+        <div class="field"><label for="pDate">Дата</label><input class="inp" type="date" id="pDate" min="1800-01-01" max="2100-12-31"></div>
+        <div class="field"><label for="pTime">Местное время</label><input class="inp" type="time" id="pTime"></div>
+        <div class="field wide"><label for="pPlace">Место рождения</label>
+          <div class="place-box"><input class="inp" type="text" id="pPlace" placeholder="Город" spellcheck="false" autocapitalize="words"><ul class="suggest" id="pSuggest" role="listbox" hidden></ul></div>
+        </div>
+        <p class="layer-hint wide-row" id="pStatus"></p>
+        <label class="chk for-map wide-row"><input type="checkbox" id="pLines"> Показать линии партнёра на карте (со знаком ²)</label>
+      </div>
+    </section>
+
+    <section class="for-map" aria-labelledby="hBest">
+      <div class="sec-h"><h2 id="hBest">Лучшие города</h2>
+        <button type="button" class="switch" id="bestOn" role="switch" aria-checked="false" aria-labelledby="hBest"><span class="knob"></span><span class="sw-t">Выкл</span></button></div>
+      <p class="layer-note">Рейтинг городов под вашу цель: чем ближе к городу проходят полезные линии и чем дальше трудные, тем выше место.</p>
+      <div class="layer-body" id="bestBody" hidden>
+        <div class="seg" id="bestGoal" role="group" aria-label="Цель"></div>
+        <div class="seg" id="bestWho" role="group" aria-label="Для кого" hidden>
+          <button type="button" data-w="me">Для меня</button>
+          <button type="button" data-w="pair">Для пары</button>
+        </div>
+        <div class="coord-row">
+          <div class="field"><label for="bestCountry">Страна</label><select class="inp" id="bestCountry"></select></div>
+          <div class="field"><label for="bestSize">Население</label><select class="inp" id="bestSize"><option value="big">от 150 тыс.</option><option value="all">от 20 тыс.</option></select></div>
+        </div>
+        <ol class="best-list" id="bestList"></ol>
+        <p class="layer-hint">Учитываются линии в пределах 600 км; номер на карте — место в рейтинге. Нажмите на город, чтобы перейти к нему.</p>
+      </div>
+    </section>
+
     <section class="for-map" aria-labelledby="hAngles">
       <div class="sec-h"><h2 id="hAngles">Линии</h2><span class="aside">нажмите, чтобы скрыть</span></div>
       <div class="angles" id="angles"></div>
@@ -700,9 +919,11 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
     <section class="notes" aria-labelledby="hNotes">
       <div class="sec-h" style="margin-bottom:4px"><h2 id="hNotes">Как считается</h2></div>
       <p>MC — где планета стояла в зените, IC — в надире, ASC — где она восходила, DSC — где заходила. Линии зависят только от момента рождения; город нужен, чтобы перевести местное время во всемирное.</p>
-      <p>Положения планет геоцентрические, видимые, на истинный экватор даты (Astronomy Engine, точность около угловой минуты). Горизонт геометрический, без рефракции. Узел — средний.</p>
+      <p>Положения планет геоцентрические, видимые, на истинный экватор даты (Astronomy Engine, точность около угловой минуты). Горизонт геометрический, без рефракции. Узел — истинный или средний, на выбор в настройках натальной карты.</p>
       <p>Аспектные линии считаются по эклиптике: MC или Асцендент совпадает с градусом планеты ± 60°, 90° или 120°. Параны — по прямым восхождениям и склонениям, как и основные линии. Транзиты и вторичные прогрессии (день после рождения за год жизни) наложены на звёздное время рождения, как в циклокартографии.</p>
       <p>Натальная карта: тропический зодиак, дома по выбранной системе (по умолчанию Плацидус), истинный или средний узел, средняя Лилит (апогей лунной орбиты, спроецированный на эклиптику, как в Сотисе). Хирон — по таблице, рассчитанной численным интегрированием орбиты с учётом притяжения планет (1800–2100). Парс Фортуны: днём ASC + Луна − Солнце, ночью ASC + Солнце − Луна.</p>
+      <p>Лучшие города: для каждой цели у планет и углов свой вес (например, для карьеры сильнее всего Солнце и Юпитер на MC, против — Нептун на MC). Линия влияет на город в пределах 600 км, и чем ближе, тем сильнее. Баллы всех линий складываются; для пары — линии обоих.</p>
+      <p>Соляр — карта на момент, когда Солнце возвращается в свой градус рождения; дома строятся на место, где вы встречаете день рождения. Синастрия — аспекты между планетами двух карт (орбы до 7°, для узлов, Хирона, Лилит и углов до 4°). Композит — карта средних точек двух карт.</p>
       <p>Часовые пояса берутся из базы IANA с историей: летнее и декретное время, переходы 1991, 2011 и 2014 годов. Если в документах время другое, задайте смещение вручную.</p>
     </section>
   </aside>
@@ -714,7 +935,11 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 <script src="js/acg-core.js"></script>
 <script src="js/meanings.js"></script>
 <script src="js/natal.js"></script>
+<script src="js/features.js"></script>
 <script src="js/natal-view.js"></script>
+<script src="js/tools-view.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/account.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
