@@ -687,7 +687,9 @@ details.more[open] summary { margin-bottom: 8px; }
 .sp-t > span:not(.sp-nologo) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-t b { margin-left: auto; font-family: var(--f-mono); }
 .sp-t img, .sp-nologo, .sp-team-h img, .sp-big img, .sp-goal img { flex: none; object-fit: contain; }
-.sp-nologo { display: inline-block; border-radius: 50%; background: var(--raise); }
+.sp-logo { position: relative; flex: none; display: inline-grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--tc, #2A3B58) 35%, var(--raise)); overflow: hidden; }
+.sp-logo i { font-style: normal; font-weight: 600; letter-spacing: -.02em; color: var(--fg); opacity: .8; }
+.sp-logo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: var(--ink); }
 .vc { display: inline-block; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--rule); font-size: 12px; white-space: nowrap; color: var(--muted); }
 .vc.fav { color: #9BE07A; border-color: rgba(155,224,122,.4); }
 .vc.dog { color: #F2C58A; border-color: rgba(242,197,138,.45); }
@@ -1107,19 +1109,19 @@ details.more[open] summary { margin-bottom: 8px; }
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
-<script src="js/data.js?v=20261104e"></script>
-<script src="js/chiron-data.js?v=20261104e"></script>
-<script src="js/acg-core.js?v=20261104e"></script>
-<script src="js/meanings.js?v=20261104e"></script>
-<script src="js/natal.js?v=20261104e"></script>
-<script src="js/features.js?v=20261104e"></script>
-<script src="js/horary.js?v=20261104e"></script>
-<script src="js/natal-view.js?v=20261104e"></script>
-<script src="js/tools-view.js?v=20261104e"></script>
-<script src="js/sport.js?v=20261104e"></script>
-<script src="js/sport-view.js?v=20261104e"></script>
-<script src="js/firebase-config.js?v=20261104e"></script>
-<script src="js/account.js?v=20261104e"></script>
-<script src="js/app.js?v=20261104e"></script>
+<script src="js/data.js?v=20261104f"></script>
+<script src="js/chiron-data.js?v=20261104f"></script>
+<script src="js/acg-core.js?v=20261104f"></script>
+<script src="js/meanings.js?v=20261104f"></script>
+<script src="js/natal.js?v=20261104f"></script>
+<script src="js/features.js?v=20261104f"></script>
+<script src="js/horary.js?v=20261104f"></script>
+<script src="js/natal-view.js?v=20261104f"></script>
+<script src="js/tools-view.js?v=20261104f"></script>
+<script src="js/sport.js?v=20261104f"></script>
+<script src="js/sport-view.js?v=20261104f"></script>
+<script src="js/firebase-config.js?v=20261104f"></script>
+<script src="js/account.js?v=20261104f"></script>
+<script src="js/app.js?v=20261104f"></script>
 </body>
 </html>

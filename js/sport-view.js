@@ -30,7 +30,8 @@
   const num = (x) => (x > 0 ? '+' : '') + (Math.round(x * 10) / 10).toString().replace('.', ',').replace('-', '−');
   const ru = (t) => String(t).replace(/(\d)\.(\d)/g, '$1,$2');
   const leagueOf = (id) => S.LEAGUES.find((l) => l.id === id) || { ru: id, long: id };
-  const logo = (t, size) => t.logo ? `<img src="${esc(t.logo)}" alt="" width="${size}" height="${size}" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'">` : `<span class="sp-nologo" style="width:${size}px;height:${size}px"></span>`;
+  // team badge: the logo over the team's initials, so a blocked or slow image still leaves a mark
+  const logo = (t, size) => `<span class="sp-logo" style="width:${size}px;height:${size}px;font-size:${Math.max(8, Math.round(size * 0.3))}px${t.color ? `;--tc:#${esc(t.color)}` : ''}"><i>${esc((t.abbr || t.short || '?').slice(0, 3))}</i>${t.logo ? `<img src="${esc(t.logo)}" alt="" width="${size}" height="${size}" loading="lazy" decoding="async" onerror="this.remove()">` : ''}</span>`;
 
   /* ------------------------------- judgement ------------------------------ */
   function favSide(m) {
