@@ -16,7 +16,7 @@
   const CROSSES = ['Кардинальный', 'Фиксированный', 'Мутабельный'];
   const EL_COLOR = ['var(--el-fire)', 'var(--el-earth)', 'var(--el-air)', 'var(--el-water)'];
   const BODY = Object.fromEntries(ACG.BODIES.map((b) => [b.id, b]));
-  const DEFAULTS = { house: 'P', minor: false, nodes: true, lilith: true, fortune: true, angles: true };
+  const DEFAULTS = { house: 'P', minor: false, nodes: true, chiron: true, lilith: true, fortune: true, angles: true };
 
   let natal = null, hl = null, app = null;
 
@@ -29,18 +29,22 @@
     const o = opts();
     if (id === 'Node' || id === 'SNode') return o.nodes;
     if (id === 'Lilith') return o.lilith;
+    if (id === 'Chiron') return o.chiron;
     if (id === 'Fortune') return o.fortune;
     return true;
   };
 
   /* ------------------------------ formatting ------------------------------ */
+  // degrees, minutes and seconds within the sign (truncated like Sotis, never rounded up into the next sign)
   function pos(lon) {
-    const z = ACG.formatZodiac(lon);
-    return { deg: z.deg, min: z.min, glyph: z.glyph, name: z.name, text: `${z.deg}°${pad(z.min)}′` };
+    const L = n360(lon), sign = Math.floor(L / 30), totalSec = Math.floor((L - sign * 30) * 3600 + 1e-6);
+    const deg = Math.floor(totalSec / 3600), min = Math.floor(totalSec / 60) % 60, sec = totalSec % 60;
+    return { deg, min, sec, glyph: ACG.SIGNS[sign][0], name: ACG.SIGNS[sign][1], text: `${deg}°${pad(min)}′` };
   }
   const orbText = (d) => { let deg = Math.floor(d), min = Math.round((d - deg) * 60); if (min === 60) { deg++; min = 0; } return `${deg}°${pad(min)}′`; };
-  const fmtLat = (v) => `${Math.abs(v).toFixed(2).replace('.', ',')}° ${v >= 0 ? 'с.ш.' : 'ю.ш.'}`;
-  const fmtLon = (v) => { v = n180(v); return `${Math.abs(v).toFixed(2).replace('.', ',')}° ${v >= 0 ? 'в.д.' : 'з.д.'}`; };
+  const dm = (v) => { const a = Math.abs(v), d = Math.floor(a), m = Math.round((a - d) * 60); return m === 60 ? `${d + 1}°00′` : `${d}°${pad(m)}′`; };
+  const fmtLat = (v) => `${dm(v)} ${v >= 0 ? 'с.ш.' : 'ю.ш.'}`;
+  const fmtLon = (v) => { v = n180(v); return `${dm(v)} ${v >= 0 ? 'в.д.' : 'з.д.'}`; };
   const pointGlyph = (p) => p.angle ? `<span class="ang">${p.glyph}</span>` : g(p.glyph);
 
   /* --------------------------------- wheel -------------------------------- */
@@ -145,7 +149,7 @@
   }
 
   /* -------------------------------- tables -------------------------------- */
-  const signCell = (lon) => { const ps = pos(lon); return `<span class="pos">${ps.text}</span> <span class="sg" title="${ps.name}">${g(ps.glyph)}</span> <span class="sgn">${ps.name}</span>`; };
+  const signCell = (lon) => { const ps = pos(lon); return `<span class="pos">${ps.text}<span class="sec">${pad(ps.sec)}″</span></span> <span class="sg" title="${ps.name}">${g(ps.glyph)}</span> <span class="sgn">${ps.name}</span>`; };
   const DIGN_CLASS = { dom: 'good', exalt: 'good', det: 'bad', fall: 'bad' };
   const DIGN_SHORT = { dom: 'обит.', exalt: 'экз.', det: 'изгн.', fall: 'пад.' };
 
@@ -226,6 +230,9 @@
   /* ------------------------------- controls ------------------------------- */
   function initControls() {
     const o = opts();
+    const nodeSel = $('natNode');
+    nodeSel.value = app.state.nodeMode === 'mean' ? 'mean' : 'true';
+    nodeSel.addEventListener('change', () => { app.state.nodeMode = nodeSel.value; app.save(); app.recompute(); });
     const sel = $('natHouse');
     sel.innerHTML = N.HOUSE_SYSTEMS.map((s) => `<option value="${s.id}">${s.ru}</option>`).join('');
     sel.value = o.house;

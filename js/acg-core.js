@@ -18,6 +18,7 @@
     { id: 'Neptune', ru: 'Нептун',   glyph: '♆', color: '#6A9BFF', kw: 'вдохновение, духовность, иллюзии' },
     { id: 'Pluto',   ru: 'Плутон',   glyph: '♇', color: '#C07BFF', kw: 'трансформация, власть, глубина' },
     { id: 'Node',    ru: 'Сев. узел', glyph: '☊', color: '#A7B4C8', kw: 'путь развития, судьбоносные встречи', optional: true },
+    { id: 'Chiron',  ru: 'Хирон',    glyph: '⚷', color: '#8FD6B4', kw: 'исцеление, уязвимость, наставничество', optional: true },
   ];
 
   const ANGLES = {
@@ -74,25 +75,77 @@
     return norm360(125.04452 - 1934.136261 * T + 0.0020708 * T * T + T * T * T / 450000);
   }
 
-  function bodyPosition(id, time, rot) {
+  /* True node: osculating ascending node of the Moon's geocentric orbit on the ecliptic of date. */
+  function trueNodeLon(time) {
+    const A = root.Astronomy, dt = 1 / 1440;
+    const ecl = (t) => { const v = A.RotateVector(A.Rotation_EQJ_ECT(t), A.GeoMoon(t)); return [v.x, v.y, v.z]; };
+    const p = ecl(time), a = ecl(time.AddDays(dt)), b = ecl(time.AddDays(-dt));
+    const v = [(a[0] - b[0]) / (2 * dt), (a[1] - b[1]) / (2 * dt), (a[2] - b[2]) / (2 * dt)];
+    const h = [p[1] * v[2] - p[2] * v[1], p[2] * v[0] - p[0] * v[2], p[0] * v[1] - p[1] * v[0]];
+    return norm360(Math.atan2(h[0], -h[1]) * R2D);
+  }
+  const nodeLon = (time, mode) => (mode === 'mean' ? meanNodeLon(time) : trueNodeLon(time));
+
+  /* (2060) Chiron from a precomputed heliocentric table (tools/build_chiron.js), 1800–2100. */
+  let CH = null;
+  function chironTable() {
+    if (CH !== null) return CH;
+    const src = root.ACG_CHIRON;
+    if (!src) return (CH = false);
+    const bin = atob(src.data), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return (CH = { t0: src.t0, step: src.step, n: src.n, xyz: new Int32Array(u8.buffer) });
+  }
+  function chironHelio(tt) {
+    const T = chironTable();
+    if (!T) return null;
+    const f = (tt - T.t0) / T.step, k = Math.floor(f) - 1;
+    if (k < 0 || k + 3 >= T.n) return null;
+    const u = f - (k + 1);                      // 4-point Lagrange on k … k+3, u ∈ [0,1) between k+1 and k+2
+    const w = [-u * (u - 1) * (u - 2) / 6, (u + 1) * (u - 1) * (u - 2) / 2, -(u + 1) * u * (u - 2) / 2, (u + 1) * u * (u - 1) / 6];
+    const r = [0, 0, 0];
+    for (let j = 0; j < 4; j++) for (let c = 0; c < 3; c++) r[c] += w[j] * T.xyz[(k + j) * 3 + c] * 1e-8;
+    return r;
+  }
+  // apparent geocentric vector: Chiron at t−τ seen from the Earth at t−τ (light time and annual aberration)
+  function chironGeo(time) {
+    const A = root.Astronomy;
+    let tau = 0, v = null;
+    for (let i = 0; i < 3; i++) {
+      const t = time.AddDays(-tau), c = chironHelio(t.tt);
+      if (!c) return null;
+      const e = A.HelioVector(A.Body.Earth, t);
+      v = new A.Vector(c[0] - e.x, c[1] - e.y, c[2] - e.z, time);
+      tau = v.Length() * 0.0057755183;
+    }
+    return v;
+  }
+
+  function bodyPosition(id, time, rot, opts) {
     const A = root.Astronomy;
     if (id === 'Node') {
-      const lam = meanNodeLon(time) * D2R;
+      const lam = nodeLon(time, opts && opts.node) * D2R;
       const eps = A.e_tilt(time).tobl * D2R;
       const ra = norm360(Math.atan2(Math.sin(lam) * Math.cos(eps), Math.cos(lam)) * R2D);
       const dec = Math.asin(Math.sin(eps) * Math.sin(lam)) * R2D;
       return { ra, dec, elon: lam * R2D, elat: 0 };
     }
-    const vec = A.GeoVector(A.Body[id], time, true);
+    const vec = id === 'Chiron' ? chironGeo(time) : A.GeoVector(A.Body[id], time, true);
+    if (!vec) return null;
     const eq = A.EquatorFromVector(A.RotateVector(rot, vec));
     const ecl = A.Ecliptic(vec);
     return { ra: eq.ra * 15, dec: eq.dec, elon: ecl.elon, elat: ecl.elat };
   }
 
-  function eclLonAt(id, time) {
-    if (id === 'Node') return meanNodeLon(time);
+  function eclAt(id, time, opts) {
     const A = root.Astronomy;
-    return A.Ecliptic(A.GeoVector(A.Body[id], time, true)).elon;
+    if (id === 'Node') return { elon: nodeLon(time, opts && opts.node), elat: 0 };
+    const vec = id === 'Chiron' ? chironGeo(time) : A.GeoVector(A.Body[id], time, true);
+    return vec ? A.Ecliptic(vec) : null;
+  }
+  function speedAt(id, time, opts) {
+    const a = eclAt(id, time.AddDays(-0.5), opts), b = eclAt(id, time.AddDays(0.5), opts);
+    return a && b ? norm180(b.elon - a.elon) : 0;
   }
 
   /* ------------------------------ lines ------------------------------ */
@@ -128,17 +181,18 @@
     return { mc, ic, asc, dsc };
   }
 
-  function computeChart(utcMs) {
+  function computeChart(utcMs, opts) {
     const A = root.Astronomy;
+    opts = opts || {};
     const time = A.MakeTime(new Date(utcMs));
     const gast = A.SiderealTime(time) * 15;
     const rot = A.Rotation_EQJ_EQD(time);
-    const out = { utcMs, gast, eps: A.e_tilt(time).tobl, bodies: [] };
+    const out = { utcMs, gast, eps: A.e_tilt(time).tobl, nodeMode: opts.node === 'mean' ? 'mean' : 'true', bodies: [] };
     for (const b of BODIES) {
-      const pos = bodyPosition(b.id, time, rot);
-      const t1 = time.AddDays(-0.5), t2 = time.AddDays(0.5);
-      let speed = norm180(eclLonAt(b.id, t2) - eclLonAt(b.id, t1)); // deg/day
-      out.bodies.push(Object.assign({}, b, pos, { speed, retro: b.id !== 'Node' && speed < 0 }, computeLines(pos.ra, pos.dec, gast)));
+      const pos = bodyPosition(b.id, time, rot, opts);
+      if (!pos) continue;                                  // Chiron outside 1800–2100
+      const speed = speedAt(b.id, time, opts);             // deg/day
+      out.bodies.push(Object.assign({}, b, pos, { speed, retro: speed < 0 && !(b.id === 'Node' && out.nodeMode === 'mean') }, computeLines(pos.ra, pos.dec, gast)));
     }
     return out;
   }
@@ -230,14 +284,13 @@
     const t = mode === 'prog' ? natal.utcMs + (targetUtcMs - natal.utcMs) / 365.2422 : targetUtcMs;
     const time = A.MakeTime(new Date(t));
     const out = { mode, utcMs: t, targetUtcMs, bodies: [] };
+    const opts = { node: natal.nodeMode };
     for (const b of BODIES) {
-      let lam, beta = 0;
-      if (b.id === 'Node') lam = meanNodeLon(time);
-      else { const e = A.Ecliptic(A.GeoVector(A.Body[b.id], time, true)); lam = e.elon; beta = e.elat; }
-      const q = eclToEq(lam, beta, natal.eps);
-      const t1 = time.AddDays(-0.5), t2 = time.AddDays(0.5);
-      const speed = norm180(eclLonAt(b.id, t2) - eclLonAt(b.id, t1));
-      out.bodies.push(Object.assign({}, b, { elon: lam, ra: q.ra, dec: q.dec, retro: b.id !== 'Node' && speed < 0 }, computeLines(q.ra, q.dec, natal.gast)));
+      const e = eclAt(b.id, time, opts);
+      if (!e) continue;
+      const q = eclToEq(e.elon, e.elat, natal.eps);
+      const speed = speedAt(b.id, time, opts);
+      out.bodies.push(Object.assign({}, b, { elon: e.elon, ra: q.ra, dec: q.dec, retro: speed < 0 && !(b.id === 'Node' && natal.nodeMode === 'mean') }, computeLines(q.ra, q.dec, natal.gast)));
     }
     return out;
   }
@@ -292,5 +345,6 @@
     BODIES, ANGLES, SIGNS, ASPECTS, LAT_LIMIT, norm180, norm360, eclToEq,
     tzOffsetMin, localToUtc, computeChart, computeLines, linesNear, hav, formatZodiac,
     computeAspectLines, computeParans, computeDynamic, distToMeridianKm, distToCurveKm,
+    meanNodeLon, trueNodeLon, chironGeo,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -115,7 +115,7 @@
     date: '1996-12-27', time: '14:20',
     place: { name: 'Иркутск', country: 'Россия', lat: 52.32, lon: 104.25, tz: 'Asia/Irkutsk' },
     manualOffset: null, example: true,
-    bodies: { Node: false }, angles: { MC: true, IC: true, ASC: true, DSC: true },
+    bodies: { Node: false, Chiron: false }, angles: { MC: true, IC: true, ASC: true, DSC: true }, nodeMode: 'true',
     showNatal: true,
     asp: { on: false, planet: 'Sun', set: { 60: true, 90: true, 120: true }, to: { MC: true, ASC: true } },
     par: { on: false, planet: 'Sun' },
@@ -983,6 +983,27 @@
   $('manualOffset').addEventListener('change', (e) => { state.manualOffset = +e.target.value; userEdited(); recompute(); });
   if (state.manualOffset != null) { $('manualTz').checked = true; $('manualOffset').hidden = false; }
 
+  // manual coordinates: decimal (51,6667 or -73.98) or degrees and minutes (51°40′, 51 40, 39°12' E)
+  function parseCoord(text, max) {
+    const t = String(text).trim().replace(/,/g, '.').toUpperCase();
+    if (!t) return null;
+    const neg = /^\s*-/.test(t) || /[SWЮЗ]/.test(t);   // minus, S/W, ю.ш./з.д.
+    const nums = t.match(/\d+(?:\.\d+)?/g);
+    if (!nums) return null;
+    let v = +nums[0] + (nums[1] ? +nums[1] / 60 : 0) + (nums[2] ? +nums[2] / 3600 : 0);
+    if (neg) v = -v;
+    return Math.abs(v) <= max ? v : null;
+  }
+  for (const [id, max, key] of [['bLat', 90, 'lat'], ['bLon', 180, 'lon']]) {
+    $(id).addEventListener('change', () => {
+      const v = parseCoord($(id).value, max);
+      if (v == null) { $(id).setAttribute('aria-invalid', 'true'); return; }
+      $(id).removeAttribute('aria-invalid');
+      setPlace(Object.assign({}, state.place, { [key]: v }));
+    });
+    $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $(id).blur(); } });
+  }
+
   function setPlace(p) {
     state.place = p;
     bPlace.value = placeLabel(p);
@@ -1197,7 +1218,9 @@
     try { conv = ACG.localToUtc(y, mo, d, hh, mi, P.tz, state.manualOffset); }
     catch (e) { conv = ACG.localToUtc(y, mo, d, hh, mi, 'UTC', 0); }
     currentOffset = conv.offset; lastConv = conv;
-    chart = ACG.computeChart(conv.utc);
+    chart = ACG.computeChart(conv.utc, { node: state.nodeMode });
+    // nodes are conventionally retrograde; mark them direct only when clearly moving forward
+    chart.bodies.forEach((b) => { if (b.id === 'Node') b.retro = b.speed < 0.005; });
     computeDyn();
 
     const u = new Date(conv.utc);
@@ -1205,7 +1228,12 @@
     $('tzName').textContent = state.manualOffset != null ? 'вручную' : P.tz;
     $('tzOffset').textContent = fmtOffset(conv.offset);
     $('utcOut').textContent = `${utcStr} UTC`;
-    $('placeCoords').textContent = `${fmtLat(P.lat)} · ${fmtLon(P.lon)}`;
+    const dmS = (v) => { const a = Math.abs(v), d = Math.floor(a); let m = Math.round((a - d) * 60); return m === 60 ? `${d + 1}°00′` : `${d}°${pad(m)}′`; };
+    $('placeCoords').textContent = `${dmS(P.lat)} ${P.lat >= 0 ? 'с.ш.' : 'ю.ш.'} · ${dmS(ACG.norm180(P.lon))} ${ACG.norm180(P.lon) >= 0 ? 'в.д.' : 'з.д.'}`;
+    for (const [id, v] of [['bLat', P.lat], ['bLon', ACG.norm180(P.lon)]]) {
+      const el = $(id);
+      if (document.activeElement !== el) { el.value = num(v, 4); el.removeAttribute('aria-invalid'); }
+    }
     $('mhDate').textContent = `${d} ${MONTHS[mo - 1]} ${y} · ${pad(hh)}:${pad(mi)} · ${P.name}`;
     updateHeadMeta();
     renderPlanets();
@@ -1223,6 +1251,7 @@
     save: saveState,
     get chart() { return chart; },
     get conv() { return lastConv; },
+    recompute: () => recompute(),
   };
   function setView(v) {
     const natal = v === 'natal';

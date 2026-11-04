@@ -278,6 +278,11 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 
 .place-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; font-size: 12.5px; color: var(--muted); }
 .place-meta .coords { font-family: var(--f-mono); font-size: 11.5px; }
+.coord-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.coord { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.coord label { font-size: 12px; color: var(--muted); }
+.coord .inp { min-height: 40px; padding: 8px 10px; font-family: var(--f-mono); font-size: 15px; }
+.coord .inp[aria-invalid="true"] { border-color: var(--danger); }
 .link-btn { border: 0; background: none; padding: 4px 0; color: var(--brass); font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
 .link-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
 
@@ -386,7 +391,8 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .natal-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); align-items: start; }
 @media (min-width: 1360px) { .natal-grid.top { grid-template-columns: minmax(0, 1.05fr) minmax(400px, 1fr); } }
 @media (min-width: 1100px) { .natal-grid.bottom { grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); } }
-.nat-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.nat-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; container-type: inline-size; }
+@container (max-width: 600px) { .nat-table .sgn { display: none; } }
 .wheel-box { margin: 0; min-width: 0; }
 #wheel { display: block; width: 100%; max-width: 780px; height: auto; aspect-ratio: 1 / 1; margin: 0 auto; -webkit-user-select: none; user-select: none; }
 .wheel-box figcaption { margin-top: 6px; text-align: center; font-size: 12.5px; color: var(--faint); }
@@ -404,6 +410,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .nat-table .nm { white-space: nowrap; font-weight: 500; }
 .nat-table .ps { white-space: nowrap; }
 .nat-table .pos { font-family: var(--f-mono); font-size: 13px; }
+.nat-table .sec { margin-left: 1px; font-size: 11px; color: var(--muted); }
 .nat-table .sg { font-family: var(--f-glyph); font-size: 16px; }
 .nat-table .sgn { color: var(--muted); font-size: 12.5px; }
 .nat-table .hs { font-family: var(--f-mono); font-size: 13px; white-space: nowrap; }
@@ -589,6 +596,10 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
             <input class="inp" type="text" id="bPlace" placeholder="Город, например Казань" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest" spellcheck="false" autocapitalize="words">
             <ul class="suggest" id="suggest" role="listbox" hidden></ul>
           </div>
+          <div class="coord-row">
+            <div class="coord"><label for="bLat">Широта</label><input class="inp" id="bLat" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="51,6667"></div>
+            <div class="coord"><label for="bLon">Долгота</label><input class="inp" id="bLon" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="39,2000"></div>
+          </div>
           <div class="place-meta">
             <span class="coords" id="placeCoords"></span>
             <button type="button" class="link-btn" id="pickOnMap">
@@ -616,8 +627,10 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
           <button type="button" data-m="major">Мажорные аспекты</button>
           <button type="button" data-m="minor">+ минорные</button>
         </div>
+        <div class="field"><label for="natNode">Лунные узлы</label><select class="inp" id="natNode"><option value="true">Истинный узел (как в Сотисе)</option><option value="mean">Средний узел</option></select></div>
         <div class="seg" id="natPts" role="group" aria-label="Точки">
           <button type="button" data-p="nodes">Узлы</button>
+          <button type="button" data-p="chiron">Хирон</button>
           <button type="button" data-p="lilith">Лилит</button>
           <button type="button" data-p="fortune">Парс Фортуны</button>
           <button type="button" data-p="angles">Аспекты к ASC и MC</button>
@@ -689,7 +702,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
       <p>MC — где планета стояла в зените, IC — в надире, ASC — где она восходила, DSC — где заходила. Линии зависят только от момента рождения; город нужен, чтобы перевести местное время во всемирное.</p>
       <p>Положения планет геоцентрические, видимые, на истинный экватор даты (Astronomy Engine, точность около угловой минуты). Горизонт геометрический, без рефракции. Узел — средний.</p>
       <p>Аспектные линии считаются по эклиптике: MC или Асцендент совпадает с градусом планеты ± 60°, 90° или 120°. Параны — по прямым восхождениям и склонениям, как и основные линии. Транзиты и вторичные прогрессии (день после рождения за год жизни) наложены на звёздное время рождения, как в циклокартографии.</p>
-      <p>Натальная карта: тропический зодиак, дома по выбранной системе (по умолчанию Плацидус), средний узел и средняя Лилит (апогей лунной орбиты). Парс Фортуны: днём ASC + Луна − Солнце, ночью ASC + Солнце − Луна.</p>
+      <p>Натальная карта: тропический зодиак, дома по выбранной системе (по умолчанию Плацидус), истинный или средний узел, средняя Лилит (апогей лунной орбиты, спроецированный на эклиптику, как в Сотисе). Хирон — по таблице, рассчитанной численным интегрированием орбиты с учётом притяжения планет (1800–2100). Парс Фортуны: днём ASC + Луна − Солнце, ночью ASC + Солнце − Луна.</p>
       <p>Часовые пояса берутся из базы IANA с историей: летнее и декретное время, переходы 1991, 2011 и 2014 годов. Если в документах время другое, задайте смещение вручную.</p>
     </section>
   </aside>
@@ -697,6 +710,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 <script src="js/data.js"></script>
+<script src="js/chiron-data.js"></script>
 <script src="js/acg-core.js"></script>
 <script src="js/meanings.js"></script>
 <script src="js/natal.js"></script>

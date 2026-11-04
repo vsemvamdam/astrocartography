@@ -102,10 +102,15 @@
   };
 
   /* ---------------------------- extra points ------------------------------ */
-  // Mean Black Moon (lunar apogee), Meeus ch. 47 mean perigee + 180°
+  // Mean Black Moon Lilith: mean lunar apogee (Meeus ch. 47 mean perigee + 180°), which lies in the
+  // plane of the lunar orbit, projected onto the ecliptic through the mean node — as Sotis and Swiss Ephemeris do.
+  const MOON_INC = 5.1453964;
   function lilithLon(time) {
     const T = time.tt / 36525;
-    return n360(83.3532465 + 4069.0137287 * T - 0.0103200 * T * T - T * T * T / 80053 + T * T * T * T / 18999000 + 180);
+    const apogee = n360(83.3532465 + 4069.0137287 * T - 0.0103200 * T * T - T * T * T / 80053 + T * T * T * T / 18999000 + 180);
+    const node = ACG.meanNodeLon(time);
+    const u = apogee - node;
+    return n360(node + atan2(sin(u) * cos(MOON_INC), cos(u)));
   }
 
   /* ------------------------------- dignities ------------------------------ */
@@ -178,13 +183,16 @@
     const pts = [];
     const add = (p) => { p.sign = Math.floor(n360(p.lon) / 30); p.house = houseOf(p.lon, H.cusps); pts.push(p); return p; };
     for (const b of chart.bodies) {
-      add({ id: b.id, ru: b.id === 'Node' ? 'Сев. узел' : b.ru, glyph: b.glyph, color: b.color, lon: b.elon, lat: b.elat, speed: b.speed, retro: b.retro, lum: b.id === 'Sun' || b.id === 'Moon', planet: b.id !== 'Node', small: b.id === 'Node' });
+      const minor = b.id === 'Node' || b.id === 'Chiron';
+      add({ id: b.id, ru: b.ru, glyph: b.glyph, color: b.color, lon: b.elon, lat: b.elat, speed: b.speed, retro: b.retro, lum: b.id === 'Sun' || b.id === 'Moon', planet: !minor, small: minor });
     }
     const node = pts.find((p) => p.id === 'Node');
     // the south node mirrors the north node's aspects, so it gets none of its own
-    add({ id: 'SNode', ru: 'Юж. узел', glyph: '☋', color: '#A7B4C8', lon: n360(node.lon + 180), speed: node.speed, small: true, extra: true, noAspects: true });
+    add({ id: 'SNode', ru: 'Юж. узел', glyph: '☋', color: '#A7B4C8', lon: n360(node.lon + 180), speed: node.speed, retro: node.retro, small: true, extra: true, noAspects: true });
     const lil = lilithLon(time);
     add({ id: 'Lilith', ru: 'Лилит', glyph: '⚸', color: '#B9A7D8', lon: lil, speed: 0.111404, small: true, extra: true });
+    const ch = pts.findIndex((p) => p.id === 'Chiron');
+    if (ch >= 0) pts.push(pts.splice(ch, 1)[0]);
     const sun = pts.find((p) => p.id === 'Sun'), moon = pts.find((p) => p.id === 'Moon');
     const sunAbove = n360(sun.lon - H.asc) > 180;             // houses 7–12 are above the horizon
     const fortune = n360(sunAbove ? H.asc + moon.lon - sun.lon : H.asc + sun.lon - moon.lon);
