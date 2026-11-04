@@ -35,6 +35,7 @@
     { id: 'num', ru: 'Нумерология', kind: 'birth' },
   ];
   const C = window.CYCLES;
+  const SIGN_ACC = ['Овна', 'Тельца', 'Близнецы', 'Рака', 'Льва', 'Деву', 'Весы', 'Скорпиона', 'Стрельца', 'Козерога', 'Водолея', 'Рыбы'];
   const SIGN_LOC = ['Овне', 'Тельце', 'Близнецах', 'Раке', 'Льве', 'Деве', 'Весах', 'Скорпионе', 'Стрельце', 'Козероге', 'Водолее', 'Рыбах'];
   const HOUSE_TOPIC = ['', 'тело, характер, новые начинания', 'деньги и имущество', 'братья и сёстры, соседи, поездки, учёба, общение', 'дом, родители, корни', 'дети, творчество, удовольствия, романы',
     'работа, здоровье, повседневные дела', 'брак, партнёры, открытые противники', 'кризисы, чужие деньги, долги, наследство', 'дальние поездки, высшее образование, вера', 'карьера, статус, достижения',
@@ -92,22 +93,43 @@
       const dur = hrs >= 1 ? `${Math.floor(hrs)} ч ${pad(Math.round((hrs % 1) * 60))} мин` : `${Math.round(hrs * 60)} мин`;
       return `<tr class="${now >= v.start && now < v.end ? 'on' : ''}"><td class="pos">${tLocal(v.start, P.tz, true)}</td><td class="pos">${tLocal(v.end, P.tz, true)}</td><td>${dur}</td>
         <td>${v.last ? `${g(ASP_G[v.last.aspect])} ${ASP_RU[v.last.aspect]} с ${bodyName(v.last.planet)}` : 'без аспектов в знаке'}</td>
-        <td>в ${ACG.SIGNS[v.nextSign][1]} ${g(ACG.SIGNS[v.nextSign][0])}</td></tr>`;
+        <td>в ${SIGN_ACC[v.nextSign]} ${g(ACG.SIGNS[v.nextSign][0])}</td></tr>`;
     }).join('');
     return `<p class="muted">Луна без курса — время от последнего точного мажорного аспекта Луны к планетам до её перехода в следующий знак. Время местное для ${esc(P.name)}; ${o.classic ? 'учитываются только классические планеты.' : 'учитываются все планеты до Плутона.'}</p>
       <label class="chk"><input type="checkbox" id="vocClassic" ${o.classic ? 'checked' : ''}> Только классические планеты (без Урана, Нептуна, Плутона)</label>
       <div class="nat-scroll"><table class="nat-table"><thead><tr><th>Начало</th><th>Конец</th><th>Длится</th><th>Последний аспект</th><th>Переход</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
+  // the Moon's sign changes: search forward or back from `ms` in 2-hour steps, then bisect
+  function moonIngress(ms, dir) {
+    const sign = (t) => Math.floor(n360(C.lonOf('Moon', t)) / 30), s0 = sign(ms);
+    let a = ms, b = ms;
+    for (let k = 0; k < 40; k++) { b = a + dir * 7200000; if (sign(b) !== s0) break; a = b; }
+    for (let k = 0; k < 30; k++) { const mid = (a + b) / 2; if (sign(mid) === s0) a = mid; else b = mid; }
+    return dir > 0 ? b : a;
+  }
+  function moonPhase(ms) {
+    const el = n360(C.lonOf('Moon', ms) - C.lonOf('Sun', ms)), lit = Math.round((1 - Math.cos(el * Math.PI / 180)) / 2 * 100);
+    const name = el < 12 ? 'новолуние' : el < 84 ? 'растущий серп' : el < 96 ? 'первая четверть' : el < 168 ? 'растущая Луна' : el < 192 ? 'полнолуние'
+      : el < 264 ? 'убывающая Луна' : el < 276 ? 'последняя четверть' : el < 348 ? 'убывающий серп' : 'новолуние';
+    return { el, lit, name, waxing: el < 180 };
+  }
   function renderLunar() {
     const { y, m, d } = dateParts(), P = place();
-    const at = ACG.localToUtc(y, m, d, 12, 0, P.tz).utc;
+    const today = !opts().date || opts().date === todayISO();
+    const at = today ? Date.now() : ACG.localToUtc(y, m, d, 12, 0, P.tz).utc;
     const r = F.lunarDays(at, P);
-    const rows = r.days.map((x) => `<tr class="${at >= x.start && at < x.end ? 'on' : ''}"><td class="hs">${x.n}</td><td class="pos">${tLocal(x.start, P.tz, true)}</td><td class="pos">${tLocal(x.end, P.tz, true)}</td></tr>`).join('');
+    const signOf = (t) => Math.floor(n360(C.lonOf('Moon', t)) / 30);
+    const sgShort = (t0, t1) => { const a = signOf(t0), b = signOf(t1); const one = (s) => `<span class="sg" title="${ACG.SIGNS[s][1]}">${g(ACG.SIGNS[s][0])}</span>`; return a === b ? one(a) : `${one(a)}<span class="arr">→</span>${one(b)}`; };
+    const rows = r.days.map((x) => `<tr class="${at >= x.start && at < x.end ? 'on' : ''}"><td class="hs">${x.n}</td><td class="pos">${tLocal(x.start, P.tz, true)}</td><td class="pos">${tLocal(x.end, P.tz, true)}</td><td class="lsg">${sgShort(x.start, x.end - 60000)}</td></tr>`).join('');
     const cur = r.days.find((x) => at >= x.start && at < x.end);
+    const mLon = C.lonOf('Moon', at), ms = Math.floor(n360(mLon) / 30), z = ACG.formatZodiac(mLon), ph = moonPhase(at);
+    const entered = moonIngress(at, -1), leaves = moonIngress(at, 1), next = (ms + 1) % 12;
     return `<div class="tool-lead"><div class="big-num">${cur ? cur.n : '—'}</div><div><b>${cur ? `${cur.n}-й лунный день` : ''} на ${d} ${MONTHS[m - 1]} ${y}, ${esc(P.name)}</b>
       <p class="muted">Первый лунный день начинается в момент новолуния (${tLocal(r.newMoon, P.tz, true)}), каждый следующий — с восходом Луны. Следующее новолуние: ${tLocal(r.nextNewMoon, P.tz, true)}.</p></div></div>
-      <div class="nat-scroll"><table class="nat-table"><thead><tr><th>День</th><th>Начало</th><th>Конец</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      <div class="tool-lead"><div class="big-glyph" style="color:${BODY.Moon.color}">${g(ACG.SIGNS[ms][0])}</div><div><b>Луна в ${SIGN_LOC[ms]}, ${z.deg}°${pad(z.min)}′</b>
+      <p class="muted">${today ? `Сейчас, ${tLocal(at, P.tz)}` : 'В полдень'}: ${ph.name}, освещено ${ph.lit}%. В знаке с ${tLocal(entered, P.tz, true)}, перейдёт в ${SIGN_ACC[next]} ${g(ACG.SIGNS[next][0])} ${tLocal(leaves, P.tz, true)}.</p></div></div>
+      <div class="nat-scroll"><table class="nat-table"><thead><tr><th>День</th><th>Начало</th><th>Конец</th><th>Знак</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
   function renderEph() {
