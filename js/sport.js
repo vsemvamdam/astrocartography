@@ -271,11 +271,12 @@
           if (d < 0 && d >= -ORB) add(k, 1.5, `${role} перед куспидом ${cname(h)} соперника (${(-d).toFixed(1)}°): давит на чужой угол`, 'cusp');
           if (d >= 0 && d <= ORB) add(k, -2, `${role} внутри дома соперника, сразу за куспидом ${cname(h)} (${d.toFixed(1)}°): во власти соперника`, 'cusp');
         }
-        // Fortuna: an applying conjunction helps, an applying opposition hurts (Fortuna runs with the Ascendant)
-        for (const [pt, nm, w] of [[fortune, 'Фортуной', 1], [anti(fortune), 'антисцией Фортуны', 0.5]]) {
+        // Fortuna: an applying conjunction helps, an applying opposition hurts. Fortuna runs forward with the
+        // Ascendant, so it applies to planets ahead of it; its antiscion runs backward and applies to planets behind it
+        for (const [pt, nm, w, dir] of [[fortune, 'Фортуной', 1, 1], [anti(fortune), 'антисцией Фортуны', 0.5, -1]]) {
           const c = n180(p.lon - pt), o = n180(p.lon - pt - 180);
-          if (Math.abs(c) <= ORB && c > 0) add(k, 2 * w, `${RU[s.id]} в сходящемся соединении с ${nm} (${c.toFixed(1)}°)`, 'fortuna');
-          if (Math.abs(o) <= ORB && o > 0) add(k, -1.5 * w, `${RU[s.id]} в сходящейся оппозиции с ${nm} (${o.toFixed(1)}°)`, 'fortuna');
+          if (Math.abs(c) <= ORB && c * dir > 0) add(k, 2 * w, `${RU[s.id]} в сходящемся соединении с ${nm} (${Math.abs(c).toFixed(1)}°)`, 'fortuna');
+          if (Math.abs(o) <= ORB && o * dir > 0) add(k, -1.5 * w, `${RU[s.id]} в сходящейся оппозиции с ${nm} (${Math.abs(o).toFixed(1)}°)`, 'fortuna');
         }
         const nn = P.Node && Math.abs(n180(p.lon - P.Node.lon)), sn = P.Node && Math.abs(n180(p.lon - P.Node.lon - 180));
         if (nn != null && nn <= 3) add(k, 1, `${RU[s.id]} на северном узле (${nn.toFixed(1)}°): прибавляет`, 'node');
