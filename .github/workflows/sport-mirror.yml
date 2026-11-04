@@ -28,9 +28,12 @@ jobs:
         run: git clone -q --depth 1 --branch data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" prev || mkdir -p prev
 
       - name: Fetch from ESPN
-        run: node site/tools/sport_mirror.js prev next
+        id: fetch
+        # an ESPN outage should not mail a failure every half hour: warn and keep the previous copy
+        run: node site/tools/sport_mirror.js prev next || { echo "::warning::ESPN did not answer; the previous copy stays"; echo "skip=1" >> "$GITHUB_OUTPUT"; }
 
       - name: Publish to the data branch
+        if: steps.fetch.outputs.skip != '1'
         run: |
           cd next
           git init -q -b data
@@ -38,4 +41,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -q -m "Sport data $(date -u +%Y-%m-%dT%H:%MZ)"
-          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" data
+          # GitHub sometimes answers a force push with a transient 500: try a few times before giving up
+          for i in 1 2 3 4; do
+            git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" data && exit 0
+            sleep $((i * 15))
+          done
+          echo "::warning::could not publish the data branch this time; the site keeps the previous copy"

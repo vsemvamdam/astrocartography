@@ -198,6 +198,7 @@
       const angText = ang ? (angle === 'ASC' ? ON_ASC : ON_MC)[other] || null : null;
       const wt = (id) => (['Sun', 'Moon', 'Venus', 'Mars', 'ASC'].includes(id) ? 2 : SLOW3.has(id) ? 0.4 : 1);
       const w = wt(a) + wt(b) - x.orb / 2;
+      if (!text && !angText) return null;                 // e.g. an asteroid or Lilith on the Ascendant: no text for it here
       return { x, a, b, w, text: text || angText };
     }).filter(Boolean);
     const soft = cross.filter((x) => x.asp.kind === 'soft').length, hard = cross.filter((x) => x.asp.kind === 'hard').length;
@@ -221,6 +222,33 @@
       return who === 'partner'
         ? { id: base(p), partner: true, head: `${p.ru} (${name}) в вашем ${RN[h]} доме`, text: `Партнёр ${PERSON[base(p)]} — это затрагивает ${HOUSE_YOU[h]}.` }
         : { id: base(p), head: `${mineName(base(p), p.ru)} в ${RN[h]} доме партнёра`, text: `${cap(PERSON[base(p)])} — в сфере партнёра: ${HOUSE[h]}.` };
+    });
+    // love asteroids: Eros, Psyche, Amor and Juno of one person touching the other's lights, Venus, Mars or Ascendant
+    const AST_SYN = { Eros: 'страсть и физическое влечение', Psyche: 'родство душ и глубокое психологическое понимание', Amor: 'нежная, дружеская, бескорыстная привязанность', Juno: 'желание серьёзного союза и брака' };
+    const AST_RU = { Eros: 'Эрос', Psyche: 'Психея', Amor: 'Амор', Juno: 'Юнона' };
+    const PERS = ['Sun', 'Moon', 'Venus', 'Mars'];
+    const contact = (a, b) => { const d = Math.abs(((a - b + 540) % 360) - 180); for (const [x, o] of [[0, 3], [180, 2], [120, 2], [90, 2], [60, 1.5]]) if (Math.abs(d - x) <= o) return { a: x, orb: Math.abs(d - x) }; return null; };
+    const ASP_N = { 0: 'соединение', 180: 'оппозиция', 120: 'трин', 90: 'квадрат', 60: 'секстиль' };
+    const ASP_K = { 0: 'neutral', 180: 'hard', 120: 'soft', 90: 'hard', 60: 'soft' };
+    const astItems = [];
+    for (const [own, oth, mine] of [[A, B, true], [B, A, false]]) {
+      for (const id of Object.keys(AST_SYN)) {
+        const ap = own.points.find((p) => p.id === id);
+        if (!ap) continue;
+        const targets = oth.points.filter((p) => PERS.includes(p.id)).concat([{ id: 'ASC', ru: 'Асцендент', lon: oth.asc }]);
+        for (const q of targets) {
+          const c = contact(ap.lon, q.lon);
+          if (!c) continue;
+          const who = mine ? `Ваш${id === 'Psyche' || id === 'Juno' ? 'а' : ''} ${AST_RU[id]} — ${ASP_N[c.a]} — ${q.ru} (${name})` : `${AST_RU[id]} (${name}) — ${ASP_N[c.a]} — ${mineName(q.id, q.ru).replace(/^В/, 'в')}`;
+          astItems.push({ id, partner: !mine, asp: { glyph: { 0: '☌', 180: '☍', 120: '△', 90: '□', 60: '⚹' }[c.a], kind: ASP_K[c.a] }, orb: c.orb, head: who,
+            text: `${cap(AST_SYN[id])}. ${TONE_SYN[c.a] || ''} Орб ${c.orb.toFixed(1).replace('.', ',')}°.` });
+        }
+      }
+    }
+    const hasExtra = A.points.some((p) => p.id === 'Eros') && B.points.some((p) => p.id === 'Eros');
+    if (astItems.length || hasExtra) out.push({
+      title: 'Астероиды любви', note: hasExtra ? 'Эрос, Психея, Амор и Юнона одного партнёра в тесном аспекте (до 2–3°) к Солнцу, Луне, Венере, Марсу или Асценденту другого.' : 'Учтена Юнона. Чтобы добавить Эрос, Психею и Амор, включите кнопку «Эрос, Психея и др.» в настройках натальной карты.',
+      items: astItems.sort((p, q) => p.orb - q.orb).slice(0, 10),
     });
     out.push({ title: `Планеты партнёра в ваших домах`, note: 'Наложение домов: в какие сферы вашей жизни партнёр приносит свои качества.', items: overlay(B.points.filter((p) => p.planet), A, 'partner') });
     out.push({ title: `Ваши планеты в домах партнёра`, items: overlay(A.points.filter((p) => p.planet), B, 'you') });

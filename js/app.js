@@ -1149,7 +1149,7 @@
       return `<li class="${on ? '' : 'off'}" style="--c:${b.color}">
         <label for="pb-${b.id}">
           <input type="checkbox" id="pb-${b.id}" data-id="${b.id}" ${on ? 'checked' : ''}>
-          <span class="p-glyph" aria-hidden="true">${g(b.glyph)}</span>
+          <span class="p-glyph${b.short ? ' txt' : ''}" aria-hidden="true">${b.short ? b.glyph : g(b.glyph)}</span>
           <span class="p-name">${esc(b.ru)}${z ? `<small>${z.name}</small>` : ''}</span>
           <span class="p-pos">${cb ? posHTML(cb) : ''}${db ? `<small class="p-dyn">${dyn.mode === 'transit' ? 'т' : 'п'} ${posHTML(db)}</small>` : ''}</span>
         </label>
@@ -1159,13 +1159,14 @@
   $('planets').addEventListener('change', (e) => {
     const id = e.target.dataset.id; if (!id) return;
     state.bodies[id] = e.target.checked;
+    if (e.target.checked && EXTRA_AST.includes(id) && !needExtraAsteroids()) return;   // lines appear when the tables arrive
     e.target.closest('li').classList.toggle('off', !e.target.checked);
     layersChanged();
   });
   const SETS = { all: () => true, none: () => false, personal: (id) => ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars'].includes(id), social: (id) => ['Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'].includes(id) };
   document.querySelectorAll('.filters .pill').forEach((p) => p.addEventListener('click', () => {
     const f = SETS[p.dataset.set];
-    ACG.BODIES.forEach((b) => { state.bodies[b.id] = f(b.id); });
+    ACG.BODIES.forEach((b) => { state.bodies[b.id] = b.minorAst && p.dataset.set === 'all' ? state.bodies[b.id] === true : f(b.id); });
     renderPlanets(); layersChanged();
   }));
 
@@ -1350,7 +1351,25 @@
     const dynPart = dyn ? ` · ${dyn.mode === 'transit' ? 'транзиты' : 'прогрессии'} на ${dynDateRu()}` : '';
     $('mhMeta').innerHTML = `UTC ${pad(u.getUTCHours())}:${pad(u.getUTCMinutes())} · ${fmtOffset(lastConv.offset)}${dynPart}<span class="long"> · геоцентрический горизонт, без рефракции</span>`;
   }
+  /* Eros, Psyche, Amor, Hygiea and Proserpina (half a megabyte of tables) load only when someone turns
+     one of them on, on the map or in the natal chart; the charts are recomputed once they arrive */
+  const EXTRA_AST = ACG.BODIES.filter((b) => b.minorAst).map((b) => b.id);
+  let extraAst = window.ACG_ASTEROIDS && window.ACG_ASTEROIDS.data && window.ACG_ASTEROIDS.data.Eros ? 'ready' : null;
+  function needExtraAsteroids() {
+    if (extraAst) return extraAst === 'ready';
+    extraAst = 'loading';
+    const core = document.querySelector('script[src*="acg-core.js"]'), v = core && core.src.split('?')[1];
+    const sc = document.createElement('script');
+    sc.src = `js/asteroids-extra-data.js${v ? '?' + v : ''}`;
+    sc.onload = () => { extraAst = 'ready'; recompute(); };
+    sc.onerror = () => { extraAst = null; showStatus('Не загрузились таблицы дополнительных астероидов. Проверьте интернет.'); };
+    document.head.appendChild(sc);
+    return false;
+  }
+  const wantsExtra = () => EXTRA_AST.some((id) => state.bodies[id] === true) || !!(state.natal && state.natal.asteroids2);
+
   function recompute() {
+    if (wantsExtra()) needExtraAsteroids();
     if (!window.Astronomy) { showStatus('Не загрузилась астрономическая библиотека. Проверьте интернет и обновите страницу.'); return; }
     const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(bDate.value), tm = /^(\d{1,2}):(\d{2})/.exec(bTime.value);
     if (!dm) { showStatus('Укажите дату рождения.'); return; }
@@ -1411,6 +1430,7 @@
     get partnerChart() { return partnerChart; },
     get partnerConv() { return partnerConv; },
     recompute: () => recompute(),
+    needExtraAsteroids: () => needExtraAsteroids(),
     cities: CITIES,
     placeLabel, makePlaceSearch, nearestCity, focusCity, setPartner, loadChart, fmtOffset,
     current: () => ({ date: state.date, time: state.time, place: state.place, manualOffset: state.manualOffset }),

@@ -23,6 +23,11 @@
     { id: 'Pallas',  ru: 'Паллада',  glyph: '⚴', color: '#7FB2E5', kw: 'мудрость, стратегия, творческий ум, справедливость', optional: true, asteroid: true },
     { id: 'Juno',    ru: 'Юнона',    glyph: '⚵', color: '#E58FB3', kw: 'брак, партнёрство на равных, верность, ревность', optional: true, asteroid: true },
     { id: 'Vesta',   ru: 'Веста',    glyph: '⚶', color: '#F2A65A', kw: 'служение, преданность делу, сосредоточенность, святость', optional: true, asteroid: true },
+    { id: 'Eros',    ru: 'Эрос',     glyph: 'Эр', color: '#F07A8C', kw: 'страсть, влечение, искра, эротика', optional: true, asteroid: true, minorAst: true, short: true },
+    { id: 'Psyche',  ru: 'Психея',   glyph: 'Пс', color: '#C9A3F0', kw: 'родство душ, психологическая близость, уязвимость', optional: true, asteroid: true, minorAst: true, short: true },
+    { id: 'Amor',    ru: 'Амор',     glyph: 'Ам', color: '#F5B8C8', kw: 'безусловная, платоническая любовь, нежность без подтекста', optional: true, asteroid: true, minorAst: true, short: true },
+    { id: 'Hygiea',  ru: 'Гигея',    glyph: 'Ги', color: '#8FD6C0', kw: 'здоровье, гигиена, очищение, целительство', optional: true, asteroid: true, minorAst: true, short: true },
+    { id: 'Proserpina', ru: 'Прозерпина', glyph: 'Пр', color: '#B08FD0', kw: 'глубокая трансформация, регенерация, переход на новый уровень', optional: true, asteroid: true, minorAst: true, short: true },
   ];
 
   const ANGLES = {
@@ -111,15 +116,17 @@
     for (let j = 0; j < 4; j++) for (let c = 0; c < 3; c++) r[c] += w[j] * T.xyz[(k + j) * 3 + c] * 1e-8;
     return r;
   }
-  /* Ceres, Pallas, Juno, Vesta: the same kind of table (tools/build_asteroids.js), 1800–2100 */
+  /* asteroids: the same kind of table (tools/build_tables.js), 1800–2100; a body may have its own grid
+     ({t0, step, n, data}) — the near-Earth Eros and Amor need a finer one */
   const AST = {};
   function asteroidHelio(id, tt) {
     const src = root.ACG_ASTEROIDS;
     if (!src || !src.data[id]) return null;
     if (!AST[id]) {
-      const bin = atob(src.data[id]), u8 = new Uint8Array(bin.length);
+      const d = src.data[id], meta = typeof d === 'string' ? { t0: src.t0, step: src.step, n: src.n, data: d } : d;
+      const bin = atob(meta.data), u8 = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-      AST[id] = { t0: src.t0, step: src.step, n: src.n, xyz: new Int32Array(u8.buffer) };
+      AST[id] = { t0: meta.t0, step: meta.step, n: meta.n, xyz: new Int32Array(u8.buffer) };
     }
     const T = AST[id], f = (tt - T.t0) / T.step, k = Math.floor(f) - 1;
     if (k < 0 || k + 3 >= T.n) return null;
@@ -129,7 +136,8 @@
     for (let j = 0; j < 4; j++) for (let c = 0; c < 3; c++) r[c] += w[j] * T.xyz[(k + j) * 3 + c] * 1e-8;
     return r;
   }
-  const TABLE_BODIES = { Chiron: (tt) => chironHelio(tt), Ceres: (tt) => asteroidHelio('Ceres', tt), Pallas: (tt) => asteroidHelio('Pallas', tt), Juno: (tt) => asteroidHelio('Juno', tt), Vesta: (tt) => asteroidHelio('Vesta', tt) };
+  const TABLE_BODIES = { Chiron: (tt) => chironHelio(tt) };
+  for (const id of ['Ceres', 'Pallas', 'Juno', 'Vesta', 'Eros', 'Psyche', 'Amor', 'Hygiea', 'Proserpina']) TABLE_BODIES[id] = (tt) => asteroidHelio(id, tt);
   // apparent geocentric vector of a table body: its place at t−τ seen from the Earth at t−τ (light time and annual aberration)
   function tableGeo(id, time) {
     const A = root.Astronomy, helio = TABLE_BODIES[id];

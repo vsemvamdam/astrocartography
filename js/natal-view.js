@@ -17,8 +17,10 @@
   const CROSSES = ['Кардинальный', 'Фиксированный', 'Мутабельный'];
   const EL_COLOR = ['var(--el-fire)', 'var(--el-earth)', 'var(--el-air)', 'var(--el-water)'];
   const BODY = Object.fromEntries(ACG.BODIES.map((b) => [b.id, b]));
-  const DEFAULTS = { house: 'P', minor: false, nodes: true, chiron: true, lilith: true, fortune: true, angles: true, asteroids: false, mode: 'natal', syn: 'syn' };
+  const DEFAULTS = { house: 'P', minor: false, nodes: true, chiron: true, lilith: true, fortune: true, angles: true, asteroids: false, asteroids2: false, mode: 'natal', syn: 'syn' };
   const ASTEROIDS = ['Ceres', 'Pallas', 'Juno', 'Vesta'];
+  const ASTEROIDS2 = ['Eros', 'Psyche', 'Amor', 'Hygiea', 'Proserpina'];   // two-letter labels, tables load on demand
+  const isTxt = (gl) => /^[А-ЯЁ][а-яё]$/.test(gl || '');
 
   let natal = null;     // the chart drawn as the main wheel (natal, solar or composite)
   let outer = null;     // partner's points in the outer ring (synastry)
@@ -47,6 +49,7 @@
     if (id === 'Lilith') return o.lilith;
     if (id === 'Chiron') return o.chiron;
     if (ASTEROIDS.includes(id)) return o.asteroids;
+    if (ASTEROIDS2.includes(id)) return o.asteroids2;
     if (id === 'Fortune') return o.fortune;
     return true;
   };
@@ -63,7 +66,7 @@
   const dm = (v) => { const a = Math.abs(v), d = Math.floor(a), m = Math.round((a - d) * 60); return m === 60 ? `${d + 1}°00′` : `${d}°${pad(m)}′`; };
   const fmtLat = (v) => `${dm(v)} ${v >= 0 ? 'с.ш.' : 'ю.ш.'}`;
   const fmtLon = (v) => { v = n180(v); return `${dm(v)} ${v >= 0 ? 'в.д.' : 'з.д.'}`; };
-  const pointGlyph = (p) => p.angle ? `<span class="ang">${p.glyph}</span>` : g(p.glyph);
+  const pointGlyph = (p) => p.angle ? `<span class="ang">${p.glyph}</span>` : isTxt(p.glyph) ? `<span class="gtx">${p.glyph}</span>` : g(p.glyph);
   const localTime = (ms, tz) => {
     const off = ACG.tzOffsetMin(tz || 'UTC', ms), d = new Date(ms + off * 60000);
     return { text: `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`, off };
@@ -161,7 +164,7 @@
       o.push(`<g class="w-pt${dim ? ' dim' : ''}${hl === p.id ? ' on' : ''}" data-id="${p.id}" tabindex="0" role="button" aria-label="${esc(p.ru)} ${ps.text} ${ps.name}, дом ${RN[p.house]}">
         ${line(t1, t2, 'w-ptick', ` stroke="${p.color}"`)}${line(t2, cp, 'w-conn', ` stroke="${p.color}"`)}
         <circle cx="${f1(gp[0])}" cy="${f1(gp[1])}" r="26" class="w-hit"/>
-        <text x="${f1(gp[0])}" y="${f1(gp[1])}" class="w-planet" style="fill:${p.color}">${g(p.glyph)}</text>
+        <text x="${f1(gp[0])}" y="${f1(gp[1])}" class="w-planet${isTxt(p.glyph) ? ' txt' : ''}" style="fill:${p.color}">${isTxt(p.glyph) ? p.glyph : g(p.glyph)}</text>
         ${L.min ? `<text x="${f1(dp[0])}" y="${f1(dp[1])}" class="w-deg">${ps.deg}°</text>
         <text x="${f1(xy(d, L.min)[0])}" y="${f1(xy(d, L.min)[1])}" class="w-min">${pad(ps.min)}′${p.retro ? '<tspan class="w-rx">R</tspan>' : ''}</text>`
         : `<text x="${f1(dp[0])}" y="${f1(dp[1])}" class="w-deg w-deg-s">${ps.deg}°${pad(ps.min)}${p.retro ? '<tspan class="w-rx">R</tspan>' : ''}</text>`}
@@ -179,7 +182,7 @@
         o.push(`<g class="w-pt w-outer${dim ? ' dim' : ''}${hl === key ? ' on' : ''}" data-id="${key}" tabindex="0" role="button" aria-label="${esc(partnerName())}: ${esc(p.ru)} ${ps.text} ${ps.name}">
           ${line(xy(p.lon, R_ZIN), xy(p.lon, R_ZIN - 10), 'w-ptick', ` stroke="${p.color}"`)}
           <circle cx="${f1(gp[0])}" cy="${f1(gp[1])}" r="22" class="w-hit"/>
-          <text x="${f1(gp[0])}" y="${f1(gp[1])}" class="w-planet w-planet-o" style="fill:${p.color}">${g(p.glyph)}</text>
+          <text x="${f1(gp[0])}" y="${f1(gp[1])}" class="w-planet w-planet-o${isTxt(p.glyph) ? ' txt' : ''}" style="fill:${p.color}">${isTxt(p.glyph) ? p.glyph : g(p.glyph)}</text>
           <text x="${f1(dp[0])}" y="${f1(dp[1])}" class="w-deg w-deg-s">${ps.deg}°${pad(ps.min)}${p.retro ? '<tspan class="w-rx">R</tspan>' : ''}</text>
         </g>`);
         const e = xy(p.lon, L.hin);
@@ -211,7 +214,7 @@
       $('natPartnerTitle').textContent = `Планеты: ${partnerName()}`;
       $('natPartner').innerHTML = `<thead><tr><th colspan="2">Планета</th><th>Положение</th><th title="дом в собственной карте">Свой дом</th><th title="в какой ваш дом попадает">В ваших домах</th></tr></thead><tbody>${outer.map((p) => `
         <tr data-id="${p.id}" class="${hl === p.id ? 'on' : ''}">
-          <td class="gl" style="color:${p.color}">${g(p.glyph)}</td>
+          <td class="gl" style="color:${p.color}">${pointGlyph(p)}</td>
           <td class="nm">${esc(p.ru)}${p.retro ? ' <span class="rx">R</span>' : ''}</td>
           <td class="ps">${signCell(p.lon)}</td>
           <td class="hs">${RN[p.house]}</td>
@@ -325,6 +328,11 @@
     Pallas: 'Дочь мудрости: стратегический и творческий ум, умение видеть узоры, чувство справедливости, равновесие ума и чувств.',
     Juno: 'Царица-супруга: какой союз вам нужен, ожидания от брака, верность и равенство, ревность и власть в паре.',
     Vesta: 'Хранительница огня: чему вы готовы посвятить себя целиком, сосредоточенность, служение, священное отношение к телу.',
+    Eros: 'Страсть и влечение: что вас зажигает, где искра, эротическое притяжение и жажда жизни.',
+    Psyche: 'Душа и близость: психологическая совместимость, умение открыться и быть уязвимым, родство душ.',
+    Amor: 'Бескорыстная любовь: как вы проявляете симпатию и нежность без романтического подтекста — к друзьям, людям, миру.',
+    Hygiea: 'Здоровье и очищение: привычки, гигиена тела и ума, склонность к медицине и целительству.',
+    Proserpina: 'Глубокая трансформация: умение пройти через кризис, обновиться и выйти на новый уровень, тяга к глубокому анализу.',
   };
   function renderSoulCards() {
     const show = opts().mode === 'natal' && !outer;
@@ -362,7 +370,20 @@
       return `<div class="soul-row"><span class="tg" style="color:${p.color}">${g(p.glyph)}</span><div><b>${esc(p.ru)}: ${pos(p.lon).text} ${esc(pos(p.lon).name)}, ${RN[p.house]} дом${p.retro ? ' <span class="rx">R</span>' : ''}</b>
         <p>${esc(AST_TEXT[id])} Сфера: ${esc(HTHEME[p.house])}.${links.length ? ` Контакты до 2°: ${esc(links.join(', '))}.` : ''}</p></div></div>`;
     }).join('');
-    $('natAst').innerHTML = rows || '<p class="muted">Астероиды считаются для 1800–2100 годов.</p>';
+    const have2 = ASTEROIDS2.some((id) => pt(id));
+    const rows2 = have2 ? ASTEROIDS2.map((id) => {
+      const p = pt(id);
+      if (!p) return '';
+      const links = near.map((q) => { const a = asp(p.lon, q.lon); return a ? `${a} с ${q.angle ? q.glyph : INSTR[q.id]}` : null; }).filter(Boolean);
+      return `<div class="soul-row"><span class="tg gtx" style="color:${p.color}">${p.glyph}</span><div><b>${esc(p.ru)}: ${pos(p.lon).text} ${esc(pos(p.lon).name)}, ${RN[p.house]} дом${p.retro ? ' <span class="rx">R</span>' : ''}</b>
+        <p>${esc(AST_TEXT[id])} Сфера: ${esc(HTHEME[p.house])}.${links.length ? ` Контакты до 2°: ${esc(links.join(', '))}.` : ''}</p></div></div>`;
+    }).join('') : '';
+    $('natAst').innerHTML = (rows || '<p class="muted">Астероиды считаются для 1800–2100 годов.</p>')
+      + `<h4 class="nat-h4 ast2-h">Эрос, Психея, Амор, Гигея, Прозерпина</h4>`
+      + (have2 ? rows2 + '<p class="bal-note">Прозерпина здесь — астероид № 26, а не гипотетическая заплутоновая планета, которую используют в школе Глобы.</p>'
+        : '<p class="muted">Таблицы этих астероидов загружаются отдельно (около 0,5 МБ). <button type="button" class="link-btn" id="natAst2Load">Загрузить и показать</button></p>');
+    const ld = $('natAst2Load');
+    if (ld) ld.onclick = () => { opts().asteroids2 = true; app.save(); ld.disabled = true; ld.textContent = 'Загружаем…'; if (app.needExtraAsteroids()) app.recompute(); };
   }
 
   /* --------------- readings: solar return, synastry, composite --------------- */
@@ -374,7 +395,7 @@
       else if (I && o.mode === 'solar' && solarInfo) { secs = I.solar(natal, natBase); title = `Расшифровка соляра ${solarInfo.year}`; sub = 'на год от дня рождения до дня рождения'; }
       else if (I && o.mode === 'synastry' && natB && outer) { secs = I.synastry(natBase, natB, cross, partnerName()); title = 'Расшифровка синастрии'; sub = `вы и ${partnerName()}`; }
       else if (I && o.mode === 'synastry' && natB) { secs = I.composite(natal); title = 'Расшифровка композита'; sub = 'отношения как отдельная карта'; }
-    } catch (e) { secs = null; }
+    } catch (e) { secs = null; console.error(e); }
     card.hidden = !secs;
     $('natReadJump').hidden = !secs;
     if (!secs) return;
@@ -384,7 +405,7 @@
       if (id === 'ASC' || id === 'MC') return `<span class="rd-ang">${id}</span>`;
       if (typeof id === 'number') return `<span style="color:${EL_COLOR[id]}">●</span>`;
       const b = BODY[id];
-      return b ? `<span style="color:${b.color}"${partner ? ' class="rd-b"' : ''}>${g(b.glyph)}</span>` : '';
+      return b ? `<span style="color:${b.color}"${partner ? ' class="rd-b"' : ''}>${b.short ? `<span class="gtx">${b.glyph}</span>` : g(b.glyph)}</span>` : '';
     };
     // aspect rows carry the aspect's glyph in its colour, the others the planet's glyph
     const row = (it) => `<div class="soul-row"><span class="tg">${it.asp ? `<span class="ag-${it.asp.kind}">${g(it.asp.glyph)}</span>` : gl(it.mark != null ? it.mark : it.id, it.partner)}</span><div>
@@ -585,7 +606,7 @@
     };
     syncSeg();
     $('natAspMode').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; opts().minor = b.dataset.m === 'minor'; syncSeg(); changed(); });
-    $('natPts').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.p; const o = opts(); o[k] = !o[k]; syncSeg(); changed(); });
+    $('natPts').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.p; const o = opts(); o[k] = !o[k]; syncSeg(); if (k === 'asteroids2' && o[k] && !app.needExtraAsteroids()) { app.save(); return; } changed(); });
     $('natMode').addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.m === 'horary' && opts().mode !== 'horary' && !horOpts().date) setHoraryNow(false);

@@ -192,7 +192,7 @@
     const lil = lilithLon(time);
     add({ id: 'Lilith', ru: 'Лилит', glyph: '⚸', color: '#B9A7D8', lon: lil, speed: 0.111404, small: true, extra: true });
     // Chiron and the asteroids go after the nodes and Lilith
-    for (const id of ['Chiron', 'Ceres', 'Pallas', 'Juno', 'Vesta']) { const k = pts.findIndex((p) => p.id === id); if (k >= 0) pts.push(pts.splice(k, 1)[0]); }
+    for (const id of ['Chiron', 'Ceres', 'Pallas', 'Juno', 'Vesta', 'Eros', 'Psyche', 'Amor', 'Hygiea', 'Proserpina']) { const k = pts.findIndex((p) => p.id === id); if (k >= 0) pts.push(pts.splice(k, 1)[0]); }
     const sun = pts.find((p) => p.id === 'Sun'), moon = pts.find((p) => p.id === 'Moon');
     const sunAbove = n360(sun.lon - H.asc) > 180;             // houses 7–12 are above the horizon
     const fortune = n360(sunAbove ? H.asc + moon.lon - sun.lon : H.asc + sun.lon - moon.lon);

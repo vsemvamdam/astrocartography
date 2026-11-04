@@ -1,8 +1,9 @@
 /* Builds js/chiron-data.js and js/asteroids-data.js: heliocentric J2000 equatorial positions of Chiron
-   (every 20 days) and of Ceres, Pallas, Juno, Vesta (every 30 days), 1800–2100.
+   (every 20 days) and of the asteroids (every 30 days; Eros and Amor every 10 days, straight from Horizons),
+   1800–2100, and js/asteroids-extra-data.js for the five that load on demand.
    Each grid point is integrated (Sun + 8 planets, astronomy-engine's GravitySimulator) from the nearest
-   of 16 JPL Horizons state vectors, one every 20 years (tools/horizons-states.json), so the error stays
-   at a few arcseconds over the whole range.
+   of the JPL Horizons state vectors in tools/horizons-states.json (every 20 years, or every 5 years for the
+   newer bodies; tools/fetch_horizons.js), so the error stays small over the whole range.
    Usage: npm install astronomy-engine@2.1.19 && node tools/build_tables.js */
 const A = require(process.env.ASTRONOMY_JS || 'astronomy-engine');
 const fs = require('fs');
@@ -35,19 +36,32 @@ function table(name, step, tStart, tEnd) {
   return { t0: grid[0], step, n: grid.length, data: Buffer.from(arr.buffer).toString('base64') };
 }
 
-const root = path.join(__dirname, '..', 'js');
-const ch = table('Chiron', 20, -73050 - 10, 36525 + 40);
-fs.writeFileSync(path.join(root, 'chiron-data.js'),
-  `/* (2060) Chiron, heliocentric J2000 equatorial x,y,z in 1e-8 AU, every ${ch.step} days of TT from ${ch.t0} (days since J2000). Built by tools/build_tables.js from JPL Horizons states */\n` +
-  `window.ACG_CHIRON={t0:${ch.t0},step:${ch.step},n:${ch.n},data:"${ch.data}"};\n`);
-console.log('Chiron', ch.n);
-const out = {};
-let meta = null;
-for (const name of ['Ceres', 'Pallas', 'Juno', 'Vesta']) {
-  const t = table(name, 30, -73050 - 20, 36525 + 60);
-  out[name] = t.data; meta = t;
-  console.log(name, t.n);
+const GRIDS = (() => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'horizons-grid.json'), 'utf8')).grid; } catch (e) { return {}; } })();
+// a body tabulated directly by Horizons (tools/horizons-grid.json): positions as they are, no integration
+function gridTable(name) {
+  const G = GRIDS[name];
+  return { t0: G.jd0 - 2451545.0, step: G.step, n: G.n, data: Buffer.from(new Int32Array(G.xyz).buffer).toString('base64') };
 }
-fs.writeFileSync(path.join(root, 'asteroids-data.js'),
-  `/* Ceres, Pallas, Juno, Vesta: heliocentric J2000 equatorial x,y,z in 1e-8 AU, every ${meta.step} days of TT from ${meta.t0} (days since J2000). Built by tools/build_tables.js from JPL Horizons states */\n` +
-  `window.ACG_ASTEROIDS={t0:${meta.t0},step:${meta.step},n:${meta.n},data:${JSON.stringify(out)}};\n`);
+const root = path.join(__dirname, '..', 'js');
+const T0 = -73050, T1 = 36525;                       // 1800 … 2100 in TT days from J2000
+// Ceres–Vesta load with the page; the five others (asteroids-extra-data.js) only when someone turns them on
+const MAIN = ['Ceres', 'Pallas', 'Juno', 'Vesta'], EXTRA = ['Eros', 'Psyche', 'Amor', 'Hygiea', 'Proserpina'];
+if (require.main === module) {
+  const ch = table('Chiron', 20, T0 - 10, T1 + 40);
+  fs.writeFileSync(path.join(root, 'chiron-data.js'),
+    `/* (2060) Chiron, heliocentric J2000 equatorial x,y,z in 1e-8 AU, every ${ch.step} days of TT from ${ch.t0} (days since J2000). Built by tools/build_tables.js from JPL Horizons states */\n` +
+    `window.ACG_CHIRON={t0:${ch.t0},step:${ch.step},n:${ch.n},data:"${ch.data}"};\n`);
+  console.log('Chiron', ch.n);
+  const build = (name) => (GRIDS[name] ? gridTable(name) : table(name, 30, T0 - 60, T1 + 60));
+  const main = {}; let base = null;
+  for (const name of MAIN) { const t = build(name); main[name] = t.data; base = t; console.log(name, t.step, t.n); }
+  fs.writeFileSync(path.join(root, 'asteroids-data.js'),
+    `/* Ceres, Pallas, Juno, Vesta: heliocentric J2000 equatorial x,y,z in 1e-8 AU, every ${base.step} days of TT from ${base.t0} (days since J2000). Built by tools/build_tables.js from JPL Horizons states */\n` +
+    `window.ACG_ASTEROIDS={t0:${base.t0},step:${base.step},n:${base.n},data:${JSON.stringify(main)}};\n`);
+  const extra = {};
+  for (const name of EXTRA) { const t = build(name); extra[name] = { t0: t.t0, step: t.step, n: t.n, data: t.data }; console.log(name, t.step, t.n); }
+  fs.writeFileSync(path.join(root, 'asteroids-extra-data.js'),
+    `/* Eros, Psyche, Amor, Hygiea, Proserpina: heliocentric J2000 equatorial x,y,z in 1e-8 AU, each with its own grid {t0, step, n} in TT days since J2000. Eros and Amor are JPL Horizons positions every 10 days; the others are integrated from Horizons states. Built by tools/build_tables.js */\n` +
+    `(window.ACG_ASTEROIDS = window.ACG_ASTEROIDS || { data: {} }).data = Object.assign(window.ACG_ASTEROIDS.data || {}, ${JSON.stringify(extra)});\n`);
+}
+module.exports = { table };
