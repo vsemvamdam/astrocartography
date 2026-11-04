@@ -1,4 +1,4 @@
-/* Natal chart view: natal, solar return and compatibility (synastry, composite).
+/* Natal chart view: natal, solar and lunar returns, compatibility (synastry, composite) and horary.
    SVG wheel and tables. Reads the shared app state via the object passed to init(). */
 (function () {
   'use strict';
@@ -25,7 +25,7 @@
   let natal = null;     // the chart drawn as the main wheel (natal, solar or composite)
   let outer = null;     // partner's points in the outer ring (synastry)
   let cross = [];       // synastry aspects
-  let hl = null, app = null, solarInfo = null, natB = null, natBase = null, horInfo = null, horCache = null;
+  let hl = null, app = null, solarInfo = null, lunarInfo = null, natB = null, natBase = null, horInfo = null, horCache = null;
 
   // the options object is filled in place, so a toggle written through one call is seen by the next
   const fill = (o, defs) => { for (const k in defs) if (!(k in o)) o[k] = defs[k]; return o; };
@@ -36,6 +36,11 @@
   function solarOpts() {
     const st = app.state;
     return fill(st.solar || (st.solar = {}), { year: null, place: null });
+  }
+  // lunar return: `at` is the moment whose lunar return is shown (null: now)
+  function lunarOpts() {
+    const st = app.state;
+    return fill(st.lunar || (st.lunar = {}), { at: null, place: null });
   }
   const HOR_POINTS = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Node', 'SNode', 'Fortune'];
   function horOpts() {
@@ -304,6 +309,56 @@
     $('natSolarList').onclick = (e) => { const li = e.target.closest('li[data-i]'); if (li) { solarOpts().place = { name: top[+li.dataset.i].city.ru, country: top[+li.dataset.i].city.c, lat: top[+li.dataset.i].city.lat, lon: top[+li.dataset.i].city.lon, tz: top[+li.dataset.i].city.tz }; changed(); syncSolarControls(); } };
   }
 
+  /* ------------------------------ lunar return ----------------------------- */
+  const DAY = 86400000;
+  const WD = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+  function renderLunarCard() {
+    const card = $('natLunarCard');
+    card.hidden = opts().mode !== 'lunar' || !lunarInfo;
+    if (card.hidden) return;
+    const { utc, moonLon, place } = lunarInfo;
+    const list = [F.lunarReturnUtc(moonLon, utc - 60000), utc];
+    while (list.length < 14) list.push(F.nextLunarReturnUtc(moonLon, list[list.length - 1]));
+    $('natLunarList').innerHTML = list.map((t) => {
+      const off = ACG.tzOffsetMin(place.tz || 'UTC', t), d = new Date(t + off * 60000);
+      return `<li><button type="button" data-t="${t}" aria-pressed="${t === utc}">${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}<small>${WD[d.getUTCDay()]}, ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}</small></button></li>`;
+    }).join('');
+    $('natLunarList').onclick = (e) => { const b = e.target.closest('button[data-t]'); if (b) { lunarOpts().at = +b.dataset.t + 3600000; changed(); } };
+  }
+  function syncLunarControls() {
+    const lo = lunarOpts();
+    if (document.activeElement !== $('lunPlace')) $('lunPlace').value = lo.place ? app.placeLabel(lo.place) : '';
+    if (lunarInfo) {
+      const off = ACG.tzOffsetMin(lunarInfo.place.tz || 'UTC', lunarInfo.utc), d = new Date(lunarInfo.utc + off * 60000);
+      $('lunDate').value = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+    }
+    $('lunNow').setAttribute('aria-pressed', String(lo.at == null));
+  }
+  function initLunarControls() {
+    const lo = () => lunarOpts();
+    $('lunDate').addEventListener('change', (e) => {
+      if (!e.target.value) return;
+      const [y, m, d] = e.target.value.split('-').map(Number), place = lo().place || app.state.place;
+      lo().at = ACG.localToUtc(y, m, d, 23, 59, place.tz || 'UTC').utc;   // the return in force on that day
+      changed();
+    });
+    $('lunPrev').addEventListener('click', () => { if (lunarInfo) { lo().at = lunarInfo.utc - 60000; changed(); } });
+    $('lunNext').addEventListener('click', () => { if (lunarInfo) { lo().at = lunarInfo.next + 3600000; changed(); } });
+    $('lunNow').addEventListener('click', () => { lo().at = null; changed(); });
+    app.makePlaceSearch($('lunPlace'), $('lunSuggest'), () => lo().place, (p) => { lo().place = p; changed(); });
+    $('lunHome').addEventListener('click', () => { lo().place = null; changed(); });
+    $('lunHere').addEventListener('click', () => {
+      if (!navigator.geolocation) { $('lunHereNote').textContent = 'Браузер не умеет определять место.'; return; }
+      $('lunHereNote').textContent = 'Определяем место…';
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const lat = pos.coords.latitude, lon = pos.coords.longitude, near = app.nearestCity(lat, lon);
+        lo().place = { name: near && near.km < 40 ? near.city.ru : `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`, country: near ? near.city.c : '', lat, lon, tz: near ? near.city.tz : 'UTC' };
+        $('lunHereNote').textContent = '';
+        changed();
+      }, () => { $('lunHereNote').textContent = 'Не удалось определить место: разрешите доступ к геопозиции или выберите город.'; }, { timeout: 10000, maximumAge: 600000 });
+    });
+  }
+
   /* ------------------- evolutionary axis and asteroids ------------------- */
   // Steven Forrest and Jeffrey Wolf Green: the lunar nodes and the Pluto polarity point
   const HTHEME = [null, 'своя воля, самостоятельность, собственный путь', 'своё: ресурсы, ценности, самодостаточность', 'знания, слова, общение, близкое окружение',
@@ -393,6 +448,7 @@
     try {
       if (I && o.mode === 'natal') { secs = I.natal(natal); title = 'Расшифровка натальной карты'; sub = 'характер, планеты в знаках и домах, аспекты'; }
       else if (I && o.mode === 'solar' && solarInfo) { secs = I.solar(natal, natBase); title = `Расшифровка соляра ${solarInfo.year}`; sub = 'на год от дня рождения до дня рождения'; }
+      else if (I && o.mode === 'lunar' && lunarInfo) { secs = I.lunar(natal, natBase); title = 'Расшифровка лунара'; sub = `на месяц: ${localTime(lunarInfo.utc, lunarInfo.place.tz).text.replace(/, \d\d:\d\d$/, '')} — ${localTime(lunarInfo.next, lunarInfo.place.tz).text.replace(/, \d\d:\d\d$/, '')}`; }
       else if (I && o.mode === 'synastry' && natB && outer) { secs = I.synastry(natBase, natB, cross, partnerName()); title = 'Расшифровка синастрии'; sub = `вы и ${partnerName()}`; }
       else if (I && o.mode === 'synastry' && natB) { secs = I.composite(natal); title = 'Расшифровка композита'; sub = 'отношения как отдельная карта'; }
     } catch (e) { secs = null; console.error(e); }
@@ -564,6 +620,10 @@
       const P = solarInfo.place, lt = localTime(solarInfo.utc, P.tz), sp = pos(solarInfo.sunLon);
       title = `Соляр ${solarInfo.year} · ${P.name}`;
       sub = `Солнце возвращается в ${sp.text}${pad(sp.sec)}″ ${sp.name}: ${lt.text} (${offText(lt.off)}) · ${fmtLat(P.lat)} · ${fmtLon(P.lon)} · дома: ${sys.ru}`;
+    } else if (mode === 'lunar' && lunarInfo) {
+      const P = lunarInfo.place, lt = localTime(lunarInfo.utc, P.tz), mp = pos(lunarInfo.moonLon);
+      title = `Лунар ${lt.text.replace(/, \d\d:\d\d$/, '')} · ${P.name}`;
+      sub = `Луна возвращается в ${mp.text}${pad(mp.sec)}″ ${mp.name}: ${lt.text} (${offText(lt.off)}) · следующий лунар ${localTime(lunarInfo.next, P.tz).text} · ${fmtLat(P.lat)} · ${fmtLon(P.lon)} · дома: ${sys.ru}`;
     } else if (mode === 'synastry' && natB) {
       const P = app.state.partner;
       title = opts().syn === 'comp' ? `Композит · вы и ${partnerName()}` : `Синастрия · вы и ${partnerName()}`;
@@ -572,7 +632,7 @@
       const P = st.place, conv = app.conv, u = new Date(conv.utc);
       sub = `${fmtLat(P.lat)} · ${fmtLon(P.lon)} · UTC ${pad(u.getUTCHours())}:${pad(u.getUTCMinutes())} (${offText(conv.offset)}) · дома: ${sys.ru}`;
     }
-    $('natH').textContent = mode === 'solar' ? 'Соляр' : mode === 'synastry' ? 'Совместимость' : mode === 'horary' ? 'Хорар' : 'Натальная карта';
+    $('natH').textContent = mode === 'solar' ? 'Соляр' : mode === 'lunar' ? 'Лунар' : mode === 'synastry' ? 'Совместимость' : mode === 'horary' ? 'Хорар' : 'Натальная карта';
     $('natTitle').textContent = title;
     $('natSub').textContent = sub;
     const note = mode === 'synastry' && !natB ? 'Добавьте данные партнёра в панели слева (на телефоне — ниже), чтобы увидеть синастрию и композит.' : mode === 'horary' ? '' : natal.note;
@@ -614,6 +674,7 @@
     });
     $('natSyn').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; opts().syn = b.dataset.s; hl = null; syncSeg(); changed(); });
     if (H) initHoraryControls();
+    initLunarControls();
     // solar return controls
     syncSolarControls();
     $('solYear').addEventListener('change', (e) => { const v = parseInt(e.target.value, 10); solarOpts().year = v >= 1800 && v <= 2100 ? v : null; changed(); syncSolarControls(); });
@@ -638,7 +699,7 @@
     if (!app || !app.chart || $('natalView').hidden) return;
     const o = opts(), P = app.state.place;
     const natOpts = { house: o.house, minor: o.minor, points: visible, anglesAspects: o.angles };
-    outer = null; cross = []; solarInfo = null; natB = null; horInfo = null;
+    outer = null; cross = []; solarInfo = null; lunarInfo = null; natB = null; horInfo = null;
     const natA = N.computeNatal(app.chart, P.lat, P.lon, natOpts);
     natal = natA; natBase = natA;
     if (o.mode === 'horary' && H) {
@@ -653,6 +714,15 @@
       natal = N.computeNatal(chart, place.lat, place.lon, natOpts);
       solarInfo = { year, utc, place, chart, sunLon, score: F.scoreSolarPlace(chart, place.lat, place.lon, o.house) };
       $('solYear').placeholder = String(year);
+    } else if (o.mode === 'lunar') {
+      const lo = lunarOpts(), place = lo.place || P;
+      const moonLon = app.chart.bodies.find((b) => b.id === 'Moon').elon;
+      const utc = F.lunarReturnUtc(moonLon, lo.at == null ? Date.now() : lo.at);
+      const chart = ACG.computeChart(utc, { node: app.state.nodeMode });
+      chart.bodies.forEach((b) => { if (b.id === 'Node') b.retro = b.speed < 0.005; });
+      natal = N.computeNatal(chart, place.lat, place.lon, natOpts);
+      lunarInfo = { utc, next: F.nextLunarReturnUtc(moonLon, utc), place, chart, moonLon };
+      syncLunarControls();
     } else if (o.mode === 'synastry' && app.partnerChart) {
       const PB = app.state.partner.place;
       natB = N.computeNatal(app.partnerChart, PB.lat, PB.lon, natOpts);
@@ -666,11 +736,11 @@
     }
     if (hl && !natal.points.some((p) => p.id === hl) && !(outer && outer.some((p) => p.id === hl))) hl = null;
     $('natBalanceCard').hidden = !!outer || o.mode === 'horary';
-    renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard(); renderHoraryCard(); renderSoulCards(); renderReading();
+    renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard(); renderLunarCard(); renderHoraryCard(); renderSoulCards(); renderReading();
   }
 
   window.NatalView = {
-    init(a) { app = a; opts(); solarOpts(); initControls(); },
+    init(a) { app = a; opts(); solarOpts(); lunarOpts(); initControls(); },
     update,
   };
 })();

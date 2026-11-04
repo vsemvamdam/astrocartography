@@ -104,6 +104,27 @@
     return t.date.getTime();
   }
 
+  /* =============================== lunar return ============================== */
+  const moonLon = (t) => A().Ecliptic(A().GeoVector(A().Body.Moon, t, true)).elon;
+  const MOON_RATE = 13.176358;   // mean motion, degrees a day
+  function refineMoon(lon, t) {
+    for (let i = 0; i < 40; i++) {
+      const d = n180(lon - moonLon(t));
+      if (Math.abs(d) < 1e-8) break;
+      t = t.AddDays(d / MOON_RATE);
+    }
+    return t;
+  }
+  // the latest moment at or before atMs when the Moon is back at its natal longitude (about every 27.3 days)
+  function lunarReturnUtc(natalMoonLon, atMs) {
+    let t = A().MakeTime(new Date(atMs));
+    t = refineMoon(natalMoonLon, t.AddDays(-n360(moonLon(t) - natalMoonLon) / MOON_RATE));
+    if (t.date.getTime() > atMs) t = refineMoon(natalMoonLon, t.AddDays(-27.32));
+    return t.date.getTime();
+  }
+  // the return after the one at retMs
+  const nextLunarReturnUtc = (natalMoonLon, retMs) => lunarReturnUtc(natalMoonLon, retMs + 30 * 86400000);
+
   // how good a solar return is in a given place: houses of the solar planets and planets on the angles
   const SOLAR_HOUSE_W = {
     Sun:     { 10: 5, 11: 4, 1: 3.5, 5: 3, 9: 3, 7: 2, 2: 2, 4: 1, 3: 1, 6: -2, 8: -3, 12: -4 },
@@ -454,7 +475,7 @@
 
   root.FEAT = {
     GOALS, INFLUENCE_KM, scoreCities, angleDist,
-    solarReturnUtc, scoreSolarPlace, rankSolarCities,
+    solarReturnUtc, scoreSolarPlace, rankSolarCities, lunarReturnUtc, nextLunarReturnUtc,
     crossAspects, composite, midpoint,
     CHALDEAN, planetaryHours, voidOfCourse, lunarDays, STARS, starLongitudes, starContacts, lots,
     dignityTable, degreeRulers, dispositors, ephemeris, termRuler, faceRuler,
