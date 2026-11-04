@@ -1,0 +1,41 @@
+# Copies the ESPN data of the "Спорт" tab to the `data` branch every half hour,
+# so the site works where ESPN itself is blocked. See tools/sport_mirror.js.
+name: Sport data mirror
+
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sport-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: site
+          sparse-checkout: tools
+
+      - name: Previous copy
+        run: git clone -q --depth 1 --branch data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" prev || mkdir -p prev
+
+      - name: Fetch from ESPN
+        run: node site/tools/sport_mirror.js prev next
+
+      - name: Publish to the data branch
+        run: |
+          cd next
+          git init -q -b data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Sport data $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" data

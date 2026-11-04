@@ -68,7 +68,7 @@
     const box = $('spList');
     if (loading && !matches) { box.innerHTML = '<p class="muted sp-msg">Загружаем расписание…</p>'; return; }
     if (loadError) {
-      box.innerHTML = `<div class="sp-msg"><p>Не удалось загрузить матчи: ${esc(loadError)}.</p><p class="muted">Расписание берётся с ESPN прямо из браузера. В превью внутри Claude такие запросы закрыты — откройте сайт <a href="https://vsemvamdam.github.io/astrocartography/#sport" target="_blank" rel="noopener">vsemvamdam.github.io</a>.</p><button type="button" class="pill" id="spRetry">Повторить</button></div>`;
+      box.innerHTML = `<div class="sp-msg"><p>Не удалось загрузить матчи: ${esc(loadError)}.</p><p class="muted">Расписание берётся из копии данных ESPN на GitHub (обновляется каждые полчаса) или с ESPN напрямую. Если не открывается ни то, ни другое, проверьте интернет или VPN. В превью внутри Claude такие запросы закрыты — откройте сайт <a href="https://vsemvamdam.github.io/astrocartography/#sport" target="_blank" rel="noopener">vsemvamdam.github.io</a>.</p><button type="button" class="pill" id="spRetry">Повторить</button></div>`;
       return;
     }
     const o = opts(), list = (matches || []).filter((m) => o.league === 'all' || m.league === o.league);

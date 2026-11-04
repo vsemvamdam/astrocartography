@@ -1,5 +1,5 @@
 /* Football matches and their astrological judgement.
-   Data: ESPN's public JSON (fixtures, venues, odds, squads, lineups), fetched from the browser.
+   Data: ESPN's public JSON (fixtures, venues, odds, squads, lineups): a half-hourly copy on GitHub, or ESPN directly.
    Judgement: event chart for the kickoff at the venue, after John Frawley's "Sports Astrology"
    (chapter 2, "The event chart", and its checklist): the favourite has the 1st and 10th houses, the
    underdog the 7th and 4th. The player index is our own experiment, not Frawley's.
@@ -20,19 +20,48 @@
   ];
 
   /* -------------------------------- fetching ------------------------------- */
-  const cache = new Map();
-  async function getJSON(url, ttlMin) {
-    const hit = cache.get(url);
-    if (hit && Date.now() - hit.t < (ttlMin || 15) * 60000) return hit.v;
+  /* A copy of the same ESPN data is rebuilt every half hour by GitHub Actions (tools/sport_mirror.js) and
+     published to the repository's `data` branch: it opens wherever the site itself opens, including networks
+     where ESPN is blocked. The copy is used while fresh; otherwise ESPN is asked directly, and if that
+     fails too the stale copy is still better than nothing. */
+  const MIRROR = 'https://raw.githubusercontent.com/vsemvamdam/astrocartography/data/espn/';
+  function mirrorPath(url) {
+    const rest = url.startsWith(API) ? url.slice(API.length) : null;
+    if (!rest) return null;
+    let m;
+    if ((m = rest.match(/^([\w.]+)\/scoreboard\?dates=(\d{6})/))) return `${m[1]}/scoreboard-${m[2]}.json`;
+    if ((m = rest.match(/^([\w.]+)\/summary\?event=([\w.-]+)/))) return `${m[1]}/summary-${m[2]}.json`;
+    if ((m = rest.match(/^([\w.]+)\/teams\/(\w+)\/roster/))) return `${m[1]}/roster-${m[2]}.json`;
+    return null;
+  }
+  async function fetchJSON(url, ms) {
     const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timer = ctl && setTimeout(() => ctl.abort(), 12000);
+    const timer = ctl && setTimeout(() => ctl.abort(), ms);
     try {
       const r = await fetch(url, ctl ? { signal: ctl.signal } : undefined);
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      const v = await r.json();
-      cache.set(url, { t: Date.now(), v });
-      return v;
+      return await r.json();
     } finally { if (timer) clearTimeout(timer); }
+  }
+  const cache = new Map();
+  let source = { mirror: 0, live: 0, stale: 0 };
+  // ttlMin: how long a result stays in memory; freshMin: how old the mirror copy may be before ESPN is asked
+  async function getJSON(url, ttlMin, freshMin) {
+    const hit = cache.get(url);
+    if (hit && Date.now() - hit.t < (ttlMin || 15) * 60000) return hit.v;
+    const mp = mirrorPath(url);
+    let copy = null;
+    if (mp) { try { copy = await fetchJSON(MIRROR + mp, 10000); } catch (e) { copy = null; } }
+    if (copy && copy.data && Date.now() - copy.fetched < (freshMin || 120) * 60000) {
+      source.mirror++; cache.set(url, { t: Date.now(), v: copy.data }); return copy.data;
+    }
+    try {
+      const v = await fetchJSON(url, 10000);
+      source.live++; cache.set(url, { t: Date.now(), v }); return v;
+    } catch (e) {
+      if (copy && copy.data) { source.stale++; cache.set(url, { t: Date.now(), v: copy.data }); return copy.data; }
+      throw e;
+    }
   }
   async function pool(tasks, n) {
     const out = new Array(tasks.length); let i = 0;
@@ -81,7 +110,7 @@
   async function fixtures(leagueIds, days) {
     const now = Date.now(), tasks = [];
     const months = [...new Set([ym(now - DAY), ym(now + days * DAY)])];
-    const once = (url) => getJSON(url, 20).catch(() => getJSON(url, 20));
+    const once = (url) => getJSON(url, 20, 90);
     for (const lg of leagueIds) for (const mo of months) tasks.push(() => once(`${API}${lg}/scoreboard?dates=${mo}&limit=300`).then((j) => ({ lg, j })));
     const res = await pool(tasks, 4);
     const seen = new Map(); let failed = 0;
@@ -130,9 +159,10 @@
   /* Squads for a match: the official lineup when it is out, otherwise the squad with a probable XI. */
   async function squads(m) {
     const [sum, rh, ra] = await Promise.all([
-      getJSON(`${API}${m.league}/summary?event=${m.id}`, 5).catch(() => null),
-      getJSON(`${API}${m.league}/teams/${m.home.id}/roster`, 60).catch(() => null),
-      getJSON(`${API}${m.league}/teams/${m.away.id}/roster`, 60).catch(() => null),
+      // lineups are published about an hour before kickoff, so earlier there is nothing to ask for
+      m.date - Date.now() < 36 * 3600000 ? getJSON(`${API}${m.league}/summary?event=${m.id}`, 5, m.date - Date.now() < 4 * 3600000 ? 40 : 360).catch(() => null) : null,
+      getJSON(`${API}${m.league}/teams/${m.home.id}/roster`, 60, 48 * 60).catch(() => null),
+      getJSON(`${API}${m.league}/teams/${m.away.id}/roster`, 60, 48 * 60).catch(() => null),
     ]);
     const out = {};
     for (const [key, ro, ha] of [['home', rh, 'home'], ['away', ra, 'away']]) {
@@ -503,5 +533,5 @@
     return { idx, why };
   }
 
-  root.SPORT = { LEAGUES, fixtures, squads, venuePlace, judge, playerIndex, eventChart, implied, RU, RN };
+  root.SPORT = { LEAGUES, fixtures, squads, venuePlace, judge, playerIndex, eventChart, implied, RU, RN, source: () => Object.assign({}, source) };
 })(typeof window !== 'undefined' ? window : globalThis);
