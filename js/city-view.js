@@ -338,7 +338,7 @@
     rays = computeRays();
     $('cityTitle').textContent = `${c.name}${c.country ? ', ' + c.country : ''}${opts().place ? '' : ' · город рождения'}`;
     const h = homePt();
-    $('citySub').textContent = `Дом: ${num(h.lat, 4)}°, ${num(h.lon, 4)}° · лучи — направления планет в момент вашего рождения, как их видно из этой точки`;
+    $('citySub').textContent = `${opts().home ? 'Дом — ваша точка' : 'Дом — центр города'}: ${num(h.lat, 4)}°, ${num(h.lon, 4)}° · лучи — направления планет в момент вашего рождения, как их видно из этой точки`;
     syncControls();
     if (ensureMap()) {
       if (recenter) map.setView([h.lat, h.lon], Math.max(map.getZoom(), 12));

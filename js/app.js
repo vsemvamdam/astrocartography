@@ -1110,7 +1110,14 @@
       else if (e.key === 'Escape') { list.hidden = true; input.value = label(); }
     });
     list.addEventListener('pointerdown', (e) => { const li = e.target.closest('li[data-i]'); if (li) { e.preventDefault(); pick(+li.dataset.i); } });
-    input.addEventListener('blur', () => setTimeout(() => { list.hidden = true; input.setAttribute('aria-expanded', 'false'); input.value = label(); }, 150));
+    // leaving the field after typing a new town (the keyboard's "Done", a tap elsewhere) takes the first
+    // suggestion: on a phone people rarely tap the list, and silently going back to the old town looks like a bug
+    input.addEventListener('blur', () => setTimeout(() => {
+      if (document.activeElement === input) return;
+      const typed = input.value.trim();
+      if (typed && typed !== label() && items.length) { pick(0); return; }
+      list.hidden = true; input.setAttribute('aria-expanded', 'false'); input.value = label();
+    }, 150));
     input.value = label();
   }
   makePlaceSearch(bPlace, sug, () => state.place, setPlace);
