@@ -1,11 +1,14 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<title>Астрокартография</title>
 <meta charset="utf-8">
+<title>AstroSky — астрокартография</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Астрокартография онлайн: линии MC, IC, ASC и DSC всех планет на карте мира, аспектные линии, параны, транзиты и прогрессии.">
+<meta name="description" content="AstroSky — астрокартография онлайн. Линии MC, IC, ASC и DSC всех планет на карте мира, аспектные линии, параны, транзиты и прогрессии.">
+<meta property="og:title" content="AstroSky — астрокартография">
 <meta name="theme-color" content="#070C16">
+<link rel="icon" type="image/png" sizes="180x180" href="assets/astrosky-icon.png">
+<link rel="apple-touch-icon" href="assets/astrosky-icon.png">
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 body { margin: 0; }
@@ -109,7 +112,8 @@ button { cursor: pointer; touch-action: manipulation; }
   text-shadow: 0 1px 8px rgba(4, 9, 18, .9), 0 0 2px rgba(4, 9, 18, .9);
 }
 .app.map-only .mapwrap { --inset-top: env(safe-area-inset-top, 0px); --inset-bottom: env(safe-area-inset-bottom, 0px); }
-.mh-title { font-family: var(--f-display); font-size: 19px; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); line-height: 1.1; }
+.app.map-only .map-head { align-items: center; }
+.mh-title img, .tb-brand img { display: block; height: auto; }
 .mh-sep { color: var(--brass); opacity: .55; }
 .mh-date { font-family: var(--f-display); font-size: 17px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg); line-height: 1.15; }
 .mh-meta { flex-basis: 100%; font-family: var(--f-mono); font-size: 11px; color: var(--muted); letter-spacing: .02em; }
@@ -129,29 +133,30 @@ button { cursor: pointer; touch-action: manipulation; }
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 10px;
 }
-.tb-brand { font-family: var(--f-display); font-size: 23px; letter-spacing: .07em; color: var(--fg); white-space: nowrap; line-height: 1; }
-.tabs { display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--panel); border: 1px solid var(--rule); }
+.tb-brand { flex: none; padding-block: 2px; border-radius: 3px; }
+.tabs { flex: none; display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--panel); border: 1px solid var(--rule); }
 .tab { padding: 7px 15px; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; white-space: nowrap; text-align: center; }
 .tab:hover { color: var(--fg); }
 .tab[aria-current="page"] { background: var(--brass); color: var(--brass-ink); }
 .tab .s { display: none; }
-.acc-btn { flex: none; display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 6px 13px 6px 11px; border-radius: 999px; border: 1px solid var(--rule); background: var(--panel); color: var(--fg); font-size: 14px; font-weight: 500; max-width: 220px; }
+.acc-btn { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 7px; min-width: 51px; min-height: 38px; padding: 6px 13px 6px 11px; border-radius: 999px; border: 1px solid var(--rule); background: var(--panel); color: var(--fg); font-size: 14px; font-weight: 500; max-width: 220px; }
 .acc-btn:hover { border-color: var(--brass); }
+.acc-btn svg { flex: none; }
 .acc-btn .acc-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acc-btn.in svg { color: var(--brass); }
-@media (max-width: 599.98px) {
-  .tb-brand { font-size: 18px; }
-  .tab { padding: 7px 11px; font-size: 13.5px; }
+@media (max-width: 899.98px) {
+  .tab { padding: 7px 10px; font-size: 13.5px; }
 }
-@media (max-width: 899.98px) { .tb-brand { font-size: 19px; } }
 @media (max-width: 759.98px) {
-  .tb-brand { display: none; }
-  .tabs { flex: 1; }
+  .tb-inner { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; padding-block: 7px; }
+  .tb-brand { grid-area: 1 / 1; justify-self: start; }
+  .tb-brand img { width: 128px; }
+  .tabs { grid-area: 2 / 1 / 3 / -1; }
   .tab { flex: 1; }
-  .acc-btn { padding: 6px 10px; }
+  .acc-btn { grid-area: 1 / 2; min-width: 40px; padding: 6px 10px; }
   .acc-btn .acc-t { display: none; }
 }
-@media (max-width: 519.98px) {
+@media (max-width: 559.98px) {
   .tab .l { display: none; }
   .tab .s { display: inline; }
   .tab { padding: 7px 4px; font-size: 13px; }
@@ -165,7 +170,6 @@ body[data-natmode="horary"] .for-natal { display: none !important; }
 .panel .notes { order: 10; }
 @media (max-width: 599.98px) {
   .map-head { column-gap: 8px; top: calc(10px + var(--inset-top, 0px)); }
-  .mh-title { font-size: 14px; letter-spacing: .12em; }
   .mh-sep { display: none; }
   .mh-title { flex-basis: 100%; }
   .mh-date { font-size: 14px; letter-spacing: .06em; }
@@ -1714,7 +1718,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <body>
 <header class="topbar">
   <div class="tb-inner">
-    <span class="tb-brand">Астрокартография</span>
+    <a class="tb-brand" href="#map" aria-label="AstroSky — карта мира">
+      <img src="assets/astrosky-logo.svg" width="144" height="38" alt="AstroSky">
+    </a>
     <nav class="tabs" aria-label="Разделы">
       <a class="tab" href="#map" data-view="map"><span class="l">Карта мира</span><span class="s">Карта</span></a>
       <a class="tab" href="#natal" data-view="natal"><span class="l">Натальная карта</span><span class="s">Натал</span></a>
@@ -1735,7 +1741,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
     <div class="map-shade" aria-hidden="true"></div>
     <div class="map-head" aria-hidden="true">
-      <span class="mh-title">Астрокартография</span>
+      <span class="mh-title"><img src="assets/astrosky-logo.svg" width="106" height="28" alt=""></span>
       <span class="mh-sep">|</span>
       <span class="mh-date" id="mhDate">—</span>
       <span class="mh-meta" id="mhMeta"></span>
