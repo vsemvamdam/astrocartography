@@ -1299,7 +1299,7 @@
   $('bestList').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const li = e.target.closest('li[data-i]'); if (li) focusCity(BEST[+li.dataset.i].city); } });
   // fly the map to a city and show the lines around it
   function focusCity(c) {
-    if (location.hash && location.hash !== '#map') location.hash = '#map';
+    if (location.hash !== '#map') location.hash = '#map';
     const v = view;
     const s1 = Math.max(v.s, (v.w / 360) * 5);
     v.s = s1; v.tx = v.w / 2 - c.lon * s1; v.ty = (v.headH + v.h) / 2 + millerY(c.lat) * s1;
@@ -1419,6 +1419,7 @@
     if (window.NatalView) NatalView.update();
     if (window.ToolsView) ToolsView.update();
     if (window.CityView) CityView.update();
+    if (window.HomeView) HomeView.update();
   }
 
   /* --------------------------------- views -------------------------------- */
@@ -1444,15 +1445,16 @@
     current: () => ({ date: state.date, time: state.time, place: state.place, manualOffset: state.manualOffset }),
   };
   window.ACG_APP = APP;
-  const VIEWS = ['map', 'natal', 'city', 'tools', 'sport'];
+  const VIEWS = ['home', 'map', 'natal', 'city', 'tools', 'sport'];
   function setView(v) {
-    if (!VIEWS.includes(v)) v = 'map';
+    if (!VIEWS.includes(v)) v = 'home';
     document.body.dataset.view = v;
     wrap.hidden = v !== 'map';
     $('natalView').hidden = v !== 'natal';
     $('toolsView').hidden = v !== 'tools';
     $('cityView').hidden = v !== 'city';
     $('sportView').hidden = v !== 'sport';
+    $('homeView').hidden = v !== 'home';
     document.querySelectorAll('.tab').forEach((t) => {
       if (t.dataset.view === v) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
     });
@@ -1461,14 +1463,16 @@
     else if (v === 'tools') ToolsView.update();
     else if (v === 'city') { if (window.CityView) CityView.update(); }
     else if (v === 'sport') { if (window.SportView) SportView.update(); }
+    else if (v === 'home') { if (window.HomeView) HomeView.update(); window.scrollTo(0, 0); }
     else requestAnimationFrame(() => { resize(); if (!view.ready) return; measureHead(); requestDraw(); });
   }
-  const viewFromHash = () => (location.hash || '#map').slice(1);
+  const viewFromHash = () => (location.hash || '#home').slice(1);
   window.addEventListener('hashchange', () => setView(viewFromHash()));
   if (window.NatalView) NatalView.init(APP);
   if (window.ToolsView) ToolsView.init(APP);
   if (window.CityView) CityView.init(APP);
   if (window.SportView) SportView.init(APP);
+  if (window.HomeView) HomeView.init(APP);
   if (window.Account) Account.init(APP);
 
   /* --------------------------------- boot --------------------------------- */

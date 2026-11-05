@@ -165,7 +165,7 @@ body:not([data-view="map"]) .for-map, body:not([data-view="natal"]) .for-natal,
 body[data-view="tools"] .for-partner, body[data-view="city"] .for-partner, body[data-view="natal"]:not([data-natmode="synastry"]) .for-partner,
 body:not([data-natmode="solar"]) .for-solar, body:not([data-natmode="lunar"]) .for-lunar, body:not([data-natmode="stars"]) .for-stars, body:not([data-natmode="horary"]) .for-horary, body[data-view="tools"] .not-tools { display: none !important; }
 body[data-view="map"] .for-partner { order: 5; }
-body[data-view="sport"] .panel { display: none !important; }
+body[data-view="sport"] .panel, body[data-view="home"] .panel { display: none !important; }
 body[data-natmode="horary"] .for-natal { display: none !important; }
 .panel .notes { order: 10; }
 @media (max-width: 599.98px) {
@@ -407,6 +407,62 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
   display: flex; flex-direction: column; gap: 20px;
 }
 @media (min-width: 900px) { .natal-inner { padding-left: 32px; padding-right: 32px; padding-block: 28px 56px; } }
+/* the start page */
+.home-inner { max-width: 1180px; gap: 28px; }
+.hm-hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 32px; align-items: center; padding: 18px 0 8px; }
+.hm-kick { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--brass); }
+.hm-title { margin: 10px 0 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(48px, 7vw, 84px); line-height: 1; letter-spacing: .02em; color: #F1EBDF; }
+.hm-lead { margin: 16px 0 0; max-width: 56ch; font-size: 16px; line-height: 1.6; color: var(--muted); }
+.hm-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.hm-btn { display: inline-flex; align-items: center; min-height: 46px; padding: 0 20px; border-radius: 999px; border: 1px solid #24344F; color: var(--fg); text-decoration: none; font-size: 14.5px; font-weight: 500; }
+.hm-btn:hover { border-color: var(--brass); }
+.hm-btn.primary { background: var(--brass); border-color: var(--brass); color: var(--brass-ink); font-weight: 600; }
+.hm-me { margin-top: 22px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 14px; background: var(--panel); display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; font-size: 14px; }
+.hm-me b { font-weight: 600; }
+.hm-big3 { display: flex; flex-wrap: wrap; gap: 4px 14px; flex-basis: 100%; color: var(--fg); }
+.hm-big3 i { font-style: normal; font-family: var(--f-glyph); margin-right: 3px; }
+.hm-big3 .hm-asc { font-family: var(--f-mono); font-size: 11px; font-weight: 600; color: var(--brass); }
+.hm-link { color: var(--brass); text-decoration: none; font-size: 13px; }
+.hm-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.hm-sky { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.hm-wheel { width: 100%; max-width: 360px; height: auto; display: block; }
+.hm-sky figcaption { font-size: 12.5px; color: var(--muted); letter-spacing: .04em; }
+.hm-wheel .hs-ring { fill: none; stroke: #2A3A58; stroke-width: 1.2; }
+.hm-wheel .hs-core { fill: rgba(217,181,110,.06); stroke: rgba(217,181,110,.35); stroke-width: 1; }
+.hm-wheel .hs-tick { stroke: #2A3A58; stroke-width: 1; }
+.hm-wheel .hs-sign { font-family: var(--f-glyph); font-size: 15px; text-anchor: middle; opacity: .9; }
+.hm-wheel .hs-pl { font-family: var(--f-glyph); font-size: 17px; text-anchor: middle; }
+.hm-wheel .hs-r { font-family: var(--f-body); font-size: 8px; font-weight: 700; fill: var(--danger); }
+.hm-wheel .hs-mid { font-family: var(--f-glyph); font-size: 20px; text-anchor: middle; fill: var(--brass); }
+.hm-tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 44vw), 1fr)); }
+.hm-tile { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 14px; background: var(--raise); }
+.hm-tk { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+.hm-tile b { font-size: 17px; font-weight: 600; }
+.hm-tile b i { font-style: normal; font-family: var(--f-glyph); font-weight: 400; }
+.hm-tile .muted { font-size: 13px; }
+.hm-tile .hm-link { margin-top: auto; padding-top: 4px; }
+.hm-bio { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 15px !important; }
+.hm-bio .crit { text-decoration: underline wavy #FF6B6B; text-underline-offset: 4px; }
+.hm-h { margin: 8px 0 -8px; font-family: var(--f-display); font-weight: 400; font-size: 28px; letter-spacing: .04em; }
+.hm-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.hm-card { display: flex; flex-direction: column; gap: 6px; padding: 18px 18px 16px; border: 1px solid var(--rule); border-radius: 16px; background: var(--panel); color: var(--fg); text-decoration: none; transition: border-color .2s, transform .2s, background .2s; }
+.hm-card:hover { border-color: rgba(217,181,110,.55); background: var(--raise); transform: translateY(-2px); }
+.hm-card b { font-size: 16px; font-weight: 600; }
+.hm-card > span:not(.hm-ic):not(.hm-more) { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.hm-ic { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 4px; border-radius: 50%; border: 1px solid rgba(217,181,110,.45); background: rgba(217,181,110,.08); color: var(--brass); font-family: var(--f-glyph); font-size: 22px; line-height: 1; }
+.hm-more { margin-top: auto; padding-top: 6px; font-size: 13px; color: var(--brass); }
+.hm-foot { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--faint); max-width: 90ch; }
+.node-note { margin: 6px 0 0; font-size: 12px; line-height: 1.45; color: var(--faint); }
+@media (max-width: 759.98px) {
+  .hm-hero { grid-template-columns: 1fr; gap: 20px; padding-top: 6px; }
+  .hm-wheel { max-width: 300px; }
+  .hm-lead { font-size: 15px; }
+  .hm-cta .hm-btn { flex: 1 1 auto; justify-content: center; }
+  .hm-grid { grid-template-columns: 1fr; gap: 8px; }
+  .hm-card { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 14px; row-gap: 2px; align-items: start; padding: 14px; }
+  .hm-card .hm-ic { grid-row: span 2; margin: 0; }
+  .hm-card .hm-more { display: none; }
+}
 .natal-head h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 30px; letter-spacing: .04em; line-height: 1.15; text-wrap: balance; }
 .natal-head .nt { margin: 4px 0 0; font-family: var(--f-display); font-size: 19px; letter-spacing: .06em; text-transform: uppercase; color: var(--brass); }
 .natal-head .ns { margin: 6px 0 0; font-family: var(--f-mono); font-size: 12px; color: var(--muted); line-height: 1.6; }
@@ -1718,7 +1774,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <body>
 <header class="topbar">
   <div class="tb-inner">
-    <a class="tb-brand" href="#map" aria-label="AstroSky — карта мира">
+    <a class="tb-brand" href="#home" aria-label="AstroSky — на главную">
       <img src="assets/astrosky-logo.svg" width="144" height="38" alt="AstroSky">
     </a>
     <nav class="tabs" aria-label="Разделы">
@@ -1785,6 +1841,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
       </button>
     </div>
   </section>
+
+  <section class="natal home" id="homeView" hidden aria-labelledby="homeH"><div class="natal-inner home-inner" id="homeOut"></div></section>
 
   <section class="natal" id="natalView" hidden aria-labelledby="natH">
     <div class="natal-inner">
@@ -2058,7 +2116,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <button type="button" data-m="major">Мажорные аспекты</button>
           <button type="button" data-m="minor">+ минорные</button>
         </div>
-        <div class="field"><label for="natNode">Лунные узлы</label><select class="inp" id="natNode"><option value="true">Истинный узел (как в Сотисе)</option><option value="mean">Средний узел</option></select></div>
+        <div class="field"><label for="natNode">Лунные узлы</label><select class="inp" id="natNode"><option value="true">Истинный узел (как в Сотисе)</option><option value="mean">Средний узел</option></select><p class="node-note">Истинный — реальное положение узла с его покачиваниями, средний — сглаженное. Разница — до полутора градусов.</p></div>
         <div class="seg" id="natPts" role="group" aria-label="Точки">
           <button type="button" data-p="nodes">Узлы</button>
           <button type="button" data-p="chiron">Хирон</button>
@@ -2198,6 +2256,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/sport-view.js?v=20261104u"></script>
 <script src="js/firebase-config.js?v=20261104u"></script>
 <script src="js/account.js?v=20261105fam"></script>
-<script src="js/app.js?v=20261104cs"></script>
+<script src="js/home-view.js?v=20261105home"></script>
+<script src="js/app.js?v=20261105home"></script>
 </body>
 </html>
