@@ -351,7 +351,8 @@
     const o = opts(), dob = app.state.date, cy = new Date().getFullYear();
     const r = C.numerology(o.name || '', dob, cy);
     const tile = (n, ru, sub) => `<div class="num-tile"><div class="big-num">${n == null ? '—' : n}</div><div><b>${ru}</b>${sub ? `<span class="muted"> ${sub}</span>` : ''}<p>${n == null ? 'Введите имя, чтобы посчитать.' : esc(C.NUM_TEXT[n] || '')}</p></div></div>`;
-    const cell = (k) => `<div class="psy-c ${r.square[k] ? '' : 'empty'}"><span class="psy-d">${r.square[k] ? String(k).repeat(r.square[k]) : '—'}</span><span class="psy-l">${C.SQUARE_TEXT[k]}</span></div>`;
+    const digs = (k) => (r.square[k] ? String(k).repeat(r.square[k]) : '—');
+    const cell = (k) => `<button type="button" class="psy-c ${r.square[k] ? '' : 'empty'}" data-psy="${k}"><span class="psy-d">${digs(k)}</span><span class="psy-l">${C.SQUARE_TEXT[k]}</span></button>`;
     const [y, m, d] = dob.split('-');
     const years = [0, 1, 2].map((k) => { const v = C.numerology('', dob, cy + k).personalYear; return `<li><b>${cy + k}</b> <span class="big-mini">${v}</span> ${esc(C.YEAR_TEXT[v])}</li>`; }).join('');
     return `<form class="tool-ctl" id="numForm" autocomplete="off"><div class="field tool-where"><label for="numName">Имя и фамилия</label><input class="inp" type="text" id="numName" value="${esc(o.name || '')}" placeholder="Например: Анна Иванова" spellcheck="false" autocapitalize="words"></div>
@@ -371,9 +372,31 @@
       <ul class="chains num-years">${years}</ul>
       <h4>Квадрат Пифагора (психоматрица)</h4>
       <div class="psy">${[1, 4, 7, 2, 5, 8, 3, 6, 9].map(cell).join('')}</div>
-      <p class="muted">Цифры даты рождения и четырёх рабочих чисел (${r.work.join(', ')}), без нулей. Чем больше одинаковых цифр в клетке, тем сильнее качество; пустая клетка — качество надо развивать.</p>`;
+      ${psyHow(r, d, m, y)}
+      <h4>Что значит каждая клетка</h4>
+      <p class="muted">Нажмите на клетку квадрата — откроется её расшифровка. Чем больше одинаковых цифр в клетке, тем сильнее качество; пустая клетка — качество, которое надо развивать.</p>
+      <div class="psy-reads">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => `<div class="psy-read" id="psyR${k}"><div class="psy-rh"><span class="psy-d${r.square[k] ? '' : ' none'}">${digs(k)}</span><b>${esc(C.SQUARE_READ[k].ru)}</b></div><p class="muted">${esc(C.SQUARE_READ[k].about)}</p><p>${esc(C.squareCell(k, r.square[k]))}</p></div>`).join('')}</div>
+      <h4>Строки, столбцы и диагонали</h4>
+      <p class="muted">Цифры трёх клеток в линии складываются: до двух — качество выражено слабо, три-четыре — средне, пять и больше — сильно.</p>
+      <ul class="psy-lines">${C.SQUARE_LINES.map((ln) => { const n = ln.cells.reduce((a, k) => a + r.square[k], 0), lv = n <= 2 ? 'low' : n <= 4 ? 'mid' : 'high'; return `<li><div class="psy-lh"><b>${esc(ln.ru)}</b> <span class="muted">${ln.kind} ${ln.cells.join('-')}</span><span class="tag psy-lv ${lv}">${n} · ${lv === 'low' ? 'слабо' : lv === 'mid' ? 'средне' : 'сильно'}</span></div><p>${esc(ln[lv])}</p></li>`; }).join('')}</ul>`;
   }
 
+
+  // how the square was counted, with this date's own numbers
+  function psyHow(r, d, m, y) {
+    const dd = `${d}${m}${y}`.replace(/0/g, '').split('').join(', '), fd = +String(+d)[0], [w1, w2, w3, w4] = r.work;
+    const sum = (n) => String(Math.abs(n)).split('').join(' + ');
+    return `<details class="more psy-how"><summary>Как получился этот квадрат</summary>
+        <ol>
+          <li>Цифры даты ${d}.${m}.${y} без нулей: <b>${dd}</b>.</li>
+          <li>Первое рабочее число — сумма всех цифр даты: <b>${w1}</b>.</li>
+          <li>Второе — сумма цифр первого: ${sum(w1)} = <b>${w2}</b>.</li>
+          <li>Третье — первое минус удвоенная первая цифра дня рождения: ${w1} − 2 × ${fd} = <b>${w3}</b>.</li>
+          <li>Четвёртое — сумма цифр третьего: ${sum(w3)} = <b>${w4}</b>.</li>
+          <li>Все цифры даты и рабочих чисел, кроме нулей, раскладываются по клеткам: сколько раз встретилась цифра, столько её и в клетке.</li>
+        </ol>
+      </details>`;
+  }
 
   /* Biorhythms: sine waves from the day of birth with periods of 23 (physical), 28 (emotional) and 33 days
      (intellectual), after Wilhelm Fliess, Hermann Swoboda and Alfred Teltscher. A critical day is the day the
@@ -800,6 +823,8 @@
       if (e.target.closest('#bioBack')) { const o = opts(); o.bioMode = 'family'; o.bioBirth = null; o.bioDate = o.bioFamDate || null; o.bioWho = null; app.save(); update(); return; }
       const pdf = e.target.closest('#famPdf');
       if (pdf) { famPdf(pdf); return; }
+      const psy = e.target.closest('[data-psy]');
+      if (psy) { const c = $(`psyR${psy.dataset.psy}`); if (c) { c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); } return; }
       const pk = e.target.closest('[data-bio-pick]');
       if (pk) { bioPick(+pk.dataset.bioPick, pk.tagName === 'TR'); return; }
       const sp = e.target.closest('#bioSpan button');
