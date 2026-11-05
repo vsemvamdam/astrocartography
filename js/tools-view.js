@@ -210,9 +210,24 @@
       const dv = Math.abs(items[i].v - items[j].v);
       if (dv <= 1.5) pairs.push([items[i].p, items[j].p, dv]);
     }
-    return `<p class="muted">Все точки карты на шкале 0–30°, без учёта знака. Точки на одном градусе разных знаков связаны между собой (на этом строятся полуаспекты и «градусные» соответствия).</p>
+    // the aspect the pair actually makes in the chart: the nearest multiple of 30°
+    const ASP30 = [['соединение', ''], ['полусекстиль', ''], ['секстиль', 'good'], ['квадрат', 'bad'], ['трин', 'good'], ['квинконс', ''], ['оппозиция', 'bad']];
+    const asp30 = (a, b) => ASP30[Math.round(Math.abs(n180(a.lon - b.lon)) / 30)];
+    const pName = (p) => (p.angle ? p.glyph : `<span style="color:${p.color}">${g(p.glyph)}</span>`);
+    return `<p class="muted">Вся карта сложена в один знак: каждая точка стоит на своём градусе от 0 до 30, без учёта знака. Так 5° Овна, 5° Рака и 5° Скорпиона попадают в одно место шкалы. Точки, которые стоят друг под другом, связаны в карте аспектом.</p>
       <div class="nat-scroll"><svg class="d30" viewBox="0 0 ${W} ${H}" role="img" aria-label="Тридцатиградусник">${svg}</svg></div>
-      ${pairs.length ? `<h4>Близкие градусы (до 1,5°)</h4><ul class="chains">${pairs.sort((a, b) => a[2] - b[2]).map(([a, b, dv]) => `<li>${a.angle ? a.glyph : `<span style="color:${a.color}">${g(a.glyph)}</span>`} ${esc(a.ru)} <span class="arr">·</span> ${b.angle ? b.glyph : `<span style="color:${b.color}">${g(b.glyph)}</span>`} ${esc(b.ru)} <span class="muted">${dv.toFixed(2).replace('.', ',')}°</span></li>`).join('')}</ul>` : ''}`;
+      ${pairs.length ? `<h4>Близкие градусы (до 1,5°) и какой это аспект в карте</h4><ul class="chains">${pairs.sort((a, b) => a[2] - b[2]).map(([a, b, dv]) => { const [an, cl] = asp30(a, b); return `<li>${pName(a)} ${esc(a.ru)} <span class="arr">·</span> ${pName(b)} ${esc(b.ru)} <span class="tag${cl ? ` ${cl}` : ''}">${an}</span> <span class="muted">${dv.toFixed(2).replace('.', ',')}°</span></li>`; }).join('')}</ul>` : ''}
+      <details class="more d30-about"><summary>Что такое тридцатиградусник и зачем он нужен</summary>
+        <p><b>Какие аспекты он показывает.</b> Если две точки стоят на шкале рядом, расстояние между ними в карте кратно 30°. Это весь 30-градусный ряд: соединение (0°), полусекстиль (30°), секстиль (60°), квадрат (90°), трин (120°), квинконс (150°) и оппозиция (180°). Сама шкала не различает, какой из них: это видно по знакам, и в списке выше аспект подписан. Полуквадрат (45°) и полуторный квадрат (135°) здесь не видны — для них нужен 45- или 90-градусный круг.</p>
+        <p><b>Зачем он нужен.</b></p>
+        <ul>
+          <li>Увидеть одним взглядом все связи этого ряда, в том числе между далёкими знаками, и не пропустить точные аспекты.</li>
+          <li>Заметить скопления: если на одном градусе собрались три-четыре точки, этот градус — узел карты, все они связаны между собой и включаются вместе.</li>
+          <li>Работать со временем: транзитная планета, придя на этот градус любого знака, задевает сразу всю группу — видно, какие темы запустятся одновременно.</li>
+          <li>Проверять время рождения: ASC и MC быстро идут по шкале, и их совпадение с градусами планет помогает при ректификации.</li>
+        </ul>
+        <p><b>Как читать.</b> Смотреть, какие точки стоят друг под другом. Чем ближе градусы, тем сильнее связь: до 1° — точный аспект. Зелёным в списке подписаны гармоничные аспекты (секстиль, трин), красным — напряжённые (квадрат, оппозиция).</p>
+      </details>`;
   }
 
   /* Annual profections, Hellenistic whole signs from the Ascendant (Demetra George, Chris Brennan) */
@@ -288,12 +303,45 @@
     const pts = nat.points.filter((p) => p.planet || p.id === 'Chiron' || p.id === 'Node');
     const list = C.lifeCycles(pts, birth, 90);
     const next = list.find((x) => x.last >= now);
+    const topic = (h) => `<b>${RN[h]}</b> — ${HOUSE_TOPIC[h]}`;
+    // the part of life a milestone touches: where the natal point stands, the house the moving planet crosses then, the houses the planet rules
+    function spheres(x) {
+      const np = pts.find((p) => p.id === x.id), nm = BODY[x.id].ru;
+      if (!np) return '';
+      const trH = N.houseOf(n360(C.lonOf(x.id, x.t)), nat.cusps), out = [];
+      if (x.id === 'Node') {
+        const sh = (np.house + 5) % 12 + 1;
+        out.push(`Северный узел в карте — в доме ${topic(np.house)}: сюда жизнь зовёт расти.`);
+        out.push(`Южный узел — в доме ${topic(sh)}: здесь опыт уже наработан, и отсюда пора двигаться дальше.`);
+        if (x.asp === 180) out.push(`В это время Северный узел идёт через дом ${topic(trH)}.`);
+      } else {
+        out.push(`Натальный ${nm} — в доме ${topic(np.house)}.`);
+        if (trH !== np.house) out.push(`Транзитный ${nm} в это время идёт через дом ${topic(trH)}.`);
+        const ruled = [];
+        for (let h = 1; h <= 12; h++) if ((N.RULERS[Math.floor(n360(nat.cusps[h]) / 30)] || []).includes(x.id)) ruled.push(h);
+        if (ruled.length) out.push(`${nm} управляет ${ruled.length > 1 ? 'домами' : 'домом'} ${ruled.map(topic).join('; ')}.`);
+      }
+      return out.map((l) => `<li>${l}</li>`).join('');
+    }
+    function reading(x) {
+      const r = C.lifeRead(x);
+      if (!r) return '';
+      return `<div class="cyc-read">
+          <p>${esc(r.how)}${r.age ? ` <span class="cyc-age">${esc(r.age)}</span>` : ''}</p>
+          <h5>Какие сферы жизни задействованы</h5><ul class="cyc-sph">${spheres(x)}</ul>
+          <div class="bio-dd cyc-pm"><div class="ok"><h5>В плюсе</h5><ul>${r.plus.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div><div class="no"><h5>В минусе</h5><ul>${r.minus.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div></div>
+          <p class="cyc-tip"><b>Совет:</b> ${esc(r.tip)}</p>
+        </div>`;
+    }
     const rows = list.map((x) => {
       const span = monthYear(x.t, tz) + (x.passes > 1 && monthYear(x.t, tz) !== monthYear(x.last, tz) ? ` – ${monthYear(x.last, tz)}` : '');
-      return `<tr class="${x === next ? 'on' : ''} ${x.last < now ? 'past' : ''}"><td class="hs">${Math.floor(x.age)}</td><td class="pos tr-p">${span}</td><td>${bodyG(x.id)} <b>${esc(x.ru)}</b>${x.passes > 1 ? ` <span class="muted">(${x.passes} ${plural(x.passes, 'проход', 'прохода', 'проходов')})</span>` : ''}<div class="tr-m">${esc(x.text)}</div><div class="tr-pm">${span}</div></td></tr>`;
+      const rd = x === next ? '' : reading(x);
+      return `<tr class="${x === next ? 'on' : ''} ${x.last < now ? 'past' : ''}"><td class="hs">${Math.floor(x.age)}</td><td class="pos tr-p">${span}</td><td>${bodyG(x.id)} <b>${esc(x.ru)}</b>${x.passes > 1 ? ` <span class="muted">(${x.passes} ${plural(x.passes, 'проход', 'прохода', 'проходов')})</span>` : ''}<div class="tr-m">${esc(x.text)}</div><div class="tr-pm">${span}</div>${x === next ? '<div class="tr-m cyc-up">расшифровка — выше</div>' : rd ? `<details class="more cyc-more"><summary>Расшифровка</summary>${rd}</details>` : ''}</td></tr>`;
     }).join('');
     return `<p class="muted">Большие циклы: медленные планеты возвращаются на своё натальное место или встают к нему в квадрат и оппозицию. Это общие для всех вехи (около 7, 14, 21, 29, 42 лет), но точный возраст у каждого свой. Лиз Грин в книге «Сатурн» описывает возвращение Сатурна как время, когда приходится строить жизнь на собственном фундаменте; Роберт Хэнд разбирает каждую веху в «Planets in Transit».</p>
-      ${next ? `<div class="tool-lead"><div class="big-glyph" style="color:${BODY[next.id].color}">${g(BODY[next.id].glyph)}</div><div><b>${next.t <= now ? 'Сейчас' : 'Следующая веха'}: ${esc(next.ru)}</b><p class="muted">${monthYear(next.t, tz)}${next.passes > 1 ? ` – ${monthYear(next.last, tz)}` : ''}, в ${Math.floor(next.age)} ${plural(Math.floor(next.age), 'год', 'года', 'лет')}. ${esc(next.text)[0].toUpperCase() + esc(next.text).slice(1)}.</p></div></div>` : ''}
+      ${next ? `<div class="tool-lead"><div class="big-glyph" style="color:${BODY[next.id].color}">${g(BODY[next.id].glyph)}</div><div><b>${next.t <= now ? 'Сейчас' : 'Следующая веха'}: ${esc(next.ru)}</b><p class="muted">${monthYear(next.t, tz)}${next.passes > 1 ? ` – ${monthYear(next.last, tz)}` : ''}, в ${Math.floor(next.age)} ${plural(Math.floor(next.age), 'год', 'года', 'лет')}. ${esc(next.text)[0].toUpperCase() + esc(next.text).slice(1)}.</p></div></div>
+      ${reading(next)}` : ''}
+      <p class="muted">У каждой вехи в таблице есть расшифровка: как она действует, какие сферы жизни затрагивает в этой карте и как может проявиться в плюсе и в минусе. Сферы берутся по домам: где стоит натальная планета, через какой дом она идёт в это время и какими домами управляет.</p>
       <div class="nat-scroll"><table class="nat-table cyc-table"><thead><tr><th>Возраст</th><th>Когда</th><th>Веха</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
@@ -334,6 +382,59 @@
     { id: 'e', ru: 'Эмоциональный', short: 'Эмоц.', per: 28, color: '#4FB3BF', up: 'настроение и чувствительность на подъёме', down: 'эмоции тише, легче устать от людей' },
     { id: 'i', ru: 'Интеллектуальный', short: 'Интел.', per: 33, color: '#A88BEB', up: 'голова ясная, хорошо думать и решать', down: 'внимание рассеивается, сложное лучше отложить' },
   ];
+  /* What a critical day means and what to do with it, for each cycle, each pair, all three, and the days when all
+     three are below zero. Keys: p, e, i, pe, pi, ei, pei, low. */
+  const BIO_READ = {
+    p: {
+      ru: 'Физический критический день',
+      sum: 'Физический цикл меняет знак: тело переключается между фазой отдачи и фазой восстановления. По теории биоритмов в такой день быстрее приходит усталость, хуже координация и реакция, легче получить травму или простыть.',
+      ok: ['лёгкое движение: прогулка, растяжка, спокойная йога', 'привычные дела в своём темпе, без спешки', 'работа за столом, планирование, учёба', 'ранний сон, вода, лёгкая еда'],
+      no: ['тяжёлые тренировки, рекорды, соревнования', 'рискованные занятия: высота, электроинструмент, экстрим', 'долгая дорога за рулём, особенно ночью', 'физические авралы: переезд, генеральная уборка, тяжести', 'алкоголь и переедание'],
+    },
+    e: {
+      ru: 'Эмоциональный критический день',
+      sum: 'Эмоциональный цикл меняет знак, и настроение становится неустойчивым. Легче обидеться, вспылить или расстроиться из-за мелочи, реакции бывают сильнее повода. Такие дни всегда выпадают на тот день недели, в который человек родился, и повторяются каждые 14 дней.',
+      ok: ['спокойные дела в одиночку или с самыми близкими', 'прогулка, природа, музыка, творчество для себя', 'рутина, которая успокаивает: уборка, готовка, порядок в вещах', 'отложить ответ на неприятное сообщение до завтра'],
+      no: ['выяснять отношения и поднимать больные темы', 'важные разговоры: признания, расставания, ультиматумы', 'переговоры, собеседования, публичные выступления', 'покупки и решения на эмоциях', 'споры в чатах и письма сгоряча'],
+    },
+    i: {
+      ru: 'Интеллектуальный критический день',
+      sum: 'Интеллектуальный цикл меняет знак. Внимание рассеивается, память и логика подводят, растёт число ошибок и мелкой забывчивости: оставленные ключи, перепутанные цифры, пропущенные пункты.',
+      ok: ['привычная работа, которую делаешь «на автомате»', 'повторение уже знакомого, разбор и сортировка', 'ручной труд, уборка, прогулка', 'списки дел и перепроверка всего, что уходит другим'],
+      no: ['экзамены, тесты, собеседования, если их можно перенести', 'подписание договоров и крупные денежные решения', 'сложные расчёты, отчёты, важный код и релизы', 'изучение сложного нового материала', 'дорога по незнакомому маршруту'],
+    },
+    pe: {
+      ru: 'Двойной: физический и эмоциональный',
+      sum: 'Усталость тела накладывается на неустойчивое настроение: силы кончаются быстро, а раздражение приходит легко. По теории это самые конфликтные дни, и в них же выше риск травм.',
+      ok: ['разгрузить день: только необходимое', 'отдых, сон, тёплый душ, неспешная прогулка', 'время с теми, с кем спокойно', 'заранее предупредить близких, что день тяжёлый'],
+      no: ['тренировки на пределе и физические авралы', 'выяснение отношений, споры, ссоры', 'праздники, шумные компании, алкоголь', 'дела, где легко устать и вспылить: пробки, очереди, долгие поездки'],
+    },
+    pi: {
+      ru: 'Двойной: физический и интеллектуальный',
+      sum: 'Реакция и координация снижены, а внимание рассеяно. Это сочетание теория считает самым «аварийным»: ошибки за рулём, с техникой, на кухне, на лестнице.',
+      ok: ['делать всё медленно и по одному делу', 'отдых, лёгкая растяжка, сон', 'простая привычная работа без спешки', 'чек-листы: выключена ли плита, закрыта ли дверь'],
+      no: ['садиться за руль без необходимости', 'работать с острым, горячим, электроинструментом', 'спорт с риском травмы', 'сложные задачи, где ошибка дорого стоит'],
+    },
+    ei: {
+      ru: 'Двойной: эмоциональный и интеллектуальный',
+      sum: 'Решения рождаются на эмоциях, а голова не успевает их проверить. Велик риск сказать, написать, купить или подписать то, о чём потом пожалеешь.',
+      ok: ['движение и спорт в обычном объёме', 'дела руками: уборка, ремонт, готовка', 'тишина, одиночество, прогулка', 'записывать мысли, а решать — завтра'],
+      no: ['важные решения о работе, деньгах, отношениях', 'договоры, крупные покупки, кредиты', 'серьёзные разговоры и переписка «на нервах»', 'экзамены, переговоры, выступления'],
+    },
+    pei: {
+      ru: 'Тройной критический день',
+      sum: 'Все три цикла меняют знак одновременно. Это редкость: за первые 58 лет жизни таких дней всего семь. Теория считает их самыми неустойчивыми, поэтому день лучше заранее освободить от всего важного.',
+      ok: ['отдых, сон, спокойная прогулка', 'только простые привычные дела', 'побыть с близкими, без выяснения отношений', 'перенести важное на соседние дни'],
+      no: ['всё важное и необратимое: решения, договоры, серьёзные разговоры', 'дорога за рулём, тяжёлый спорт, работа с риском', 'алкоголь, переедание, бессонная ночь', 'начинать новые дела'],
+    },
+    low: {
+      ru: 'Все три цикла ниже нуля',
+      sum: 'Это не критический день, а общий спад: все три цикла в фазе восстановления. Сил, настроения и концентрации меньше обычного, но день устойчивый — просто тихий.',
+      ok: ['отдых и восстановление', 'плановая рутина, доделать начатое', 'спокойные встречи с близкими'],
+      no: ['начинать большие новые дела', 'брать лишние обязательства', 'требовать от себя рекордов'],
+    },
+  };
+  const bioList = (r) => `<div class="bio-dd"><div class="ok"><h5>Можно</h5><ul>${r.ok.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div><div class="no"><h5>Лучше воздержаться</h5><ul>${r.no.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div></div>`;
   const isoDay = (iso) => { const [y, m, d] = iso.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 86400000); };
   const dayIso = (n) => new Date(n * 86400000).toISOString().slice(0, 10);
   const bioVal = (t, per) => Math.sin(2 * Math.PI * t / per);
@@ -385,26 +486,61 @@
     const chart = `<div class="bio-legend">${BIO.map((c) => `<span><i style="background:${c.color}"></i>${c.ru} · ${c.per} дн.</span>`).join('')}<span><i class="crit"></i>критический день</span></div>
       <svg class="bio-chart" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="График биоритмов">${svg}</svg>`;
 
+    const crits = days.filter((d) => d.crit && d.n >= d0), sel = crits.length ? crits[0].n : null;
     // the list
     const rows = days.map((d) => {
       const dt = new Date(d.n * 86400000), names = d.v.filter((z) => z.crit).map((z) => z.c.ru.toLowerCase());
       const mark = d.crit === 3 ? 'тройной критический' : d.crit === 2 ? `двойной критический: ${names.join(' и ')}` : d.crit ? `критический: ${names[0]}` : d.low ? 'все три ниже нуля' : '';
-      const cls = [d.crit >= 2 ? 'crit2' : d.crit ? 'crit' : d.low ? 'low' : '', d.n === d0 ? 'on' : ''].filter(Boolean).join(' ');
-      return `<tr class="${cls}"><td class="pos">${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]} <span class="muted">${WD[dt.getUTCDay()]}</span></td>${d.v.map((z) => `<td class="bio-v${z.crit ? ' c' : ''}" style="--c:${z.c.color}">${pct(z.v)}</td>`).join('')}<td class="bio-mark">${mark}</td></tr>`;
+      const cls = [d.crit >= 2 ? 'crit2' : d.crit ? 'crit' : d.low ? 'low' : '', d.n === d0 ? 'on' : '', d.crit && d.n === sel ? 'sel' : ''].filter(Boolean).join(' ');
+      return `<tr class="${cls}"${d.crit ? ` data-bio-pick="${d.n}"` : ''}><td class="pos">${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]} <span class="muted">${WD[dt.getUTCDay()]}</span></td>${d.v.map((z) => `<td class="bio-v${z.crit ? ' c' : ''}" style="--c:${z.c.color}">${pct(z.v)}</td>`).join('')}<td class="bio-mark">${mark}</td></tr>`;
     }).join('');
-    const crits = days.filter((d) => d.crit && d.n >= d0);
-    const nextList = crits.slice(0, 6).map((d) => { const dt = new Date(d.n * 86400000); return `<span class="bio-chip${d.crit >= 2 ? ' strong' : ''}">${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]}${d.crit >= 2 ? (d.crit === 3 ? ' · тройной' : ' · двойной') : ''}</span>`; }).join('');
+    const cName = (d) => (d.crit === 3 ? 'тройной' : d.v.filter((z) => z.crit).map((z) => z.c.short.toLowerCase()).join(' + '));
+    const nextList = crits.slice(0, 6).map((d) => { const dt = new Date(d.n * 86400000); return `<button type="button" class="bio-chip${d.crit >= 2 ? ' strong' : ''}" data-bio-pick="${d.n}" aria-pressed="${d.n === sel}">${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]} · ${cName(d)}</button>`; }).join('');
+
+    // what each critical day means: one card per critical day of the period, the chosen one shown
+    const key = (d) => (d.crit === 3 ? 'pei' : d.v.filter((z) => z.crit).map((z) => z.c.id).join(''));
+    const when = (n) => (n === d0 ? 'сегодня' : n === d0 + 1 ? 'завтра' : n === d0 - 1 ? 'вчера'
+      : n > d0 ? `через ${n - d0} ${plural(n - d0, 'день', 'дня', 'дней')}` : `${d0 - n} ${plural(d0 - n, 'день', 'дня', 'дней')} назад`);
+    const WD_PO = ['по воскресеньям', 'по понедельникам', 'по вторникам', 'по средам', 'по четвергам', 'по пятницам', 'по субботам'];
+    const birthWd = WD_PO[new Date(b0 * 86400000).getUTCDay()];
+    const cards = days.filter((d) => d.crit).map((d) => {
+      const r = BIO_READ[key(d)], dt = new Date(d.n * 86400000), cr = d.v.filter((z) => z.crit), rest = d.v.filter((z) => !z.crit);
+      const dir = [true, false].map((up) => { const g = cr.filter((z) => (z.next > z.v) === up).map((z) => z.c.ru.toLowerCase()); return g.length ? `${g.join(' и ')} ${g.length > 1 ? 'циклы идут' : 'цикл идёт'} ${up ? 'из спада в подъём' : 'из подъёма в спад'}` : ''; }).filter(Boolean).join(', а ');
+      const other = rest.map((z) => `${z.c.ru.toLowerCase()} ${pct(z.v)} — ${z.v >= 0 ? z.c.up : z.c.down}`).join('; ');
+      return `<div class="bio-read${d.crit >= 2 ? ' strong' : ''}" data-bio-card="${d.n}"${d.n === sel ? '' : ' hidden'}>
+          <div class="bio-read-h"><b>${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]}, ${WD_FULL[dt.getUTCDay()]}</b><span class="bio-type">${esc(r.ru)}</span><span class="muted">${when(d.n)}</span></div>
+          <p>${esc(r.sum)}${key(d) === 'e' ? ` Для этой даты рождения — ${birthWd}.` : ''}</p>
+          <p class="bio-note">${esc(dir[0].toUpperCase() + dir.slice(1))}.${other ? ` Остальные циклы: ${esc(other)}.` : ''}</p>
+          ${bioList(r)}
+        </div>`;
+    }).join('');
+    const ref = ['p', 'e', 'i', 'pe', 'pi', 'ei', 'pei', 'low'].map((k) => { const r = BIO_READ[k]; return `<div class="bio-read ref"><div class="bio-read-h"><span class="bio-type">${esc(r.ru)}</span></div><p>${esc(r.sum)}</p>${bioList(r)}</div>`; }).join('');
     return `${ctl}${lead}
-      ${nextList ? `<h4>Ближайшие критические дни</h4><div class="bio-chips">${nextList}</div>` : ''}
+      ${nextList ? `<h4>Ближайшие критические дни</h4><div class="bio-chips">${nextList}</div>
+      <p class="muted">Нажмите на дату — ниже расшифровка: что этот день значит, что можно делать и чего лучше избегать. Критические строки в таблице тоже нажимаются.</p>` : ''}
+      ${cards}
       <h4>График</h4>${chart}
       <h4>По дням</h4>
       <div class="nat-scroll"><table class="nat-table bio-table"><thead><tr><th>Дата</th>${BIO.map((c) => `<th style="color:${c.color}">${c.short}</th>`).join('')}<th></th></tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="muted">Красным — критические дни, когда кривая пересекает ноль; двойные и тройные выделены сильнее. Оранжевым — дни, когда все три цикла ниже нуля. Значения — от −100% до +100%, на начало суток. Циклы 23, 28 и 33 дня взяты из теории биоритмов Вильгельма Флисса, Германа Свободы и Альфреда Тельчера.</p>`;
+      <p class="muted">Красным — критические дни, когда кривая пересекает ноль; двойные и тройные выделены сильнее. Оранжевым — дни, когда все три цикла ниже нуля. Значения — от −100% до +100%, на начало суток. Циклы 23, 28 и 33 дня взяты из теории биоритмов Вильгельма Флисса, Германа Свободы и Альфреда Тельчера.</p>
+      <details class="more bio-ref"><summary>Справочник: все типы критических дней</summary>
+        <p class="muted">Критический день — сутки, в которые кривая цикла пересекает ноль и переходит из подъёма в спад или обратно. Одинарные случаются часто, около 69 раз в год: физический — каждые 11–12 дней, эмоциональный — каждые 14, интеллектуальный — каждые 16–17. Двойные бывают около пяти раз в год, тройные — считаные разы за жизнь.</p>
+        ${ref}
+      </details>`;
   }
 
   const RENDER = { bio: renderBio, hours: renderHours, voc: renderVoc, lunar: renderLunar, eph: renderEph, dign: renderDign, disp: renderDisp, lots: renderLots, stars: renderStars, deg30: renderDeg30, prof: renderProf, transits: renderTransits, cycles: renderCycles, num: renderNum };
 
   /* ------------------------------- controls ------------------------------- */
+  // biorhythms: show the reading of one critical day (from a date chip or a row of the table)
+  function bioPick(n, scroll) {
+    const out = $('toolOut');
+    out.querySelectorAll('[data-bio-card]').forEach((c) => { c.hidden = +c.dataset.bioCard !== n; });
+    out.querySelectorAll('button[data-bio-pick]').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.bioPick === n)));
+    out.querySelectorAll('tr[data-bio-pick]').forEach((r) => r.classList.toggle('sel', +r.dataset.bioPick === n));
+    const c = out.querySelector(`[data-bio-card="${n}"]`);
+    if (scroll && c) c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
   function initControls() {
     $('toolList').innerHTML = TOOLS.map((t) => `<button type="button" data-t="${t.id}">${t.ru}</button>`).join('');
     $('toolList').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; opts().tool = b.dataset.t; app.save(); update(); });
@@ -421,6 +557,8 @@
       if (e.target.id === 'bioDate') { opts().bioDate = e.target.value && e.target.value !== todayISO() ? e.target.value : null; app.save(); update(); }
     });
     $('toolOut').addEventListener('click', (e) => {
+      const pk = e.target.closest('[data-bio-pick]');
+      if (pk) { bioPick(+pk.dataset.bioPick, pk.tagName === 'TR'); return; }
       const sp = e.target.closest('#bioSpan button');
       if (sp) { opts().bioDays = +sp.dataset.n; app.save(); update(); return; }
       if (e.target.closest('#bioReset')) { opts().bioBirth = null; opts().bioDate = null; app.save(); update(); }
