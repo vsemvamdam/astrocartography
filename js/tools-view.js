@@ -11,6 +11,7 @@
   const RN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
   const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
   const MONTHS_FULL = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
   const WD = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
   const WD_FULL = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
   const BODY = Object.fromEntries(ACG.BODIES.map((b) => [b.id, b]));
@@ -508,7 +509,7 @@
       const dir = [true, false].map((up) => { const g = cr.filter((z) => (z.next > z.v) === up).map((z) => z.c.ru.toLowerCase()); return g.length ? `${g.join(' и ')} ${g.length > 1 ? 'циклы идут' : 'цикл идёт'} ${up ? 'из спада в подъём' : 'из подъёма в спад'}` : ''; }).filter(Boolean).join(', а ');
       const other = rest.map((z) => `${z.c.ru.toLowerCase()} ${pct(z.v)} — ${z.v >= 0 ? z.c.up : z.c.down}`).join('; ');
       return `<div class="bio-read${d.crit >= 2 ? ' strong' : ''}" data-bio-card="${d.n}"${d.n === sel ? '' : ' hidden'}>
-          <div class="bio-read-h"><b>${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]}, ${WD_FULL[dt.getUTCDay()]}</b><span class="bio-type">${esc(r.ru)}</span><span class="muted">${when(d.n)}</span></div>
+          <div class="bio-read-h"><b>${dt.getUTCDate()} ${MONTHS_GEN[dt.getUTCMonth()]}, ${WD_FULL[dt.getUTCDay()]}</b><span class="bio-type">${esc(r.ru)}</span><span class="muted">${when(d.n)}</span></div>
           <p>${esc(r.sum)}${key(d) === 'e' ? ` Для этой даты рождения — ${birthWd}.` : ''}</p>
           <p class="bio-note">${esc(dir[0].toUpperCase() + dir.slice(1))}.${other ? ` Остальные циклы: ${esc(other)}.` : ''}</p>
           ${bioList(r)}
