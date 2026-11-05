@@ -142,6 +142,7 @@
         st.dyn = Object.assign({}, EXAMPLE.dyn, s.dyn);
         st.best = Object.assign({}, EXAMPLE.best, s.best);
         if (st.showNatal == null) st.showNatal = true;
+        st.nodeMode = 'true';                 // the site shows only the true node, as Sotis does
         return st;
       }
     } catch (e) { /* storage unavailable */ }

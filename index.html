@@ -452,7 +452,6 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .hm-ic { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 4px; border-radius: 50%; border: 1px solid rgba(217,181,110,.45); background: rgba(217,181,110,.08); color: var(--brass); font-family: var(--f-glyph); font-size: 22px; line-height: 1; }
 .hm-more { margin-top: auto; padding-top: 6px; font-size: 13px; color: var(--brass); }
 .hm-foot { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--faint); max-width: 90ch; }
-.node-note { margin: 6px 0 0; font-size: 12px; line-height: 1.45; color: var(--faint); }
 @media (max-width: 759.98px) {
   .hm-hero { grid-template-columns: 1fr; gap: 20px; padding-top: 6px; }
   .hm-wheel { max-width: 300px; }
@@ -2116,7 +2115,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <button type="button" data-m="major">Мажорные аспекты</button>
           <button type="button" data-m="minor">+ минорные</button>
         </div>
-        <div class="field"><label for="natNode">Лунные узлы</label><select class="inp" id="natNode"><option value="true">Истинный узел (как в Сотисе)</option><option value="mean">Средний узел</option></select><p class="node-note">Истинный — реальное положение узла с его покачиваниями, средний — сглаженное. Разница — до полутора градусов.</p></div>
         <div class="seg" id="natPts" role="group" aria-label="Точки">
           <button type="button" data-p="nodes">Узлы</button>
           <button type="button" data-p="chiron">Хирон</button>
@@ -2248,7 +2246,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/horary.js?v=20261104u"></script>
 <script src="js/interpret.js?v=20261105lun"></script>
 <script src="js/celebs.js?v=20261104u"></script>
-<script src="js/natal-view.js?v=20261105lun"></script>
+<script src="js/natal-view.js?v=20261105node"></script>
 <script src="js/cycles.js?v=20261105psy"></script>
 <script src="js/tools-view.js?v=20261105psy"></script>
 <script src="js/city-view.js?v=20261104cs"></script>
@@ -2257,6 +2255,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/firebase-config.js?v=20261104u"></script>
 <script src="js/account.js?v=20261105fam"></script>
 <script src="js/home-view.js?v=20261105home"></script>
-<script src="js/app.js?v=20261105home"></script>
+<script src="js/app.js?v=20261105node"></script>
 </body>
 </html>

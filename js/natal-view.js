@@ -784,9 +784,6 @@
   }
   function initControls() {
     const o = opts();
-    const nodeSel = $('natNode');
-    nodeSel.value = app.state.nodeMode === 'mean' ? 'mean' : 'true';
-    nodeSel.addEventListener('change', () => { app.state.nodeMode = nodeSel.value; app.save(); app.recompute(); });
     const sel = $('natHouse');
     sel.innerHTML = N.HOUSE_SYSTEMS.map((s) => `<option value="${s.id}">${s.ru}</option>`).join('');
     sel.value = o.house;
