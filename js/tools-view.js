@@ -51,7 +51,7 @@
   let app = null;
   const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
   function opts() {
-    const o = app.state.tools || (app.state.tools = {}), defs = { tool: 'hours', date: null, place: null, classic: false, modern: false, year: null, mars: false, name: '', bioBirth: null, bioDate: null, bioDays: 30 };
+    const o = app.state.tools || (app.state.tools = {}), defs = { tool: 'hours', date: null, place: null, classic: false, modern: false, year: null, mars: false, name: '', bioBirth: null, bioDate: null, bioDays: 30, bioMode: 'one', bioFamily: null, bioWho: null, bioFamDate: null };
     for (const k in defs) if (!(k in o)) o[k] = defs[k];
     return o;
   }
@@ -435,16 +435,22 @@
       no: ['начинать большие новые дела', 'брать лишние обязательства', 'требовать от себя рекордов'],
     },
   };
+  const bioRef = () => ['p', 'e', 'i', 'pe', 'pi', 'ei', 'pei', 'low'].map((k) => { const r = BIO_READ[k]; return `<div class="bio-read ref"><div class="bio-read-h"><span class="bio-type">${esc(r.ru)}</span></div><p>${esc(r.sum)}</p>${bioList(r)}</div>`; }).join('');
+  const BIO_REF_INTRO = 'Критический день — сутки, в которые кривая цикла пересекает ноль и переходит из подъёма в спад или обратно. Одинарные случаются часто, около 69 раз в год: физический — каждые 11–12 дней, эмоциональный — каждые 14, интеллектуальный — каждые 16–17. Двойные бывают около пяти раз в год, тройные — считаные разы за жизнь.';
   const bioList = (r) => `<div class="bio-dd"><div class="ok"><h5>Можно</h5><ul>${r.ok.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div><div class="no"><h5>Лучше воздержаться</h5><ul>${r.no.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div></div>`;
   const isoDay = (iso) => { const [y, m, d] = iso.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 86400000); };
   const dayIso = (n) => new Date(n * 86400000).toISOString().slice(0, 10);
   const bioVal = (t, per) => Math.sin(2 * Math.PI * t / per);
   // a crossing of zero at t = k·per/2 falls inside day t when t ≤ k·per/2 < t + 1
   const bioCrit = (t, per) => { const h = per / 2, k = Math.ceil(t / h - 1e-9); return k * h < t + 1 - 1e-9; };
+  const bioModeSeg = (m) => `<div class="seg bio-mode" id="bioMode" role="group" aria-label="Для кого">${[['one', 'Один человек'], ['family', 'Семья']].map(([k, ru]) => `<button type="button" data-m="${k}" aria-pressed="${k === m}">${ru}</button>`).join('')}</div>`;
   function renderBio() {
-    const o = opts(), birthIso = o.bioBirth || app.state.date, dateIso = o.bioDate || todayISO(), span = [30, 60, 90].includes(o.bioDays) ? o.bioDays : 30;
+    const o = opts();
+    if (o.bioMode === 'family') return renderBioFamily();
+    const birthIso = o.bioBirth || app.state.date, dateIso = o.bioDate || todayISO(), span = [30, 60, 90].includes(o.bioDays) ? o.bioDays : 30;
     const b0 = isoDay(birthIso), d0 = isoDay(dateIso), from = d0 - 3, to = from + span;
-    const ctl = `<form class="tool-ctl bio-ctl" id="bioForm" autocomplete="off">
+    const wp = o.bioWho != null && Array.isArray(o.bioFamily) ? o.bioFamily[o.bioWho] : null, who = wp && wp.birth === birthIso ? ((wp.name || '').trim() || `Человек ${o.bioWho + 1}`) : '';
+    const ctl = `${bioModeSeg('one')}${who ? `<p class="bio-who">Для: <b>${esc(who)}</b> <button type="button" class="pill" id="bioBack">← к семье</button></p>` : ''}<form class="tool-ctl bio-ctl" id="bioForm" autocomplete="off">
         <div class="field"><label for="bioBirth">Дата рождения</label><input class="inp" type="date" id="bioBirth" value="${birthIso}" min="1800-01-01" max="2100-12-31"></div>
         <div class="field"><label for="bioDate">Дата расчёта</label><input class="inp" type="date" id="bioDate" value="${dateIso}" min="1800-01-01" max="2100-12-31"></div>
         <div class="seg" id="bioSpan" role="group" aria-label="Период">${[30, 60, 90].map((n) => `<button type="button" data-n="${n}" aria-pressed="${n === span}">${n === 30 ? 'Месяц' : n === 60 ? '2 месяца' : '3 месяца'}</button>`).join('')}</div>
@@ -515,7 +521,7 @@
           ${bioList(r)}
         </div>`;
     }).join('');
-    const ref = ['p', 'e', 'i', 'pe', 'pi', 'ei', 'pei', 'low'].map((k) => { const r = BIO_READ[k]; return `<div class="bio-read ref"><div class="bio-read-h"><span class="bio-type">${esc(r.ru)}</span></div><p>${esc(r.sum)}</p>${bioList(r)}</div>`; }).join('');
+    const ref = bioRef();
     return `${ctl}${lead}
       ${nextList ? `<h4>Ближайшие критические дни</h4><div class="bio-chips">${nextList}</div>
       <p class="muted">Нажмите на дату — ниже расшифровка: что этот день значит, что можно делать и чего лучше избегать. Критические строки в таблице тоже нажимаются.</p>` : ''}
@@ -525,9 +531,218 @@
       <div class="nat-scroll"><table class="nat-table bio-table"><thead><tr><th>Дата</th>${BIO.map((c) => `<th style="color:${c.color}">${c.short}</th>`).join('')}<th></th></tr></thead><tbody>${rows}</tbody></table></div>
       <p class="muted">Красным — критические дни, когда кривая пересекает ноль; двойные и тройные выделены сильнее. Оранжевым — дни, когда все три цикла ниже нуля. Значения — от −100% до +100%, на начало суток. Циклы 23, 28 и 33 дня взяты из теории биоритмов Вильгельма Флисса, Германа Свободы и Альфреда Тельчера.</p>
       <details class="more bio-ref"><summary>Справочник: все типы критических дней</summary>
-        <p class="muted">Критический день — сутки, в которые кривая цикла пересекает ноль и переходит из подъёма в спад или обратно. Одинарные случаются часто, около 69 раз в год: физический — каждые 11–12 дней, эмоциональный — каждые 14, интеллектуальный — каждые 16–17. Двойные бывают около пяти раз в год, тройные — считаные разы за жизнь.</p>
+        <p class="muted">${BIO_REF_INTRO}</p>
         ${ref}
       </details>`;
+  }
+
+  /* Biorhythms for a family: up to six people on one month calendar, with a PDF of the same month */
+  const FAM_MAX = 6;
+  const FAM_COLORS = ['#E6CB72', '#62A9EF', '#F08CB4', '#7FD3A6', '#F0805E', '#B9A7D8'];
+  const FAM_INK = ['#A27510', '#2A6CB5', '#BE3C75', '#28804F', '#BD5528', '#7253B0'];   // the same people, darker, for the light PDF
+  const BIO_INK = { p: '#D0821A', e: '#1E8E9C', i: '#7457D1' };
+  const BIO_LETTER = { p: 'Ф', e: 'Э', i: 'И' };
+  const BIO_SHORT = { p: 'физ.', e: 'эмоц.', i: 'интел.', pe: 'физ. + эмоц.', pi: 'физ. + интел.', ei: 'эмоц. + интел.', pei: 'тройной' };
+  const FAM_DAYS = 30;
+  const validIso = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s || '') && +s.slice(0, 4) >= 1800 && +s.slice(0, 4) <= 2100;
+  const dmy = (iso) => iso.split('-').reverse().join('.');
+  const wdOf = (n) => new Date(n * 86400000).getUTCDay();
+  const dayLong = (n) => { const dt = new Date(n * 86400000); return `${dt.getUTCDate()} ${MONTHS_GEN[dt.getUTCMonth()]}, ${WD_FULL[dt.getUTCDay()]}`; };
+  const dayShort = (n) => { const dt = new Date(n * 86400000); return `${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]}`; };
+  const bioPct = (x) => { const v = Math.round(x * 100); return v === 0 ? '0%' : `${v > 0 ? '+' : '−'}${Math.abs(v)}%`; };
+  function family() {
+    const o = opts();
+    if (!Array.isArray(o.bioFamily) || !o.bioFamily.length) o.bioFamily = [{ name: 'Я', birth: app.state.date }];
+    return o.bioFamily;
+  }
+  function bioDayAt(b0, n) {
+    const t = n - b0;
+    if (t < 0) return null;
+    const v = BIO.map((c) => ({ c, v: bioVal(t, c.per), next: bioVal(t + 1, c.per), crit: bioCrit(t, c.per) }));
+    const cr = v.filter((x) => x.crit);
+    return { n, t, v, crit: cr.length, key: cr.length === 3 ? 'pei' : cr.map((x) => x.c.id).join(''), low: v.every((x) => x.v < 0) };
+  }
+  // the people with a valid birth date, each with a colour, a short label (first letter, two when they clash) and the month's days
+  function famPeople(d0) {
+    const all = family().map((p, k) => ({ k, name: (p.name || '').trim() || `Человек ${k + 1}`, birth: p.birth, color: FAM_COLORS[k % FAM_MAX], ink: FAM_INK[k % FAM_MAX] }));
+    const first = all.map((p) => p.name[0].toUpperCase());
+    all.forEach((p, k) => { p.ini = first.filter((x) => x === first[k]).length > 1 ? first[k] + (p.name[1] || '').toLowerCase() : first[k]; });
+    return all.filter((p) => validIso(p.birth)).map((p) => {
+      const b0 = isoDay(p.birth), days = [];
+      for (let n = d0; n < d0 + FAM_DAYS; n++) days.push(bioDayAt(b0, n));
+      return Object.assign(p, { b0, days });
+    });
+  }
+  // the month as weeks from Monday: null for the days outside the period
+  function famWeeks(d0) {
+    const start = d0 - ((wdOf(d0) + 6) % 7), last = d0 + FAM_DAYS - 1, end = last + (6 - ((wdOf(last) + 6) % 7)), weeks = [];
+    for (let n = start; n <= end; n += 7) weeks.push(Array.from({ length: 7 }, (_, k) => (n + k >= d0 && n + k <= last ? n + k : null)));
+    return weeks;
+  }
+  const famCrits = (ppl, n, d0) => ppl.map((p) => ({ p, d: p.days[n - d0] })).filter((x) => x.d && x.d.crit);
+
+  function renderBioFamily() {
+    const o = opts(), fam = family(), dateIso = o.bioDate || todayISO(), d0 = isoDay(dateIso), now = isoDay(todayISO());
+    const ppl = famPeople(d0), last = d0 + FAM_DAYS - 1;
+    const saved = window.Account && Account.charts ? Account.charts().filter((c) => validIso(c.date)) : [];
+    const edit = `<div class="fam-edit">${fam.map((p, k) => `<div class="fam-row" style="--pc:${FAM_COLORS[k % FAM_MAX]}"><i class="fam-dot"></i>
+        <input class="inp fam-name" data-fam-k="${k}" value="${esc(p.name || '')}" placeholder="Имя" maxlength="30" aria-label="Имя">
+        <input class="inp fam-birth" type="date" data-fam-k="${k}" value="${validIso(p.birth) ? p.birth : ''}" min="1800-01-01" max="2100-12-31" aria-label="Дата рождения">
+        ${fam.length > 1 ? `<button type="button" class="fam-del" data-fam-del="${k}" aria-label="Убрать">×</button>` : ''}</div>`).join('')}</div>
+      ${fam.length < FAM_MAX ? `<div class="fam-tools"><button type="button" class="pill" id="famAdd">+ Добавить человека</button>${saved.length ? `<select class="inp" id="famSaved" aria-label="Из сохранённых карт"><option value="">Из сохранённых карт</option>${saved.map((c) => `<option value="${esc(c.id)}">${esc(c.name)} · ${dmy(c.date)}</option>`).join('')}</select>` : ''}</div>` : ''}`;
+    const ctl = `${bioModeSeg('family')}
+      <h4>Кто в семье</h4>${edit}
+      <form class="tool-ctl bio-ctl" id="bioForm" autocomplete="off">
+        <div class="field"><label for="bioDate">Начало месяца</label><input class="inp" type="date" id="bioDate" value="${dateIso}" min="1800-01-01" max="2100-12-31"></div>
+        ${o.bioDate ? '<button type="button" class="pill" id="bioReset">С сегодняшнего дня</button>' : ''}
+        ${ppl.length ? '<button type="button" class="pill fam-pdf-btn" id="famPdf">Скачать PDF на месяц</button>' : ''}
+      </form>`;
+    if (!ppl.length) return `${ctl}<p class="status">Добавьте хотя бы одного человека с датой рождения.</p>`;
+
+    // today, one row per person
+    const nowRows = ppl.map((p) => {
+      const d = p.days[0];
+      if (!d) return `<tr><td><i class="fam-dot" style="--pc:${p.color}"></i>${esc(p.name)}</td><td colspan="4" class="muted">ещё не родился</td></tr>`;
+      const mark = d.crit ? BIO_READ[d.key].ru.toLowerCase() : d.low ? 'все три ниже нуля' : '';
+      return `<tr class="${d.crit >= 2 ? 'crit2' : d.crit ? 'crit' : d.low ? 'low' : ''}"><td><i class="fam-dot" style="--pc:${p.color}"></i>${esc(p.name)}</td>${d.v.map((z) => `<td class="bio-v${z.crit ? ' c' : ''}" style="--c:${z.c.color}">${bioPct(z.v)}</td>`).join('')}<td class="bio-mark">${mark}</td></tr>`;
+    }).join('');
+
+    // the calendar
+    const cell = (n) => {
+      if (n == null) return '<div class="fam-c out"></div>';
+      const dt = new Date(n * 86400000), cr = famCrits(ppl, n, d0), shared = cr.length >= 2;
+      const badges = cr.map(({ p, d }) => `<span class="fam-b${d.crit >= 2 ? ' x' : ''}" style="--pc:${p.color}" title="${esc(p.name)}: ${esc(BIO_READ[d.key].ru)}"><b>${esc(p.ini)}</b>${d.key.split('').map((ch) => `<i style="color:${BIO.find((c) => c.id === ch).color}">${BIO_LETTER[ch]}</i>`).join('')}</span>`).join('');
+      return `<div class="fam-c${shared ? ' shared' : ''}${n === now ? ' now' : ''}"><span class="fam-dn">${dt.getUTCDate()}${dt.getUTCDate() === 1 || n === d0 ? ` <small>${MONTHS_NOM[dt.getUTCMonth()]}</small>` : ''}</span>${badges}</div>`;
+    };
+    const grid = `<div class="fam-cal"><div class="fam-wd">${['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'].map((w) => `<span>${w}</span>`).join('')}</div>${famWeeks(d0).map((w) => `<div class="fam-wk">${w.map(cell).join('')}</div>`).join('')}</div>`;
+    const legend = `<div class="bio-legend fam-legend">${ppl.map((p) => `<span><i class="fam-dot" style="--pc:${p.color}"></i><b>${esc(p.ini)}</b> — ${esc(p.name)}</span>`).join('')}</div>
+      <p class="muted">Буквы рядом с человеком — какой цикл меняет знак: <b style="color:${BIO[0].color}">Ф</b> физический, <b style="color:${BIO[1].color}">Э</b> эмоциональный, <b style="color:${BIO[2].color}">И</b> интеллектуальный. Красной рамкой — дни, когда критический день сразу у двоих и больше.</p>`;
+
+    // the list by date
+    const ag = [];
+    for (let n = d0; n <= last; n++) {
+      const cr = famCrits(ppl, n, d0);
+      if (!cr.length) continue;
+      const when = n === now ? 'сегодня' : n === now + 1 ? 'завтра' : n > now ? `через ${n - now} ${plural(n - now, 'день', 'дня', 'дней')}` : '';
+      ag.push(`<li class="fam-ag${cr.length >= 2 ? ' shared' : ''}"><div class="fam-ag-h"><b>${dayLong(n)}</b>${when ? ` <span class="muted">${when}</span>` : ''}${cr.length >= 2 ? ` <span class="tag bad">у ${cr.length} из ${ppl.length}</span>` : ''}</div>
+        <ul>${cr.map(({ p, d }) => `<li><i class="fam-dot" style="--pc:${p.color}"></i><span><b>${esc(p.name)}</b> — ${esc(BIO_READ[d.key].ru[0].toLowerCase() + BIO_READ[d.key].ru.slice(1))}</span><button type="button" class="fam-open" data-fam-open="${p.k}|${n}">что делать</button></li>`).join('')}</ul></li>`);
+    }
+    const sharedDays = [];
+    for (let n = d0; n <= last; n++) { const cr = famCrits(ppl, n, d0); if (cr.length >= 2) sharedDays.push(n); }
+
+    return `${ctl}
+      <h4>${d0 === now ? 'Сегодня' : `На ${dayLong(d0).split(',')[0]}`}</h4>
+      <div class="nat-scroll"><table class="nat-table bio-table fam-now"><thead><tr><th></th>${BIO.map((c) => `<th style="color:${c.color}">${c.short}</th>`).join('')}<th></th></tr></thead><tbody>${nowRows}</tbody></table></div>
+      <h4>Календарь семьи: ${dayShort(d0)} — ${dayShort(last)}</h4>
+      ${sharedDays.length ? `<p class="fam-hard">Общие тяжёлые дни: ${sharedDays.map((n) => `<b>${dayShort(n)}</b>`).join(', ')} — критический день у нескольких человек сразу, важное лучше перенести.</p>` : '<p class="fam-hard ok">В этом месяце нет дней, когда критический день у нескольких человек сразу.</p>'}
+      ${grid}${legend}
+      <h4>По датам</h4>
+      <p class="muted">«Что делать» открывает подробную расшифровку дня для этого человека.</p>
+      <ul class="fam-agenda">${ag.join('')}</ul>
+      <details class="more bio-ref"><summary>Справочник: все типы критических дней</summary><p class="muted">${BIO_REF_INTRO}</p>${bioRef()}</details>`;
+  }
+
+  /* the PDF: A4 landscape pages drawn as HTML in light colours and turned into a PDF by html2pdf.js, loaded on demand */
+  const H2P_URL = 'https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.3/dist/html2pdf.bundle.min.js';
+  let h2p = null;
+  const loadH2P = () => h2p || (h2p = new Promise((ok, no) => {
+    if (window.html2pdf) { ok(window.html2pdf); return; }
+    const sc = document.createElement('script');
+    sc.src = H2P_URL;
+    sc.onload = () => (window.html2pdf ? ok(window.html2pdf) : no(new Error('библиотека PDF не загрузилась')));
+    sc.onerror = () => { h2p = null; no(new Error('библиотека PDF не загрузилась, проверьте интернет')); };
+    document.head.appendChild(sc);
+  }));
+  function famChartSvg(p, d0) {
+    const W = 330, H = 104, X0 = 6, X1 = W - 6, Y0 = 8, Y1 = H - 20, mid = (Y0 + Y1) / 2, amp = (Y1 - Y0) / 2;
+    const x = (n) => X0 + (n - d0) / (FAM_DAYS - 1) * (X1 - X0), y = (v) => mid - v * amp;
+    let s = `<rect x="0" y="0" width="${W}" height="${H}" fill="#FFFFFF"/>`;
+    for (const d of p.days) if (d && d.crit) s += `<rect x="${(x(d.n) - 4).toFixed(1)}" y="${Y0}" width="8" height="${Y1 - Y0}" fill="${d.crit >= 2 ? '#F6C9C2' : '#FBE3DF'}"/>`;
+    s += `<line x1="${X0}" x2="${X1}" y1="${mid}" y2="${mid}" stroke="#C9C4B8" stroke-width="1"/>`;
+    for (let n = d0; n < d0 + FAM_DAYS; n += 7) s += `<text x="${x(n).toFixed(1)}" y="${H - 5}" font-size="10" font-family="Arial, sans-serif" fill="#8A8578" text-anchor="middle">${dayShort(n)}</text>`;
+    const t0 = d0 - p.b0;
+    for (const c of BIO) {
+      const pts = [];
+      for (let t = Math.max(t0, 0); t <= t0 + FAM_DAYS - 1 + 1e-9; t += 0.25) pts.push(`${x(t + p.b0).toFixed(1)},${y(bioVal(t, c.per)).toFixed(1)}`);
+      if (pts.length > 1) s += `<polyline points="${pts.join(' ')}" fill="none" stroke="${BIO_INK[c.id]}" stroke-width="2" stroke-linejoin="round"/>`;
+    }
+    for (const d of p.days) if (d) for (const z of d.v) if (z.crit) s += `<circle cx="${x(d.n).toFixed(1)}" cy="${y(z.v).toFixed(1)}" r="3.2" fill="${BIO_INK[z.c.id]}" stroke="#D64541" stroke-width="1.6"/>`;
+    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${s}</svg>`;
+  }
+  // build the pages inside a hidden host (so the reference can be measured and split over pages)
+  function famPdfPages(ppl, d0, host) {
+    const last = d0 + FAM_DAYS - 1, ld = new Date(last * 86400000), fd = new Date(d0 * 86400000);
+    const range = `${fd.getUTCDate()} ${MONTHS_GEN[fd.getUTCMonth()]}${fd.getUTCFullYear() !== ld.getUTCFullYear() ? ` ${fd.getUTCFullYear()}` : ''} — ${ld.getUTCDate()} ${MONTHS_GEN[ld.getUTCMonth()]} ${ld.getUTCFullYear()}`;
+    const head = (kick, title, right) => `<div class="fp-head"><div><div class="fp-kick">${kick}</div><div class="fp-title">${title}</div></div>${right || ''}</div>`;
+    const who = `<div class="fp-ppl">${ppl.map((p) => `<span><i style="background:${p.ink}"></i><b>${esc(p.name)}</b> ${dmy(p.birth)}</span>`).join('')}</div>`;
+    const pages = [];
+    // 1: the calendar
+    const weeks = famWeeks(d0), now = isoDay(todayISO());
+    const cellH = Math.floor((793 - 64 - 92 - 24 - 44 - 6 * (weeks.length - 1)) / weeks.length);
+    const cell = (n) => {
+      if (n == null) return `<div class="fp-c out" style="height:${cellH}px"></div>`;
+      const dt = new Date(n * 86400000), cr = famCrits(ppl, n, d0);
+      const lines = cr.map(({ p, d }) => `<div class="fp-l${d.crit >= 2 ? ' x' : ''}"><i style="background:${p.ink}"></i><b>${esc(p.name.length > 10 ? p.ini : p.name)}</b> ${BIO_SHORT[d.key]}</div>`).join('');
+      return `<div class="fp-c${cr.length >= 2 ? ' shared' : ''}${n === now ? ' now' : ''}" style="height:${cellH}px"><div class="fp-dn">${dt.getUTCDate()}${dt.getUTCDate() === 1 || n === d0 ? `<small>${MONTHS_GEN[dt.getUTCMonth()]}</small>` : ''}</div>${lines}</div>`;
+    };
+    pages.push(`<div class="fp-page">${head('Биоритмы семьи', range, who)}
+      <div class="fp-cal"><div class="fp-wd">${['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((w) => `<span>${w}</span>`).join('')}</div>${weeks.map((w) => `<div class="fp-wk">${w.map(cell).join('')}</div>`).join('')}</div>
+      <div class="fp-foot">Отмечены критические дни: <b style="color:${BIO_INK.p}">физ.</b> — физический цикл (23 дня), <b style="color:${BIO_INK.e}">эмоц.</b> — эмоциональный (28), <b style="color:${BIO_INK.i}">интел.</b> — интеллектуальный (33). Красным — дни, когда критический день у нескольких человек сразу. Графики каждого и расшифровка — на следующих страницах.</div></div>`);
+    // 2: everyone's curves and critical days
+    const cards = ppl.map((p) => {
+      const d = p.days[0], crits = p.days.filter((x) => x && x.crit);
+      return `<div class="fp-card"><div class="fp-ch"><i style="background:${p.ink}"></i><b>${esc(p.name)}</b><span>${dmy(p.birth)}</span></div>
+        ${d ? `<div class="fp-now">${d.v.map((z) => `<span style="color:${BIO_INK[z.c.id]}">${z.c.ru} ${bioPct(z.v)}</span>`).join('')}</div>` : ''}
+        ${famChartSvg(p, d0)}
+        <div class="fp-cl">${crits.map((x) => `<span class="${x.crit >= 2 ? 'x' : ''}">${dayShort(x.n)} · ${BIO_SHORT[x.key]}</span>`).join('') || '<em>нет критических дней</em>'}</div></div>`;
+    }).join('');
+    pages.push(`<div class="fp-page">${head('Каждый по отдельности', 'Графики и критические дни')}
+      <div class="fp-cards n${ppl.length > 4 ? 3 : 2}">${cards}</div>
+      <div class="fp-foot">Кривые: <b style="color:${BIO_INK.p}">физический</b>, <b style="color:${BIO_INK.e}">эмоциональный</b>, <b style="color:${BIO_INK.i}">интеллектуальный</b>; цифры над графиком — на ${dayShort(d0)}. Розовые полосы и точки с красной обводкой — критические дни, когда кривая пересекает ноль.</div></div>`);
+    // 3+: what the critical days of this month mean
+    const used = new Set(['p', 'e', 'i']);
+    for (const p of ppl) for (const d of p.days) if (d && d.crit) used.add(d.key);
+    const keys = ['p', 'e', 'i', 'pe', 'pi', 'ei', 'pei'].filter((k) => used.has(k));
+    const refCard = (k) => { const r = BIO_READ[k]; return `<div class="fp-ref"><div class="fp-rt">${esc(r.ru)}</div><p>${esc(r.sum)}</p><div class="fp-ok"><b>Можно</b>${r.ok.map((x) => `<span>${esc(x)}</span>`).join('')}</div><div class="fp-no"><b>Лучше воздержаться</b>${r.no.map((x) => `<span>${esc(x)}</span>`).join('')}</div></div>`; };
+    // measure each card at column width, then fill three columns page by page
+    host.innerHTML = `<div class="fp-page"><div class="fp-cols"><div class="fp-col" id="fpMeasure"></div></div></div>`;
+    const col = host.querySelector('#fpMeasure'), maxH = 793 - 64 - 92, heights = keys.map((k) => { col.innerHTML = refCard(k); return col.firstElementChild.offsetHeight + 10; });
+    host.innerHTML = '';
+    // each card goes to the emptiest column; when it fits nowhere, a new page starts
+    let page = [[], [], []], fill = [0, 0, 0], firstRef = true;
+    const flush = () => { pages.push(`<div class="fp-page">${head('Справочник', firstRef ? 'Что значат критические дни' : 'Что значат критические дни — продолжение')}<div class="fp-cols">${page.map((c) => `<div class="fp-col">${c.join('')}</div>`).join('')}</div></div>`); firstRef = false; };
+    keys.forEach((k, idx) => {
+      let ci = fill.indexOf(Math.min(...fill));
+      if (fill[ci] > 0 && fill[ci] + heights[idx] > maxH) { flush(); page = [[], [], []]; fill = [0, 0, 0]; ci = 0; }
+      page[ci].push(refCard(k)); fill[ci] += heights[idx];
+    });
+    flush();
+    host.innerHTML = pages.join('');
+    return [...host.children];
+  }
+  async function famPdf(btn) {
+    const o = opts(), d0 = isoDay(o.bioDate || todayISO()), ppl = famPeople(d0);
+    if (!ppl.length) return;
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Готовлю PDF…';
+    const host = document.createElement('div');
+    host.className = 'fp-host';
+    document.body.appendChild(host);
+    try {
+      const lib = await loadH2P();
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      const pages = famPdfPages(ppl, d0, host);
+      const opt = { margin: 0, filename: `biorhythms-family-${dayIso(d0)}.pdf`, image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, backgroundColor: '#FBFAF6', logging: false }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } };
+      let w = lib().set(opt).from(pages[0]).toPdf();
+      for (const pg of pages.slice(1)) w = w.get('pdf').then((pdf) => { pdf.addPage(); }).from(pg).toContainer().toCanvas().toPdf();
+      await w.save();
+    } catch (err) {
+      alert(`Не получилось сделать PDF: ${err.message}`);
+    } finally {
+      host.remove();
+      btn.disabled = false; btn.textContent = label;
+    }
   }
 
   const RENDER = { bio: renderBio, hours: renderHours, voc: renderVoc, lunar: renderLunar, eph: renderEph, dign: renderDign, disp: renderDisp, lots: renderLots, stars: renderStars, deg30: renderDeg30, prof: renderProf, transits: renderTransits, cycles: renderCycles, num: renderNum };
@@ -556,8 +771,35 @@
       if (e.target.id === 'trMars') { opts().mars = e.target.checked; app.save(); update(); }
       if (e.target.id === 'bioBirth') { opts().bioBirth = e.target.value && e.target.value !== app.state.date ? e.target.value : null; app.save(); update(); }
       if (e.target.id === 'bioDate') { opts().bioDate = e.target.value && e.target.value !== todayISO() ? e.target.value : null; app.save(); update(); }
+      if (e.target.classList.contains('fam-name')) { family()[+e.target.dataset.famK].name = e.target.value.trim().slice(0, 30); app.save(); update(); }
+      if (e.target.classList.contains('fam-birth')) { family()[+e.target.dataset.famK].birth = e.target.value; app.save(); update(); }
+      if (e.target.id === 'famSaved') {
+        const c = (window.Account && Account.charts ? Account.charts() : []).find((x) => x.id === e.target.value);
+        if (c && family().length < FAM_MAX) { family().push({ name: String(c.name || '').slice(0, 30), birth: c.date }); app.save(); update(); }
+      }
     });
     $('toolOut').addEventListener('click', (e) => {
+      const md = e.target.closest('#bioMode button');
+      if (md) { const o = opts(); if (o.bioMode !== md.dataset.m) { o.bioMode = md.dataset.m; if (o.bioMode === 'family') { family(); o.bioBirth = null; o.bioWho = null; } app.save(); update(); } return; }
+      if (e.target.closest('#famAdd')) {
+        if (family().length < FAM_MAX) { family().push({ name: '', birth: '' }); app.save(); update(); const ins = $('toolOut').querySelectorAll('.fam-name'); if (ins.length) ins[ins.length - 1].focus(); }
+        return;
+      }
+      const del = e.target.closest('[data-fam-del]');
+      if (del) { const f = family(); if (f.length > 1) { f.splice(+del.dataset.famDel, 1); app.save(); update(); } return; }
+      const fo = e.target.closest('[data-fam-open]');
+      if (fo) {
+        const [k, n] = fo.dataset.famOpen.split('|').map(Number), p = family()[k], o = opts();
+        if (!p) return;
+        o.bioFamDate = o.bioDate; o.bioMode = 'one'; o.bioWho = k;
+        o.bioBirth = p.birth === app.state.date ? null : p.birth;
+        o.bioDate = dayIso(n) === todayISO() ? null : dayIso(n);
+        app.save(); update(); $('toolOut').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      if (e.target.closest('#bioBack')) { const o = opts(); o.bioMode = 'family'; o.bioBirth = null; o.bioDate = o.bioFamDate || null; o.bioWho = null; app.save(); update(); return; }
+      const pdf = e.target.closest('#famPdf');
+      if (pdf) { famPdf(pdf); return; }
       const pk = e.target.closest('[data-bio-pick]');
       if (pk) { bioPick(+pk.dataset.bioPick, pk.tagName === 'TR'); return; }
       const sp = e.target.closest('#bioSpan button');

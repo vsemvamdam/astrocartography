@@ -300,6 +300,7 @@
   }
 
   window.Account = {
+    charts: () => charts.map((c) => ({ id: c.id, name: c.name, date: c.date })),
     init(a) {
       app = a;
       cfg = window.FIREBASE_CONFIG;
