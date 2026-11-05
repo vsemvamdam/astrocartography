@@ -560,6 +560,18 @@
         <p>${esc(it.text)}</p></div></div>`;
     const list = secs.filter((sec) => sec.items.length);
     const block = (sec, head) => `<section class="rd-sec">${head ? `<h4 class="nat-h4">${esc(sec.title)}</h4>` : ''}${sec.note ? `<p class="bal-note">${esc(sec.note)}</p>` : ''}<div class="soul">${sec.items.map(row).join('')}</div></section>`;
+    // the lunar return: the main points in two columns, then the important points and the houses one by one, as tabs
+    if (o.mode === 'lunar' && I.lunarHouses) {
+      const tabs = [['main', 'Главное'], ['points', 'Важные точки'], ['houses', 'Планеты в домах']];
+      const cur = tabs.some((t) => t[0] === o.lunTab) ? o.lunTab : 'main';
+      $('natReadTabs').hidden = false;
+      $('natReadTabs').innerHTML = tabs.map(([k, t]) => `<button type="button" data-k="${k}" aria-pressed="${k === cur}">${t}</button>`).join('');
+      $('natReadTabs').onclick = (e) => { const b = e.target.closest('button[data-k]'); if (b) { opts().lunTab = b.dataset.k; app.save(); renderReading(); } };
+      $('natRead').classList.toggle('rd-one', cur !== 'main');
+      $('natRead').innerHTML = cur === 'main' ? list.filter((sec) => sec.title !== 'Планеты в домах лунара').map((sec) => block(sec, true)).join('') : lunarInfo2(I.lunarHouses(natal, natBase), cur);
+      return;
+    }
+    $('natRead').classList.remove('rd-one');
     // the natal reading is long, so it is split into tabs; the others fit on one screen in two columns
     if (o.mode === 'natal' || o.mode === 'stars') {
       const tab = list.find((sec) => sec.key === o.readTab) || list[0];
@@ -571,6 +583,25 @@
       $('natReadTabs').hidden = true;
       $('natRead').innerHTML = list.map((sec) => block(sec, true)).join('');
     }
+  }
+
+  // the lunar return as infographics: the important points with round icons, the twelve houses with their planets
+  function lunarInfo2(lh, tab) {
+    const SG = ACG.SIGNS;
+    if (tab === 'points') {
+      const icon = (pt) => (pt.id === 'Lilith' ? `<span class="lun-ic" style="--ic:#B9A7D8">${g('⚸')}</span>`
+        : pt.house ? `<span class="lun-ic lh-num h${pt.house}">${pt.house}</span>`
+        : `<span class="lun-ic" style="--ic:${EL_COLOR[pt.sign % 4]}">${g(SG[pt.sign][0])}</span>`);
+      return `<section class="rd-sec lun-pts">${lh.points.map((pt) => `<div class="lun-pt">${icon(pt)}<div><b>${esc(pt.head)}</b><p>${esc(pt.text)}</p></div></div>`).join('')}</section>`;
+    }
+    const badge = (sc) => `<span class="lh-s ${sc > 0 ? 'pos' : sc < 0 ? 'neg' : 'zero'}">${sc > 0 ? '+' : sc < 0 ? '−' : ''}${Math.abs(sc)}</span>`;
+    const planet = (p) => { const b = BODY[p.id]; return `<div class="lh-p"><div class="lh-ph"><span class="tg" style="color:${b.color}">${g(b.glyph)}</span><b>${esc(p.ru)}</b>${badge(p.score)}<span class="muted lh-sg">в ${window.INTERP.SIGN_IN[p.sign]}${p.retro ? ', ретроградный' : ''}</span></div>
+        <p class="lh-inf">Влияние планеты: ${p.label}${p.why.length ? ` · ${esc(p.why.join(', '))}` : ''}</p><p>${esc(p.text)}</p></div>`; };
+    return `<section class="rd-sec lun-houses"><p class="bal-note">Каждый дом лунара — сфера жизни на этот месяц. Цифра у планеты — её сила от −3 до +3: учитываются природа планеты, её знак (обитель, экзальтация, изгнание, падение), ретроградность и точные аспекты к Венере, Юпитеру, Марсу и Сатурну (до 5°).</p>
+      ${lh.houses.map((x) => `<div class="lh-row"><div class="lh-side"><span class="lh-c h${x.h}">${RN[x.h]} дом</span><small>${esc(x.topic)}</small></div><div class="lh-body">
+        ${x.cusp ? `<div class="lh-cusp">Куспид I дома в <b>${window.INTERP.SIGN_IN[x.cusp.sign]}</b>. ${esc(x.cusp.text)}</div>` : ''}
+        ${x.planets.length ? x.planets.map(planet).join('') : '<p class="lh-empty">В этом месяце эта сфера не на первом плане: планет здесь нет.</p>'}
+      </div></div>`).join('')}</section>`;
   }
 
   /* -------------------------------- horary -------------------------------- */

@@ -618,6 +618,39 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .rd { column-gap: 36px; }
 @media (min-width: 1100px) { .rd { column-count: 2; } }
 .rd-sec { min-width: 0; }
+.rd.rd-one { column-count: 1; }
+/* lunar return infographics */
+.lun-pt { display: flex; gap: 14px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.lun-pt:first-child { padding-top: 0; }
+.lun-pt b { font-size: 15px; font-weight: 600; }
+.lun-pt p { margin: 4px 0 0; font-size: 13.5px; line-height: 1.55; max-width: 75ch; }
+.lun-ic { flex: none; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; color: var(--ic); background: color-mix(in srgb, var(--ic) 22%, transparent); border: 1px solid color-mix(in srgb, var(--ic) 55%, transparent); font-family: var(--f-glyph); font-size: 26px; line-height: 1; }
+.lun-ic.lh-num { color: #fff; background: var(--hc); border-color: var(--hc); font-family: var(--f-display); font-size: 26px; }
+.lh-c { display: grid; place-items: center; width: 78px; height: 78px; border-radius: 50%; background: var(--hc); color: #fff; font-size: 14px; font-weight: 600; letter-spacing: .02em; }
+.h1 { --hc: #C99A1E; } .h2 { --hc: #2F8FE0; } .h3 { --hc: #6E7A31; } .h4 { --hc: #C4622F; } .h5 { --hc: #3B9A44; } .h6 { --hc: #E0633A; }
+.h7 { --hc: #6B6F7C; } .h8 { --hc: #B240BD; } .h9 { --hc: #3556C4; } .h10 { --hc: #C2335F; } .h11 { --hc: #E2456B; } .h12 { --hc: #1F9690; }
+.lh-row { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 18px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+.lh-row:first-of-type { border-top: 1px solid var(--rule); }
+.lh-side { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.lh-side small { font-size: 12px; line-height: 1.35; color: var(--muted); }
+.lh-cusp { margin-bottom: 12px; padding: 10px 14px; border-left: 4px solid var(--brass); border-radius: 8px; background: rgba(217,181,110,.1); font-size: 13.5px; line-height: 1.55; }
+.lh-cusp b { color: var(--brass); font-weight: 600; }
+.lh-p + .lh-p { margin-top: 14px; }
+.lh-ph { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.lh-ph .tg { font-size: 21px; line-height: 1; }
+.lh-ph b { font-size: 15px; font-weight: 600; }
+.lh-ph .lh-sg { font-size: 12px; }
+.lh-s { display: inline-grid; place-items: center; min-width: 28px; height: 22px; padding: 0 6px; border-radius: 5px; color: #fff; font-size: 12.5px; font-weight: 700; }
+.lh-s.pos { background: #2E9E7A; } .lh-s.neg { background: #D9483B; } .lh-s.zero { background: #56657E; }
+.lh-inf { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+.lh-p > p:last-child { margin: 5px 0 0; font-size: 13.5px; line-height: 1.55; max-width: 75ch; }
+.lh-empty { margin: 0; padding-top: 4px; font-size: 13.5px; color: var(--faint); }
+@media (max-width: 559.98px) {
+  .lh-row { grid-template-columns: 1fr; gap: 10px; }
+  .lh-side { flex-direction: row; text-align: left; gap: 12px; }
+  .lh-c { width: 58px; height: 58px; font-size: 12.5px; flex: none; }
+  .lh-side small { font-size: 13px; color: var(--fg); }
+}
 .rd-sec .nat-h4, .rd-sec > .bal-note { break-after: avoid; }
 .rd .soul { gap: 0; }
 .rd .soul-row { break-inside: avoid; padding: 6px 0; }
@@ -2149,9 +2182,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/natal.js?v=20261104u"></script>
 <script src="js/features.js?v=20261104u"></script>
 <script src="js/horary.js?v=20261104u"></script>
-<script src="js/interpret.js?v=20261104u"></script>
+<script src="js/interpret.js?v=20261105lun"></script>
 <script src="js/celebs.js?v=20261104u"></script>
-<script src="js/natal-view.js?v=20261105top"></script>
+<script src="js/natal-view.js?v=20261105lun"></script>
 <script src="js/cycles.js?v=20261105psy"></script>
 <script src="js/tools-view.js?v=20261105psy"></script>
 <script src="js/city-view.js?v=20261104cs"></script>
