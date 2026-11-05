@@ -425,7 +425,7 @@
     const card = $('natLikeCard');
     card.hidden = opts().mode !== 'natal' || !likes;
     if (card.hidden) return;
-    const top = likes.slice(0, 5), best = top[0].score;
+    const top = likes.slice(0, 10), best = top[0].score;
     $('likeList').innerHTML = top.map((x, i) => `<li data-id="${x.c.id}" tabindex="0"><span class="bl-n">${i + 1}</span>
       <span class="bl-main"><span class="bl-city">${esc(x.c.ru)}<small>${esc(x.c.who)}</small></span><span class="bl-chips">${whyChips(x, 3)}</span></span>${pctBar(x.score, best)}</li>`).join('');
   }
