@@ -63,7 +63,7 @@
   /* ---------------------------------- list --------------------------------- */
   function renderLeagues() {
     const o = opts();
-    $('spLeagues').innerHTML = [{ id: 'all', ru: 'Все' }].concat(S.LEAGUES).map((l) => `<button type="button" data-l="${l.id}" aria-pressed="${o.league === l.id}" title="${esc(l.title || l.long || '')}">${l.id === 'all' ? 'Все' : `<span class="l">${esc(l.long)}</span><span class="s">${esc(l.ru)}</span>`}</button>`).join('');
+    $('spLeagues').innerHTML = [{ id: 'all', ru: 'Все' }].concat(S.LEAGUES).map((l) => `<button type="button" data-l="${l.id}" aria-pressed="${o.league === l.id}" title="${esc(l.title || l.long || '')}">${l.id === 'all' ? 'Все' : `<span class="l">${esc(l.long)}</span><span class="s">${esc(l.short || l.ru)}</span>`}</button>`).join('');
   }
   function renderList() {
     const box = $('spList');

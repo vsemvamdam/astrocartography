@@ -14,7 +14,7 @@
   const LEAGUES = [
     { id: 'eng.1', ru: 'АПЛ', long: 'Английская Премьер-лига' },
     { id: 'esp.1', ru: 'Ла Лига', long: 'Ла Лига' },
-    { id: 'fra.1', ru: 'Лига 1', long: 'Лига 1', title: 'Лига 1 (Франция)' },
+    { id: 'fra.1', ru: 'Лига 1', short: 'Л1', long: 'Лига 1', title: 'Лига 1 (Франция)' },
     { id: 'uefa.champions', ru: 'ЛЧ', long: 'Лига чемпионов' },
     { id: 'uefa.europa', ru: 'ЛЕ', long: 'Лига Европы' },
     { id: 'uefa.europa.conf', ru: 'ЛК', long: 'Лига конференций' },
