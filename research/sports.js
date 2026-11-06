@@ -1,8 +1,8 @@
 /* Frawley's event chart over past seasons of other sports, to see where the verdict comes true often.
-   node research/sports.js <out-dir> --sport nhl|nba|mlb|nfl|tennis --geonames <dir> [--tennis-data <dir>]
+   node research/sports.js <out-dir> --sport nhl|nba|mlb|nfl|tennis --geonames <dir> [--from YYYY-MM-DD --to YYYY-MM-DD]
    For every finished game: the scheduled start (tennis: the start ESPN records), the arena's town by GeoNames,
    the favourite by the bookmakers (US sports: the median two-way moneyline of ESPN's core API; tennis has no odds
-   there, so the better-ranked player by Jeff Sackmann's files, his chance fitted on the ranks), the winner, and the chart's verdict by js/sport.js — the same judgement
+   there, so the player with the higher Elo rating, built from ESPN's own results), the winner, and the chart's verdict by js/sport.js — the same judgement
    as for football: the favourite has I and X, the underdog VII and IV.
    Writes <out-dir>/<sport>/games.json, summary.json and SUMMARY.md. Needs Node 18+ and astronomy-engine 2.1.19. */
 'use strict';
@@ -154,51 +154,29 @@ function coreOdds(j) {
   return { home: Math.round(m * 1000) / 1000, books: ps.length };
 }
 
-/* ----------------------------------- tennis ranks ----------------------------------- */
-// CSVs made by research/tennis_data.py from Jeff Sackmann's files: Date (the tournament's first day), Winner, Loser, WRank, LRank, Score
-let TD = null;
-function loadTennisData(dir) {
-  TD = { full: new Map(), last: new Map() };
+/* ------------------------------------ tennis Elo ------------------------------------ */
+/* ESPN has no tennis odds and keeps ranks only for the top players, so the favourite is the player with the higher
+   Elo rating before the match, built from ESPN's own results since 2019 (K = 250 / (matches + 5)^0.4, as in the
+   usual tennis Elo). A match is judged once both players have at least 10 rated matches; retirements and walkovers
+   change nothing. */
+function tennisElo(list) {
+  const R = new Map(), N = new Map();
   let n = 0;
-  for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.csv'))) {
-    const lines = fs.readFileSync(path.join(dir, f), 'utf8').split('\n').filter(Boolean);
-    lines.shift();
-    for (const line of lines) {
-      const [date, w, l, wr, lr, score] = line.split(',');
-      const rec = { date: Date.parse(date + 'T00:00:00Z'), w: key(w), l: key(l), wr: +wr || null, lr: +lr || null, ret: /RET|W\/O|DEF|ABD/i.test(score || '') };
-      for (const [map, kw, kl] of [[TD.full, rec.w, rec.l], [TD.last, rec.w.split(' ').pop(), rec.l.split(' ').pop()]]) {
-        const k = [kw, kl].sort().join('|');
-        if (!map.has(k)) map.set(k, []);
-        map.get(k).push(Object.assign({ kw }, rec));
-      }
+  for (const g of list) {
+    const a = g.home.id, b = g.away.id;
+    if (!a || !b) continue;
+    const ra = R.get(a) || 1500, rb = R.get(b) || 1500, na = N.get(a) || 0, nb = N.get(b) || 0;
+    const pA = 1 / (1 + Math.pow(10, (rb - ra) / 400));
+    if (na >= 10 && nb >= 10) {
+      g.fav = { side: pA >= 0.5 ? 'home' : 'away', p: Math.round(Math.max(pA, 1 - pA) * 1000) / 1000, elo: [Math.round(ra), Math.round(rb)], src: 'elo' };
       n++;
     }
+    if (g.ret) continue;
+    const sA = g.winner === 'home' ? 1 : 0, K = (m) => 250 / Math.pow(m + 5, 0.4);
+    R.set(a, ra + K(na) * (sA - pA)); R.set(b, rb + K(nb) * ((1 - sA) - (1 - pA)));
+    N.set(a, na + 1); N.set(b, nb + 1);
   }
-  console.log(`tennis ranks: ${n} matches`);
-}
-// the record of this match: the same pair, a tournament that began up to 16 days before the match
-function tennisRanks(t, nameA, nameB) {
-  if (!TD) return null;
-  for (const [map, a, b] of [[TD.full, key(nameA), key(nameB)], [TD.last, key(nameA).split(' ').pop(), key(nameB).split(' ').pop()]]) {
-    const list = map.get([a, b].sort().join('|'));
-    if (!list) continue;
-    const hit = list.filter((r) => t - r.date > -2 * DAY && t - r.date < 17 * DAY).sort((x, y) => (t - x.date) - (t - y.date))[0];
-    if (hit) { const aWon = hit.kw === a; return { aWon, rA: aWon ? hit.wr : hit.lr, rB: aWon ? hit.lr : hit.wr, ret: hit.ret }; }
-  }
-  return null;
-}
-// the favourite's chance by the ranks: P = 1 / (1 + exp(−b·ln(rank of the underdog / rank of the favourite))), b fitted on the data
-function fitRanks(rows) {
-  let b = 0.5;
-  for (let it = 0; it < 50; it++) {
-    let g = 0, h = 0;
-    for (const { x, won } of rows) { const p = 1 / (1 + Math.exp(-b * x)); g += (won - p) * x; h -= p * (1 - p) * x * x; }
-    if (!h) break;
-    const nb = b - g / h;
-    if (Math.abs(nb - b) < 1e-7) { b = nb; break; }
-    b = nb;
-  }
-  return b;
+  return n;
 }
 
 /* ------------------------------------ collecting ----------------------------------- */
@@ -236,8 +214,8 @@ function take({ c, ev, grp }, lgPath) {
   const note = ((c.notes || [])[0] || {}).text || '';
   games.set(c.id, {
     id: c.id, ev: ev.id, lg: lgPath, grp: grp || undefined, t: new Date(t).toISOString().slice(0, 16) + 'Z', season: C.season(new Date(t)),
-    home: { name: nm(H), abbr: H.team && H.team.abbreviation, rank: H.curatedRank && H.curatedRank.current },
-    away: { name: nm(A), abbr: A.team && A.team.abbreviation, rank: A.curatedRank && A.curatedRank.current },
+    home: { name: nm(H), abbr: H.team && H.team.abbreviation, id: SPORT === 'tennis' ? H.id : undefined },
+    away: { name: nm(A), abbr: A.team && A.team.abbreviation, id: SPORT === 'tennis' ? A.id : undefined },
     venue: { name: v.fullName || '', city: city || '', state: state || '', country: country || '' }, neutral: !!c.neutralSite || undefined,
     winner, detail: st.shortDetail || st.description, ret: SPORT === 'tennis' && /\bret\b|w\/o|walkover|def\b/i.test(note) ? true : undefined,
   });
@@ -320,7 +298,7 @@ function markdown(S_, extra) {
     `Сезоны ${S_.seasons[0]}–${S_.seasons[S_.seasons.length - 1]}. Сыгранных игр: ${S_.games}; с коэффициентами и точным местом: ${S_.judged}; карта назвала победителя в ${S_.picks} (${pc(S_.picks / S_.judged)}), в остальных свидетельства уравновешены.`, '',
     '«Угадано» — как часто побеждал тот, кого назвала карта. «Фаворит в тех же играх» — сколько угадал бы человек, всегда ставящий на фаворита. «По ставкам» — сколько обещали коэффициенты без маржи. Если карта что-то знает, «Угадано» должно быть заметно выше «По ставкам». «±» — две стандартные ошибки; ** — разница больше неё.', '',
     ...T,
-    ...(SPORT === 'tennis' ? ['', 'В теннисе у ESPN нет коэффициентов, поэтому фаворит — игрок с более высоким рейтингом на турнире (данные Джеффа Сакманна, tennis_atp и tennis_wta), а «По рейтингу» — его шанс по разнице рейтингов, подобранный по этим же матчам. Время матча — фактическое начало по ESPN.', ''] : []),
+    ...(SPORT === 'tennis' ? ['', 'В теннисе у ESPN нет коэффициентов, поэтому фаворит — игрок с более высоким рейтингом Эло перед матчем (посчитан по результатам ESPN с 2019 года, учитываются игроки, у которых уже не меньше 10 матчей), а «По рейтингу» — его шанс по Эло. Время матча — фактическое начало по ESPN: назначенного времени у большинства теннисных матчей нет.', ''] : []),
     line(SPORT === 'tennis' ? 'Фаворит по рейтингу (для сравнения)' : 'Фаворит по ставкам (для сравнения)', S_.fav),
     line('Карта назвала победителя', S_.chart, S_.chartFavSame),
     line('— карта за фаворита', S_.forFav),
@@ -342,7 +320,6 @@ function markdown(S_, extra) {
 (async () => {
   const t0 = Date.now();
   loadGeo(opt('--geonames'));
-  if (SPORT === 'tennis' && opt('--tennis-data')) loadTennisData(opt('--tennis-data'));
   const days = [];
   const end = opt('--to') ? Date.parse(opt('--to') + 'T12:00:00Z') : NOW - DAY;
   for (let d = Date.parse((opt('--from') || C.from) + 'T12:00:00Z'); d <= end; d += C.step * DAY) days.push(d);
@@ -360,21 +337,7 @@ function markdown(S_, extra) {
   let placed = 0, odds = 0;
   for (const g of list) { g.place = placeOf(g.venue.city, g.venue.state, g.venue.country); if (g.place) placed++; }
   if (SPORT === 'tennis') {
-    const rows = [];
-    for (const g of list) {
-      const o = tennisRanks(Date.parse(g.t), g.home.name, g.away.name);
-      if (!o || o.aWon !== (g.winner === 'home')) continue;          // not found, or another match of the same pair
-      if (o.ret) g.ret = true;
-      if (!o.rA || !o.rB || o.rA === o.rB) continue;
-      const side = o.rA < o.rB ? 'home' : 'away';                     // ESPN's "home" is the first player
-      g.fav = { side, rank: [o.rA, o.rB], src: 'rank' };
-      g.x = Math.log(Math.max(o.rA, o.rB) / Math.min(o.rA, o.rB));
-      if (!g.ret) rows.push({ x: g.x, won: g.winner === side ? 1 : 0 });
-      odds++;
-    }
-    const b = Math.min(5, Math.max(0, fitRanks(rows)));
-    console.log(`ranks: b = ${b.toFixed(3)} over ${rows.length} matches`);
-    for (const g of list) if (g.fav) { g.fav.p = Math.round(1000 / (1 + Math.exp(-b * g.x))) / 1000; delete g.x; }
+    odds = tennisElo(list);
   } else {
     const [sp, lg] = C.paths[0].split('/');
     let k = 0;

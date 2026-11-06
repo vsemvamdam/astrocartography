@@ -164,13 +164,10 @@ jobs:
             unzip -oq geonames/c.zip cities500.txt -d geonames && rm geonames/c.zip
             curl -fsSL --retry 3 -o geonames/countryInfo.txt https://download.geonames.org/export/dump/countryInfo.txt
           fi
-      - name: Tennis odds (tennis-data.co.uk)
-        if: matrix.sport == 'tennis'
-        run: pip install -q openpyxl && python3 research/tennis_data.py td 2019 2026
       - name: Charts
         env:
           ASTRONOMY_JS: ${{ runner.temp }}/n/node_modules/astronomy-engine
-        run: node research/sports.js results --sport ${{ matrix.sport }} --geonames geonames --tennis-data td
+        run: node research/sports.js results --sport ${{ matrix.sport }} --geonames geonames
       - name: Save
         run: |
           gzip -9 -f results/${{ matrix.sport }}/games.json
