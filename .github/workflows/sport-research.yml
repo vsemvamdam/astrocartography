@@ -88,3 +88,60 @@ jobs:
             sleep $((i * 20))
           done
           exit 1
+
+  sports:
+    needs: plan
+    if: contains(needs.plan.outputs.job, 'sports')
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        sport: [nhl, nba, mlb, nfl, tennis]
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm i -s --no-save --prefix "$RUNNER_TEMP/n" astronomy-engine@2.1.19
+      - uses: actions/cache@v4
+        with:
+          path: geonames
+          key: geonames-cities500-v1
+      - name: GeoNames
+        run: |
+          if [ ! -s geonames/cities500.txt ]; then
+            mkdir -p geonames
+            curl -fsSL --retry 3 -o geonames/c.zip https://download.geonames.org/export/dump/cities500.zip
+            unzip -oq geonames/c.zip cities500.txt -d geonames && rm geonames/c.zip
+            curl -fsSL --retry 3 -o geonames/countryInfo.txt https://download.geonames.org/export/dump/countryInfo.txt
+          fi
+      - name: Tennis odds (tennis-data.co.uk)
+        if: matrix.sport == 'tennis'
+        run: pip install -q openpyxl && python3 research/tennis_data.py td 2019 2026
+      - name: Charts
+        env:
+          ASTRONOMY_JS: ${{ runner.temp }}/n/node_modules/astronomy-engine
+        run: node research/sports.js results --sport ${{ matrix.sport }} --geonames geonames --tennis-data td
+      - name: Save
+        run: |
+          gzip -9 -f results/${{ matrix.sport }}/games.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/${{ matrix.sport }} && git commit -q -m "Research: ${{ matrix.sport }}"
+          for i in 1 2 3 4 5 6; do git pull -q --rebase origin sport-research && git push -q origin HEAD:sport-research && exit 0; sleep $((i * 10)); done; exit 1
+
+  compare:
+    needs: [plan, sports]
+    if: always() && (contains(needs.plan.outputs.job, 'sports') || contains(needs.plan.outputs.job, 'compare'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Table
+        run: |
+          git pull -q origin sport-research
+          git clone -q --depth 1 --branch football-db "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" db
+          node research/compare.js results db
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/README.md results/compare.json && git commit -q -m "Research: comparison of sports" || exit 0
+          for i in 1 2 3 4 5; do git pull -q --rebase origin sport-research && git push -q origin HEAD:sport-research && exit 0; sleep $((i * 10)); done; exit 1
