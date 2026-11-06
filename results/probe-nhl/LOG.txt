@@ -1,0 +1,14 @@
+scoreboard-month.json: HTTP 200, 3336282 bytes
+  events 209, first 2026-11-01T18:00Z, last 2026-12-01T02:30Z
+scoreboard-today.json: HTTP 200, 65487 bytes
+  events 3, first 2026-11-07T00:00Z, last 2026-11-07T01:00Z
+scoreboard-tomorrow.json: HTTP 200, 173581 bytes
+  events 12, first 2026-11-07T17:30Z, last 2026-11-08T03:00Z
+scoreboard-plain.json: HTTP 200, 332391 bytes
+  events 11, first 2026-11-06T00:00Z, last 2026-11-06T02:30Z
+scoreboard-range.json: HTTP 400, 55 bytes
+  events 0, first undefined, last undefined
+summary.json: HTTP 200, 130920 bytes
+core-odds.json: HTTP 200, 64 bytes
+roster-23.json: HTTP 200, 95117 bytes
+roster-26.json: HTTP 200, 96599 bytes
