@@ -1,0 +1,1 @@
+{"code":404,"message":"Error invoking GET: http://sports.core.api.espn.pvt/v2/sports/mma/leagues/ufc/events/401766498/competitions/401766498/status, status=404, duration=8 ms, message=null, cache=CACHE_MISS"}
