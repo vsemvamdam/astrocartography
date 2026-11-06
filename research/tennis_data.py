@@ -1,32 +1,27 @@
-"""Yearly ATP and WTA workbooks of tennis-data.co.uk (results with Bet365/Pinnacle odds) → small CSVs.
+"""Ranks of both players at the tournament for tennis singles, from Jeff Sackmann's tennis_atp and tennis_wta
+on GitHub (CC BY-NC-SA 4.0) → small CSVs: date (the tournament's first day), winner, loser, their ranks.
+tennis-data.co.uk, which also has odds, refuses automated downloads, so tennis is judged by ranks.
 python3 research/tennis_data.py <out-dir> 2019 2026"""
-import sys, os, io, urllib.request, datetime
-import openpyxl
+import sys, os, io, csv, urllib.request
 
 out, a, b = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
 os.makedirs(out, exist_ok=True)
-COLS = ['Date', 'Location', 'Tournament', 'Winner', 'Loser', 'WRank', 'LRank', 'B365W', 'B365L', 'PSW', 'PSL', 'AvgW', 'AvgL', 'MaxW', 'MaxL', 'Comment']
+UA = 'astrocartography-research (github actions)'
+COLS = ['Date', 'Winner', 'Loser', 'WRank', 'LRank', 'Score']
+clean = lambda v: '' if v is None else str(v).replace(',', ' ').strip()
 for y in range(a, b + 1):
-    for tour, url in (('atp', f'http://www.tennis-data.co.uk/{y}/{y}.xlsx'), ('wta', f'http://www.tennis-data.co.uk/{y}w/{y}.xlsx')):
+    for tour, repo in (('atp', 'tennis_atp'), ('wta', 'tennis_wta')):
+        url = f'https://raw.githubusercontent.com/JeffSackmann/{repo}/master/{tour}_matches_{y}.csv'
         try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'astrocartography-research (github actions)'})
-            data = urllib.request.urlopen(req, timeout=60).read()
-            wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+            text = urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': UA}), timeout=60).read().decode('utf-8', 'replace')
         except Exception as e:
             print('skip', url, e); continue
-        ws = wb.worksheets[0]
-        rows = ws.iter_rows(values_only=True)
-        head = [str(h).strip() if h is not None else '' for h in next(rows)]
-        idx = {c: head.index(c) for c in COLS if c in head}
         n = 0
         with open(os.path.join(out, f'{tour}-{y}.csv'), 'w') as f:
             f.write(','.join(COLS) + '\n')
-            for r in rows:
-                vals = []
-                for c in COLS:
-                    v = r[idx[c]] if c in idx and idx[c] < len(r) else ''
-                    if isinstance(v, (datetime.datetime, datetime.date)): v = v.strftime('%Y-%m-%d')
-                    vals.append('' if v is None else str(v).replace(',', ' ').replace('\n', ' ').strip())
-                if vals[3] and vals[4]:
-                    f.write(','.join(vals) + '\n'); n += 1
+            for d in csv.DictReader(io.StringIO(text)):
+                t = d.get('tourney_date', '')
+                if len(t) != 8 or not d.get('winner_name') or not d.get('loser_name'): continue
+                f.write(','.join([f'{t[:4]}-{t[4:6]}-{t[6:]}', clean(d['winner_name']), clean(d['loser_name']), clean(d.get('winner_rank')), clean(d.get('loser_rank')), clean(d.get('score'))]) + '\n')
+                n += 1
         print(tour, y, n)
