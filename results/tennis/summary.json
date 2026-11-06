@@ -17,16 +17,10 @@
  "late": null,
  "bySeason": {},
  "rules": [],
- "placed": 61382,
+ "placed": 62338,
  "withOdds": 0,
  "requests": 1146,
  "failures": 0,
- "unplaced": {
-  "Mallorca, , Spain": 342,
-  "Los Cabos, , Mexico": 259,
-  "Sardinia, , Italy": 26,
-  "Hong Kong, , China PR": 43,
-  "Hong Kong, Hong Kong, China": 286
- },
- "seconds": 27
+ "unplaced": {},
+ "seconds": 36
 }
