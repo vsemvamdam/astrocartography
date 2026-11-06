@@ -299,6 +299,31 @@ function loadAll() {
   for (const f of files) month(f.replace('.json', ''));
 }
 
+/* ESPN sometimes keeps no venue for a match of a domestic league (all of Ligue 1 2020/21, a few dozen elsewhere):
+   such a match is played at the home side's ground, so the place it had in its other home matches is taken.
+   Cup competitions are left out, their finals are on neutral grounds. */
+const DOMESTIC = new Set(['eng.1', 'esp.1', 'fra.1']);
+function fillFromTeam() {
+  const seen = new Map();                                       // league|team → Map(place json → count)
+  for (const [, m] of months) for (const r of m.values()) {
+    if (!DOMESTIC.has(r.league) || !r.venue || !r.venue.city || !r.place || r.place.approx || !r.home || !r.home.id) continue;
+    const k = r.league + '|' + r.home.id, pj = JSON.stringify(r.place);
+    if (!seen.has(k)) seen.set(k, new Map());
+    seen.get(k).set(pj, (seen.get(k).get(pj) || 0) + 1);
+  }
+  let n = 0;
+  for (const [key, m] of months) for (const r of m.values()) {
+    if (!DOMESTIC.has(r.league) || (r.venue && r.venue.city) || !(r.place && r.place.approx) || !r.home || !r.home.id) continue;
+    const c = seen.get(r.league + '|' + r.home.id);
+    if (!c) continue;
+    const best = [...c].sort((a, b) => b[1] - a[1])[0][0];
+    r.place = Object.assign(JSON.parse(best), { src: 'team' });
+    delete r.judge;
+    dirty.add(key); n++;
+  }
+  if (n) console.log(`places from the home side's other matches: ${n}`);
+}
+
 /* the facts of one match from the scoreboard; the record moves to another month if the kickoff moved */
 function upsert(ev, lg) {
   const c = ev.competitions[0], t = Date.parse(ev.date), iso = new Date(t).toISOString().slice(0, 16) + 'Z';
@@ -443,6 +468,7 @@ function summary(all) {
   if (opt('--geonames')) loadGeo(opt('--geonames'));
   if (args.includes('--rejudge')) {
     loadAll();
+    fillFromTeam();
     for (const [key, m] of months) for (const r of m.values()) {
       const f = favourite(r) || undefined;
       if (JSON.stringify(f) !== JSON.stringify(r.fav)) { r.fav = f; dirty.add(key); }
@@ -467,6 +493,8 @@ function summary(all) {
     }
     failed += await pool(evs, 6, ({ ev, lg }) => processEvent(ev, lg, live));
     console.log(`events ${evs.length}`);
+    fillFromTeam();
+    for (const [key, m] of months) for (const r of m.values()) if (r.place && !r.judge && r.result) { judgeRecord(r, false); dirty.add(key); }
   }
   save();
   fs.mkdirSync(DB, { recursive: true });
