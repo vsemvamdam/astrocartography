@@ -1115,7 +1115,9 @@ button.psy-c:hover { background: rgba(217,181,110,.07); }
 /* ---------------------------------- sport --------------------------------- */
 .sp-leagues button { font-size: 13.5px; }
 .sp-leagues .s { display: none; }
-@media (max-width: 599.98px) { .sp-leagues .l { display: none; } .sp-leagues .s { display: inline; } .seg.sp-leagues { gap: 4px; } .sp-leagues button { padding-inline: 9px; } }
+.sp-leagues button.sp-other { margin-left: 10px; }
+/* on a phone the tournaments are one strip that scrolls sideways */
+@media (max-width: 599.98px) { .sp-leagues .l { display: none; } .sp-leagues .s { display: inline; } .seg.sp-leagues { gap: 4px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; } .seg.sp-leagues::-webkit-scrollbar { display: none; } .sp-leagues button { padding-inline: 9px; flex: none; } }
 .sp-layout { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); align-items: start; }
 @media (min-width: 1100px) {
   .sp-layout.open { grid-template-columns: minmax(340px, 420px) minmax(0, 1fr); }
@@ -2052,7 +2054,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <div class="natal-inner">
       <header class="natal-head">
         <h1 id="spH">Матчи и астропрогноз</h1>
-        <p class="ns">Ближайшие две недели: АПЛ, Ла Лига, Лига 1, Лига чемпионов, Лига Европы, Лига конференций. Карта матча — на стартовый свисток на стадионе, по методу Джона Фроули.</p>
+        <p class="ns">Ближайшие две недели: АПЛ, Ла Лига, Лига 1, Лига чемпионов, Лига Европы, Лига конференций и НХЛ. Карта матча — на начало по расписанию на стадионе или арене, по методу Джона Фроули.</p>
       </header>
       <div class="seg sp-leagues" id="spLeagues" role="group" aria-label="Турнир"></div>
       <div class="sp-layout" id="spLayout">

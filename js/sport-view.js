@@ -1,4 +1,4 @@
-/* "Спорт": upcoming matches of АПЛ, Ла Лига, Лига 1, ЛЧ, ЛЕ, ЛК with an astrological judgement for each. */
+/* "Спорт": upcoming matches of АПЛ, Ла Лига, Лига 1, ЛЧ, ЛЕ, ЛК and the NHL with an astrological judgement for each. */
 (function () {
   'use strict';
   const S = window.SPORT, ACG = window.ACG;
@@ -33,6 +33,7 @@
   const num = (x) => (x > 0 ? '+' : '') + (Math.round(x * 10) / 10).toString().replace('.', ',').replace('-', '−');
   const ru = (t) => String(t).replace(/(\d)\.(\d)/g, '$1,$2');
   const leagueOf = (id) => S.LEAGUES.find((l) => l.id === id) || { ru: id, long: id };
+  const isHockey = (m) => m.sport === 'hockey';
   // team badge: the logo over the team's initials, so a blocked or slow image still leaves a mark
   const logo = (t, size) => `<span class="sp-logo" style="width:${size}px;height:${size}px;font-size:${Math.max(8, Math.round(size * 0.3))}px${t.color ? `;--tc:#${esc(t.color)}` : ''}"><i>${esc((t.abbr || t.short || '?').slice(0, 3))}</i>${t.logo ? `<img src="${esc(t.logo)}" alt="" width="${size}" height="${size}" loading="lazy" decoding="async" onerror="this.remove()">` : ''}</span>`;
 
@@ -55,15 +56,16 @@
   function verdictChip(m) {
     let J;
     try { J = judgeOf(m); } catch (e) { return '<span class="vc">—</span>'; }
-    if (J.verdict.v === 'draw') return '<span class="vc draw">ничья</span>';
+    if (J.verdict.v === 'draw') return `<span class="vc draw">${isHockey(m) ? 'равно' : 'ничья'}</span>`;
     const t = J.verdict.side === 'home' ? m.home : m.away;
     return `<span class="vc ${J.verdict.v}" title="${esc(J.verdict.text)}">${esc(t.abbr || t.short)} · ${J.verdict.strength === 'явный' ? 'явно' : 'умеренно'}</span>`;
   }
 
   /* ---------------------------------- list --------------------------------- */
   function renderLeagues() {
-    const o = opts();
-    $('spLeagues').innerHTML = [{ id: 'all', ru: 'Все' }].concat(S.LEAGUES).map((l) => `<button type="button" data-l="${l.id}" aria-pressed="${o.league === l.id}" title="${esc(l.title || l.long || '')}">${l.id === 'all' ? 'Все' : `<span class="l">${esc(l.long)}</span><span class="s">${esc(l.short || l.ru)}</span>`}</button>`).join('');
+    const o = opts(), box = $('spLeagues'), x = box.scrollLeft;
+    box.innerHTML = [{ id: 'all', ru: 'Все' }].concat(S.LEAGUES).map((l, i, a) => `<button type="button" data-l="${l.id}" aria-pressed="${o.league === l.id}" title="${esc(l.title || l.long || '')}"${i && a[i - 1].sport !== l.sport && l.sport ? ' class="sp-other"' : ''}>${l.id === 'all' ? 'Все' : `<span class="l">${esc(l.long)}</span><span class="s">${esc(l.short || l.ru)}</span>`}</button>`).join('');
+    box.scrollLeft = x;
   }
   function renderList() {
     const box = $('spList');
@@ -117,7 +119,8 @@
     const J = judgeOf(m), o = m.odds, lg = leagueOf(m.league), pl = J.place;
     const d = new Date(m.date);
     const favName = J.fav.side === 'home' ? m.home.short : m.away.short;
-    const src = J.fav.src === 'odds' ? `по коэффициентам${o.provider ? ' ' + esc(o.provider) : ''}` : J.fav.src === 'manual' ? 'выбран вручную' : 'коэффициентов нет — взяты хозяева поля';
+    const hk = isHockey(m);
+    const src = J.fav.src === 'odds' ? `по коэффициентам${o.provider ? ' ' + esc(o.provider) : ''}` : J.fav.src === 'manual' ? 'выбран вручную' : hk ? 'коэффициентов пока нет (в НХЛ они появляются в день игры) — взяты хозяева' : 'коэффициентов нет — взяты хозяева поля';
     const oddsFav = o ? (o.home >= o.away ? 'home' : 'away') : null;
     const favBtn = (side) => `<button type="button" data-f="${side}" aria-pressed="${J.fav.side === side}">${esc(side === 'home' ? m.home.short : m.away.short)}${o ? ` <small>${pct(side === 'home' ? o.home : o.away)}</small>` : ''}</button>`;
     const vcls = J.verdict.v === 'draw' ? 'warn' : 'good';
@@ -141,13 +144,14 @@
       <div class="sp-ctl">
         <div class="field"><label>Фаворит (I дом) <span class="muted">${src}</span></label>
           <div class="seg" id="spFav">${favBtn('home')}${favBtn('away')}</div></div>
-        <div class="field sp-where"><label for="spPlace">Место карты <span class="muted">${pl.approx ? 'город стадиона не найден, взят примерно' : 'по городу стадиона'}</span></label>
+        <div class="field sp-where"><label for="spPlace">Место карты <span class="muted">${pl.approx ? `город ${hk ? 'арены' : 'стадиона'} не найден, взят примерно` : `по городу ${hk ? 'арены' : 'стадиона'}`}</span></label>
           <div class="place-box"><input class="inp" id="spPlace" type="text" spellcheck="false" autocapitalize="words"><ul class="suggest" id="spSuggest" role="listbox" hidden></ul></div></div>
       </div>
       <div class="sp-ctl2"><label>Сколько может длиться матч <span class="muted">окно аспектов Луны</span></label>
-        <div class="seg" id="spExtra"><button type="button" data-x="0" aria-pressed="${J.extra === 0}">90 минут · 5°</button><button type="button" data-x="1" aria-pressed="${J.extra === 1}">с доп. временем · 6°</button><button type="button" data-x="2" aria-pressed="${J.extra === 2}">до пенальти · 7°</button></div></div>
+        <div class="seg" id="spExtra">${(hk ? ['60 минут', 'с овертаймом', 'до буллитов'] : ['90 минут', 'с доп. временем', 'до пенальти']).map((t, x) => `<button type="button" data-x="${x}" aria-pressed="${J.extra === x}">${t} · ${5 + x}°</button>`).join('')}</div></div>
       ${warn.length ? `<div class="sp-warn">${warn.map((w) => `<p>${w}</p>`).join('')}</div>` : ''}
-      <div class="hv ${vcls}"><b>${J.verdict.v === 'draw' ? 'Ничья' : esc(J.verdict.side === 'home' ? m.home.name : m.away.name)}</b><span>${J.verdict.v === 'draw' ? esc(J.verdict.text) : `${J.verdict.strength === 'явный' ? 'Явный' : 'Умеренный'} перевес${J.verdict.v === 'dog' ? ' аутсайдера' : ' фаворита'} по свидетельствам карты матча.`} ${J.verdict.v === 'dog' ? ` Карта обещает сенсацию: ${esc(J.teams.dog.name)} обыгрывает фаворита.` : ''} Сумма свидетельств: фаворит ${num(J.score.fav)}, аутсайдер ${num(J.score.dog)}. Ориентир счёта: <b class="sp-guess">${esc(m.home.short)} ${scoreHome}:${scoreAway} ${esc(m.away.short)}</b></span></div>
+      <div class="hv ${vcls}"><b>${J.verdict.v === 'draw' ? (hk ? 'Равные шансы' : 'Ничья') : esc(J.verdict.side === 'home' ? m.home.name : m.away.name)}</b><span>${J.verdict.v === 'draw' ? (hk ? (J.testimonies.length ? 'Свидетельства уравновешены: по Фроули это ничья в основное время, победителя карта не называет.' : 'Свидетельств нет ни у одной команды: карта «пустая», победителя она не называет.') : esc(J.verdict.text)) : `${J.verdict.strength === 'явный' ? 'Явный' : 'Умеренный'} перевес${J.verdict.v === 'dog' ? ' аутсайдера' : ' фаворита'} по свидетельствам карты матча.`} ${J.verdict.v === 'dog' ? ` Карта обещает сенсацию: ${esc(J.teams.dog.name)} обыгрывает фаворита.` : ''} Сумма свидетельств: фаворит ${num(J.score.fav)}, аутсайдер ${num(J.score.dog)}.${hk ? '' : ` Ориентир счёта: <b class="sp-guess">${esc(m.home.short)} ${scoreHome}:${scoreAway} ${esc(m.away.short)}</b>`}</span></div>
+      ${hk ? '<p class="bal-note sp-check">Проверка на прошлых сезонах НХЛ (2018/19–2026/27, 9 929 матчей с коэффициентами): карта называла победителя в 60% матчей, и он выигрывал в 47,9% случаев — столько же, сколько обещали ставки (48,1%). Фаворит по ставкам в тех же матчах выигрывал в 60,4%. Метод ничего не добавляет к коэффициентам.</p>' : ''}
       <div class="sp-teams2">${teamBox(J, 'fav', m)}${teamBox(J, 'dog', m)}</div>
       ${J.notes.length ? `<p class="muted">${J.notes.map(esc).join(' ')}</p>` : ''}
       <div class="sp-cols">
@@ -166,7 +170,7 @@
       </div>
       <h4 class="nat-h4">Составы</h4>
       <div id="spSquads"><p class="muted">Загружаем составы…</p></div>
-      <p class="bal-note">Метод Джона Фроули, «Спортивная астрология», глава 2 «Карта события» и её памятка: карта на стартовый свисток на месте матча, дома Плацидуса. Фаворит по ставкам получает I и X дома, аутсайдер — VII и IV. Учитываются только управители этих домов на куспидах или в 2–3° за ними (планета на куспиде господствует над домом, внутри дома — в его власти), Луна у куспидов, антисция Фортуны у Асцендента и Десцендента, заключительный аспект Луны в пределах 5° (6° с доп. временем, 7° до пенальти), аспекты Фортуны с управителями и её диспозитором, тесные соединения с узлами, сожжение до 2°, Плутон и Уран, Сатурн-вредитель. Эссенциальные и акцидентальные достоинства и рецепции здесь не работают. Фроули называет свидетельства «весомыми» или «незначительными»; числа — наш перевод этих слов. На шести футбольных примерах из книги расчёт даёт те же исходы, что и у Фроули. Это прогноз для интереса, не гарантия результата; не используйте его как основание для ставок.</p>`;
+      <p class="bal-note">Метод Джона Фроули, «Спортивная астрология», глава 2 «Карта события» и её памятка: карта на ${hk ? 'начало матча по расписанию' : 'стартовый свисток'} на месте матча, дома Плацидуса. Фаворит по ставкам получает I и X дома, аутсайдер — VII и IV. Учитываются только управители этих домов на куспидах или в 2–3° за ними (планета на куспиде господствует над домом, внутри дома — в его власти), Луна у куспидов, антисция Фортуны у Асцендента и Десцендента, заключительный аспект Луны в пределах 5° (${hk ? '6° с овертаймом, 7° до буллитов' : '6° с доп. временем, 7° до пенальти'}), аспекты Фортуны с управителями и её диспозитором, тесные соединения с узлами, сожжение до 2°, Плутон и Уран, Сатурн-вредитель. Эссенциальные и акцидентальные достоинства и рецепции здесь не работают. Фроули называет свидетельства «весомыми» или «незначительными»; числа — наш перевод этих слов. На шести футбольных примерах из книги расчёт даёт те же исходы, что и у Фроули${hk ? '; для хоккея используется та же схема, своих примеров по хоккею у Фроули нет' : ''}. Это прогноз для интереса, не гарантия результата; не используйте его как основание для ставок.</p>`;
     $('spBack').onclick = () => { selected = null; renderAll(); window.scrollTo({ top: 0 }); };
     // a manual favourite is stored only when it differs from the bookmakers' one
     $('spFav').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.f === oddsFav) delete opts().fav[m.id]; else opts().fav[m.id] = b.dataset.f; app.save(); renderAll(); };
@@ -196,7 +200,7 @@
     for (const key of ['home', 'away']) for (const p of sq[key].xi) {
       if (p.pos === 'G') continue;
       const r = S.playerIndex(p, J, side(key));
-      const rate = p.apps ? p.goals / p.apps : { F: 0.3, M: 0.12, D: 0.04 }[p.pos] || 0;
+      const rate = p.apps ? p.goals / p.apps : (isHockey(m) ? { F: 0.25, D: 0.07 } : { F: 0.3, M: 0.12, D: 0.04 })[p.pos] || 0;
       if (r && r.idx >= 2) cands.push({ p, r, team: m[key], rate, key: r.idx * (0.25 + Math.min(rate, 1)) });
     }
     cands.sort((a, b) => b.key - a.key);
@@ -204,13 +208,13 @@
       const s = sq[key], k = side(key), xiIds = new Set(s.xi.map((p) => p.id));
       const rest = (s.lineup ? s.lineup.filter((p) => !p.starter) : s.squad.filter((p) => !xiIds.has(p.id))).sort((a, b) => 'GDMF'.indexOf(a.pos) - 'GDMF'.indexOf(b.pos));
       const xi = s.xi.slice().sort((a, b) => 'GDMF'.indexOf(a.pos) - 'GDMF'.indexOf(b.pos));
-      return `<div class="sp-sq"><div class="sp-team-h">${logo(m[key], 24)}<div><b>${esc(m[key].name)}</b><small>${s.official ? `Официальный состав${s.formation ? ', ' + esc(s.formation) : ''}` : 'Примерный состав — по числу игр в сезоне'}</small></div></div>
+      return `<div class="sp-sq"><div class="sp-team-h">${logo(m[key], 24)}<div><b>${esc(m[key].name)}</b><small>${s.roster ? 'Весь состав команды — заявку на игру ESPN заранее не даёт' : s.official ? `Официальный состав${s.formation ? ', ' + esc(s.formation) : ''}` : 'Примерный состав — по числу игр в сезоне'}</small></div></div>
         <ul class="sp-pl"><li class="hd"><span class="no">№</span><span class="nm">Игрок</span><span class="pz">Поз</span><span class="gs">Г/И</span><span class="ix">Астро</span></li>${xi.map((p) => playerRow(p, J, k)).join('')}</ul>
         ${rest.length ? `<details class="more"><summary>${s.official ? 'Запасные' : 'Остальной состав'} (${rest.length})</summary><ul class="sp-pl">${rest.map((p) => playerRow(p, J, k)).join('')}</ul></details>` : ''}</div>`;
     };
     box.innerHTML = `${cands.length ? `<div class="sp-goal"><h4 class="nat-h4">Повышенный шанс гола <span class="muted">астроиндекс с поправкой на результативность · эксперимент, не из книги Фроули</span></h4><ul>${cands.slice(0, 6).map((c) => `<li>${logo(c.team, 18)}<b>${esc(c.p.name)}</b> <span class="ix p">+${String(c.r.idx).replace('.', ',')}</span> <span class="muted">${esc(c.r.why.join('; '))}${c.p.apps ? ` · ${c.p.goals} г. в ${c.p.apps} играх` : ''}</span></li>`).join('')}</ul></div>` : '<p class="muted">Ни у кого из основы нет сильных контактов натальной карты с картой матча.</p>'}
       <div class="sp-sqs">${col('home')}${col('away')}</div>
-      <p class="bal-note">Астроиндекс игрока — наша экспериментальная оценка, не метод Фроули: время рождения игроков неизвестно, поэтому берутся Солнце, Марс и Юпитер на полдень даты рождения и их контакты с углами и планетами карты матча (орбы 2–3°). «Г/И» — голы и игры в этом турнире по данным ESPN.</p>`;
+      <p class="bal-note">Астроиндекс игрока — наша экспериментальная оценка, не метод Фроули: время рождения игроков неизвестно, поэтому берутся Солнце, Марс и Юпитер на полдень даты рождения и их контакты с углами и планетами карты матча (орбы 2–3°). ${isHockey(m) ? 'Голов и игр в составе НХЛ у ESPN нет, поэтому «Г/И» пустые, а шанс гола считается по амплуа.' : '«Г/И» — голы и игры в этом турнире по данным ESPN.'}</p>`;
   }
 
   /* --------------------------------- flow ---------------------------------- */
