@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - run: node research/probe.js results/probe
+      - run: node research/probe_nhl.js results/probe-nhl
       - name: Save
         run: |
           git config user.name "github-actions[bot]"
