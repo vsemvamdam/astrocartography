@@ -7,8 +7,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const API = process.env.ESPN_API || 'https://site.api.espn.com/apis/site/v2/sports/soccer/';
-const LEAGUES = ['eng.1', 'esp.1', 'fra.1', 'uefa.champions', 'uefa.europa', 'uefa.europa.conf'];
+const BASE = process.env.ESPN_BASE || 'https://site.api.espn.com/apis/site/v2/sports/';
+// the copy keeps every league under its id (espn/<id>/…), whatever ESPN's path for it is
+const LEAGUES = ['eng.1', 'esp.1', 'fra.1', 'uefa.champions', 'uefa.europa', 'uefa.europa.conf', 'nhl'];
+const PATH = { nhl: 'hockey/nhl' };
+const apiOf = (lg) => BASE + (PATH[lg] || 'soccer/' + lg) + '/';
+const HOCKEY = new Set(['nhl']);
 const DAYS = 15, H = 3600000, DAY = 24 * H;
 const [PREV, OUT] = [process.argv[2] || 'prev', process.argv[3] || 'next'];
 const now = Date.now();
@@ -75,7 +79,8 @@ function trimScoreboard(j) {
 const STATS = new Set(['appearances', 'subIns', 'totalGoals', 'goalAssists']);
 function trimRoster(j) {
   return {
-    athletes: (j.athletes || []).map((a) => {
+    // a hockey roster comes in groups by position ({position, items}): the copy keeps one flat list
+    athletes: (j.athletes || []).flatMap((a) => (a && Array.isArray(a.items) ? a.items : [a])).map((a) => {
       const cats = (a.statistics && a.statistics.splits && a.statistics.splits.categories) || [];
       const stats = [];
       for (const c of cats) for (const s of c.stats || []) if (STATS.has(s.name)) stats.push({ name: s.name, value: s.value });
@@ -124,7 +129,7 @@ async function refresh(rel, url, maxAge, trim) {
   const matches = [];
   let boards = 0;
   await pool(LEAGUES.flatMap((lg) => months.map((mo) => ({ lg, mo, rel: `${lg}/scoreboard-${mo}.json` }))), 4, async ({ lg, mo, rel }) => {
-    const d = await refresh(rel, `${API}${lg}/scoreboard?dates=${mo}&limit=300`, 0, trimScoreboard);
+    const d = await refresh(rel, `${apiOf(lg)}scoreboard?dates=${mo}&limit=300`, 0, trimScoreboard);
     if (!d) return;
     boards++;
     for (const ev of d.events) {
@@ -136,12 +141,13 @@ async function refresh(rel, url, maxAge, trim) {
 
   const teams = new Map();
   for (const m of matches) for (const id of m.teams) teams.set(`${m.lg}/roster-${id}.json`, { lg: m.lg, id });
-  await pool([...teams].map(([rel, x]) => ({ rel, ...x })), 6, ({ rel, lg, id }) => refresh(rel, `${API}${lg}/teams/${id}/roster`, 12 * H, trimRoster));
+  await pool([...teams].map(([rel, x]) => ({ rel, ...x })), 6, ({ rel, lg, id }) => refresh(rel, `${apiOf(lg)}teams/${id}/roster`, 12 * H, trimRoster));
 
-  // lineups come out about an hour before kickoff: refresh often close to the match, rarely before
-  const near = matches.filter((m) => m.t - now < 36 * H);
+  // lineups come out about an hour before kickoff: refresh often close to the match, rarely before.
+  // ESPN gives no hockey lineups before the game, so there is nothing to copy for the NHL
+  const near = matches.filter((m) => m.t - now < 36 * H && !HOCKEY.has(m.lg));
   await pool(near.map((m) => ({ rel: `${m.lg}/summary-${m.id}.json`, ...m })), 6, ({ rel, lg, id, t }) =>
-    refresh(rel, `${API}${lg}/summary?event=${id}`, t - now < 4 * H ? 20 * 60000 : 6 * H, trimSummary));
+    refresh(rel, `${apiOf(lg)}summary?event=${id}`, t - now < 4 * H ? 20 * 60000 : 6 * H, trimSummary));
 
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, 'index.json'), JSON.stringify({ fetched: now, matches: matches.length, rosters: teams.size, summaries: near.length, files: written }));

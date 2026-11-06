@@ -41,7 +41,8 @@ const args = process.argv.slice(2);
 const DB = args[0];
 if (!DB || DB.startsWith('--')) { console.error('usage: node tools/sport_db.js <db-dir> [--months YYYYMM-YYYYMM] [--leagues a,b] [--rejudge]'); process.exit(2); }
 const opt = (k) => { const i = args.indexOf(k); return i > 0 ? args[i + 1] : null; };
-const LEAGUES = (opt('--leagues') || S.LEAGUES.map((l) => l.id).join(',')).split(',');
+// football only: the NHL on the site has its own past-season check (sport-research branch)
+const LEAGUES = (opt('--leagues') || S.LEAGUES.filter((l) => !l.sport || l.sport === 'soccer').map((l) => l.id).join(',')).split(',');
 const now = Date.now();
 
 /* ------------------------------------ cities ------------------------------------ */

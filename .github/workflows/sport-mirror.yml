@@ -1,4 +1,4 @@
-# Copies the ESPN data of the "Спорт" tab to the `data` branch every half hour,
+# Copies the ESPN data of the "Спорт" tab (football and the NHL) to the `data` branch every half hour,
 # so the site works where ESPN itself is blocked. See tools/sport_mirror.js.
 #
 # GitHub's own schedule is best-effort: runs can come late or not at all (on this repository it did not

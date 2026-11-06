@@ -1,4 +1,4 @@
-/* Football matches and their astrological judgement.
+/* Football and NHL matches and their astrological judgement.
    Data: ESPN's public JSON (fixtures, venues, odds, squads, lineups): a half-hourly copy on GitHub, or ESPN directly.
    Judgement: event chart for the kickoff at the venue, after John Frawley's "Sports Astrology"
    (chapter 2, "The event chart", and its checklist): the favourite has the 1st and 10th houses, the
@@ -10,15 +10,21 @@
   const n360 = (x) => ((x % 360) + 360) % 360;
   const n180 = (x) => { const y = n360(x); return y > 180 ? y - 360 : y; };
   const DAY = 86400000;
-  const API = 'https://site.api.espn.com/apis/site/v2/sports/soccer/';
+  const BASE = 'https://site.api.espn.com/apis/site/v2/sports/';
+  const API = BASE + 'soccer/';
+  // path: where ESPN keeps the league, when it is not soccer/<id>; sport: 'soccer' unless said otherwise
   const LEAGUES = [
     { id: 'eng.1', ru: 'АПЛ', long: 'Английская Премьер-лига' },
     { id: 'esp.1', ru: 'Ла Лига', long: 'Ла Лига' },
-    { id: 'fra.1', ru: 'Лига 1', long: 'Лига 1', title: 'Лига 1 (Франция)' },
+    { id: 'fra.1', ru: 'Лига 1', short: 'Л1', long: 'Лига 1', title: 'Лига 1 (Франция)' },
     { id: 'uefa.champions', ru: 'ЛЧ', long: 'Лига чемпионов' },
     { id: 'uefa.europa', ru: 'ЛЕ', long: 'Лига Европы' },
     { id: 'uefa.europa.conf', ru: 'ЛК', long: 'Лига конференций' },
+    { id: 'nhl', ru: 'НХЛ', long: 'НХЛ', title: 'НХЛ — хоккей, США и Канада', path: 'hockey/nhl', sport: 'hockey' },
   ];
+  const leagueOf = (id) => LEAGUES.find((l) => l.id === id) || { id };
+  const sportOf = (id) => leagueOf(id).sport || 'soccer';
+  const apiOf = (id) => BASE + (leagueOf(id).path || 'soccer/' + id) + '/';
 
   /* -------------------------------- fetching ------------------------------- */
   /* A copy of the same ESPN data is rebuilt every half hour by GitHub Actions (tools/sport_mirror.js) and
@@ -27,7 +33,8 @@
      fails too the stale copy is still better than nothing. */
   const MIRROR = 'https://raw.githubusercontent.com/vsemvamdam/astrocartography/data/espn/';
   function mirrorPath(url) {
-    const rest = url.startsWith(API) ? url.slice(API.length) : null;
+    // soccer/<league>/… and hockey/nhl/… are kept by the league's id: espn/<id>/…
+    const rest = url.startsWith(BASE) ? url.slice(BASE.length).replace(/^(?:soccer|hockey)\//, '') : null;
     if (!rest) return null;
     let m;
     if ((m = rest.match(/^([\w.]+)\/scoreboard\?dates=(\d{6})/))) return `${m[1]}/scoreboard-${m[2]}.json`;
@@ -109,7 +116,7 @@
     };
     const v = c.venue || {};
     return {
-      id: ev.id, league: lg, date: Date.parse(ev.date), state: c.status && c.status.type && c.status.type.state,
+      id: ev.id, league: lg, sport: sportOf(lg), date: Date.parse(ev.date), state: c.status && c.status.type && c.status.type.state,
       status: c.status && c.status.type && (c.status.type.shortDetail || c.status.type.description),
       venue: { name: v.fullName || '', city: (v.address && v.address.city) || '', country: (v.address && v.address.country) || '' },
       home: side('home'), away: side('away'), odds: readOdds(c),
@@ -122,7 +129,7 @@
     const months = [...new Set([ym(now - DAY), ym(now + days * DAY)])];
     const once = (url) => getJSON(url, 20, 90);
     for (const lg of leagueIds) for (const mo of months) {
-      const url = `${API}${lg}/scoreboard?dates=${mo}&limit=300`;
+      const url = `${apiOf(lg)}scoreboard?dates=${mo}&limit=300`;
       tasks.push(() => once(url).then((j) => ({ lg, j, url })));
     }
     const venues = loadVenues();
@@ -155,11 +162,15 @@
     if (p === 'F' || /^CF|^ST|^LF|^RF|^LW|^RW|^SS/.test(p)) return 'F';
     return p === 'SUB' || !p ? null : 'M';
   };
-  function rosterPlayers(j) {
-    return (j && j.athletes || []).map((a) => {
-      const s = statOf(a);
+  // hockey: C, LW and RW are forwards
+  const groupHockey = (abbr) => { const p = String(abbr || '').toUpperCase(); return p === 'G' ? 'G' : p === 'D' ? 'D' : 'F'; };
+  function rosterPlayers(j, sport) {
+    // a hockey roster comes in groups by position ({position, items}), a football one as a flat list
+    const list = (j && j.athletes || []).flatMap((a) => (a && Array.isArray(a.items) ? a.items : [a]));
+    return list.map((a) => {
+      const s = statOf(a), ab = a.position && a.position.abbreviation;
       return {
-        id: a.id, name: a.displayName || a.fullName, short: a.shortName, jersey: a.jersey, pos: group(a.position && a.position.abbreviation) || 'M',
+        id: a.id, name: a.displayName || a.fullName, short: a.shortName, jersey: a.jersey, pos: sport === 'hockey' ? groupHockey(ab) : group(ab) || 'M',
         dob: a.dateOfBirth ? a.dateOfBirth.slice(0, 10) : null, age: a.age,
         apps: s.appearances || 0, subs: s.subIns || 0, goals: s.totalGoals || 0, assists: s.goalAssists || 0,
         injured: (a.injuries || []).length > 0, injury: (a.injuries || []).map((i) => i.status || i.type || '').filter(Boolean).join(', '),
@@ -175,17 +186,20 @@
     if (xi.length < 11) xi = xi.concat(fit.filter((p) => !xi.includes(p) && p.pos !== 'G').sort((a, b) => starts(b) - starts(a)).slice(0, 11 - xi.length));
     return xi.filter((p) => p.apps > 0 || xi.length <= 11);
   }
-  /* Squads for a match: the official lineup when it is out, otherwise the squad with a probable XI. */
+  /* Squads for a match: the official lineup when it is out, otherwise the squad with a probable XI.
+     ESPN has no hockey lineups before the game, so for the NHL the whole roster is the squad. */
   async function squads(m) {
+    const api = apiOf(m.league), hockey = sportOf(m.league) === 'hockey';
     const [sum, rh, ra] = await Promise.all([
       // lineups are published about an hour before kickoff, so earlier there is nothing to ask for
-      m.date - Date.now() < 36 * 3600000 ? getJSON(`${API}${m.league}/summary?event=${m.id}`, 5, m.date - Date.now() < 4 * 3600000 ? 40 : 360).catch(() => null) : null,
-      getJSON(`${API}${m.league}/teams/${m.home.id}/roster`, 60, 48 * 60).catch(() => null),
-      getJSON(`${API}${m.league}/teams/${m.away.id}/roster`, 60, 48 * 60).catch(() => null),
+      !hockey && m.date - Date.now() < 36 * 3600000 ? getJSON(`${api}summary?event=${m.id}`, 5, m.date - Date.now() < 4 * 3600000 ? 40 : 360).catch(() => null) : null,
+      getJSON(`${api}teams/${m.home.id}/roster`, 60, 48 * 60).catch(() => null),
+      getJSON(`${api}teams/${m.away.id}/roster`, 60, 48 * 60).catch(() => null),
     ]);
     const out = {};
     for (const [key, ro, ha] of [['home', rh, 'home'], ['away', ra, 'away']]) {
-      const squad = rosterPlayers(ro), byId = new Map(squad.map((p) => [p.id, p]));
+      const squad = rosterPlayers(ro, hockey ? 'hockey' : 'soccer'), byId = new Map(squad.map((p) => [p.id, p]));
+      if (hockey) { out[key] = { squad, lineup: null, official: false, roster: true, xi: squad.filter((p) => !p.injured) }; continue; }
       const lu = sum && (sum.rosters || []).find((r) => r.homeAway === ha);
       let lineup = null;
       if (lu && lu.roster && lu.roster.length) {
@@ -217,16 +231,22 @@
     'lens': [50.4292, 2.8319, 'Europe/Paris'], 'decines charpieu': [45.7694, 4.9592, 'Europe/Paris'], 'decines': [45.7694, 4.9592, 'Europe/Paris'],
     'villeneuve d ascq': [50.6233, 3.1450, 'Europe/Paris'], 'guingamp': [48.5617, -3.1500, 'Europe/Paris'], 'montbeliard': [47.5100, 6.7983, 'Europe/Paris'],
     'sochaux': [47.5100, 6.7983, 'Europe/Paris'], 'valenciennes': [50.3570, 3.5233, 'Europe/Paris'], 'saint denis': [48.9362, 2.3574, 'Europe/Paris'],
+    // NHL arenas in towns the city list lacks
+    'sunrise': [26.1340, -80.1131, 'America/New_York'], 'anaheim': [33.8353, -117.9145, 'America/Los_Angeles'], 'elmont': [40.7009, -73.7129, 'America/New_York'],
+    'tempe': [33.4148, -111.9093, 'America/Phoenix'], 'east rutherford': [40.8340, -74.0971, 'America/New_York'], 'west valley city': [40.6916, -112.0011, 'America/Denver'],
+    'hershey': [40.2859, -76.6502, 'America/New_York'], 'cedar park': [30.5052, -97.8203, 'America/Chicago'], 'sudbury': [46.4900, -80.9900, 'America/Toronto'],
+    'ontario': [34.0633, -117.6509, 'America/Los_Angeles'],
     'randers': [56.4597, 10.0361, 'Europe/Copenhagen'], 'herning': [56.1360, 8.9750, 'Europe/Copenhagen'], 'celje': [46.2310, 15.2653, 'Europe/Ljubljana'],
   };
   const ALIAS = { milano: 'milan', torino: 'turin', napoli: 'naples', roma: 'rome', firenze: 'florence', genova: 'genoa', sevilla: 'seville', lisboa: 'lisbon',
     praha: 'prague', wien: 'vienna', munchen: 'munich', koln: 'cologne', bruxelles: 'brussels', warszawa: 'warsaw', kobenhavn: 'copenhagen', goteborg: 'gothenburg',
     zurich: 'zurich', geneve: 'geneva', 'den haag': 'the hague', beograd: 'belgrade', bucuresti: 'bucharest', athina: 'athens', kyiv: 'kiev', 'a coruna': 'la coruna',
-    'newcastle upon tyne': 'newcastle', 'nottingham forest': 'nottingham', 'saint petersburg': 'st petersburg', 'frankfurt am main': 'frankfurt', 'monchengladbach': 'monchengladbach' };
+    'newcastle upon tyne': 'newcastle', 'nottingham forest': 'nottingham', 'saint petersburg': 'st petersburg', 'frankfurt am main': 'frankfurt', 'monchengladbach': 'monchengladbach', 'new york': 'new york city' };
   const COUNTRY = { England: 'Великобритания', Scotland: 'Великобритания', Wales: 'Великобритания', 'Northern Ireland': 'Великобритания', Spain: 'Испания', Italy: 'Италия',
     Germany: 'Германия', France: 'Франция', Portugal: 'Португалия', Netherlands: 'Нидерланды', Belgium: 'Бельгия', 'Türkiye': 'Турция', Turkey: 'Турция', Greece: 'Греция',
     Denmark: 'Дания', Norway: 'Норвегия', Sweden: 'Швеция', Switzerland: 'Швейцария', Austria: 'Австрия', 'Czech Republic': 'Чехия', Czechia: 'Чехия', Poland: 'Польша',
-    Croatia: 'Хорватия', Serbia: 'Сербия', Ukraine: 'Украина', Romania: 'Румыния', Hungary: 'Венгрия', Cyprus: 'Кипр', Israel: 'Израиль', Monaco: 'Монако' };
+    Croatia: 'Хорватия', Serbia: 'Сербия', Ukraine: 'Украина', Romania: 'Румыния', Hungary: 'Венгрия', Cyprus: 'Кипр', Israel: 'Израиль', Monaco: 'Монако',
+    USA: 'США', 'United States': 'США', Canada: 'Канада', Finland: 'Финляндия', Australia: 'Австралия', Japan: 'Япония' };
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   /* Stadium towns found in GeoNames by tools/sport_db.js, kept in the football-db branch as venues.json:
      {"<town>|<country>": {lat, lon, tz}}. Loaded together with the fixtures; while it is missing (or if it
@@ -247,7 +267,8 @@
     if (EXTRA[k2]) { const [lat, lon, tz] = EXTRA[k2]; return { name: label, lat, lon, tz, approx: false }; }
     const country = COUNTRY[v.country];
     const hits = cities.filter((c) => c.en && norm(c.en) === k2);
-    const best = hits.find((c) => c.c === country) || hits.sort((a, b) => b.pop - a.pop)[0];
+    // a town of the same name in another country is not this one (Sydney, Nova Scotia is not Sydney, Australia)
+    const best = country ? hits.find((c) => c.c === country) : hits.sort((a, b) => b.pop - a.pop)[0];
     if (best) return { name: label, lat: best.lat, lon: best.lon, tz: best.tz, approx: false };
     // unknown city: the largest city of the country, marked as approximate
     const inCountry = country && cities.filter((c) => c.c === country).sort((a, b) => b.pop - a.pop)[0];
@@ -569,5 +590,5 @@
     return { idx, why };
   }
 
-  root.SPORT = { LEAGUES, fixtures, squads, venuePlace, venueKey, judge, playerIndex, eventChart, implied, RU, RN, source: () => Object.assign({}, source), fixturesFrom: () => Object.assign({}, fixturesFrom) };
+  root.SPORT = { LEAGUES, leagueOf, sportOf, apiOf, fixtures, squads, venuePlace, venueKey, judge, playerIndex, eventChart, implied, RU, RN, source: () => Object.assign({}, source), fixturesFrom: () => Object.assign({}, fixturesFrom) };
 })(typeof window !== 'undefined' ? window : globalThis);
