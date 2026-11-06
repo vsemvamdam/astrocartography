@@ -89,6 +89,36 @@ jobs:
           done
           exit 1
 
+  rejudge:
+    needs: plan
+    if: contains(needs.plan.outputs.job, 'rejudge')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: site }
+      - run: npm i -s --no-save --prefix "$RUNNER_TEMP/n" astronomy-engine@2.1.19
+      - name: Rejudge the football base
+        env:
+          ASTRONOMY_JS: ${{ runner.temp }}/n/node_modules/astronomy-engine
+        run: |
+          for i in 1 2 3 4 5; do
+            rm -rf db
+            git clone -q --depth 1 --branch football-db "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" db
+            git -C db config user.name "github-actions[bot]"
+            git -C db config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            node site/tools/sport_db.js db --rejudge
+            node site/tools/sport_rules.js db || echo "::warning::rules report failed"
+            node site/tools/sport_ideas.js db || echo "::warning::ideas report failed"
+            cp site/tools/football-db-README.md db/README.md
+            git -C db add -A
+            git -C db diff --cached --quiet && exit 0
+            git -C db commit -q -m "Places of matches without a venue from the home side; rejudge"
+            git -C db push -q origin football-db && exit 0
+            sleep $((i * 20))
+          done
+          exit 1
+
   sports:
     needs: plan
     if: contains(needs.plan.outputs.job, 'sports')
@@ -129,7 +159,7 @@ jobs:
           for i in 1 2 3 4 5 6; do git pull -q --rebase origin sport-research && git push -q origin HEAD:sport-research && exit 0; sleep $((i * 10)); done; exit 1
 
   compare:
-    needs: [plan, sports]
+    needs: [plan, sports, rejudge]
     if: always() && (contains(needs.plan.outputs.job, 'sports') || contains(needs.plan.outputs.job, 'compare'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
