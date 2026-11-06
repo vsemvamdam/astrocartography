@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const API = process.env.ESPN_API || 'https://site.api.espn.com/apis/site/v2/sports/soccer/';
-const LEAGUES = ['eng.1', 'esp.1', 'uefa.champions', 'uefa.europa', 'uefa.europa.conf'];
+const LEAGUES = ['eng.1', 'esp.1', 'fra.1', 'uefa.champions', 'uefa.europa', 'uefa.europa.conf'];
 const DAYS = 15, H = 3600000, DAY = 24 * H;
 const [PREV, OUT] = [process.argv[2] || 'prev', process.argv[3] || 'next'];
 const now = Date.now();

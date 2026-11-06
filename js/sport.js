@@ -14,6 +14,7 @@
   const LEAGUES = [
     { id: 'eng.1', ru: 'АПЛ', long: 'Английская Премьер-лига' },
     { id: 'esp.1', ru: 'Ла Лига', long: 'Ла Лига' },
+    { id: 'fra.1', ru: 'Лига 1', long: 'Лига 1', title: 'Лига 1 (Франция)' },
     { id: 'uefa.champions', ru: 'ЛЧ', long: 'Лига чемпионов' },
     { id: 'uefa.europa', ru: 'ЛЕ', long: 'Лига Европы' },
     { id: 'uefa.europa.conf', ru: 'ЛК', long: 'Лига конференций' },
@@ -213,6 +214,9 @@
     'wolverhampton': [52.5902, -2.1304, 'Europe/London'], 'burnley': [53.7890, -2.2302, 'Europe/London'], 'brentford': [51.4907, -0.2886, 'Europe/London'],
     'falmer': [50.8616, -0.0837, 'Europe/London'], 'brighton': [50.8616, -0.0837, 'Europe/London'], 'bournemouth': [50.7352, -1.8384, 'Europe/London'],
     'west bromwich': [52.5090, -1.9639, 'Europe/London'], 'luton': [51.8842, -0.4316, 'Europe/London'], 'watford': [51.6498, -0.4015, 'Europe/London'],
+    'lens': [50.4292, 2.8319, 'Europe/Paris'], 'decines charpieu': [45.7694, 4.9592, 'Europe/Paris'], 'decines': [45.7694, 4.9592, 'Europe/Paris'],
+    'villeneuve d ascq': [50.6233, 3.1450, 'Europe/Paris'], 'guingamp': [48.5617, -3.1500, 'Europe/Paris'], 'montbeliard': [47.5100, 6.7983, 'Europe/Paris'],
+    'sochaux': [47.5100, 6.7983, 'Europe/Paris'], 'valenciennes': [50.3570, 3.5233, 'Europe/Paris'], 'saint denis': [48.9362, 2.3574, 'Europe/Paris'],
     'randers': [56.4597, 10.0361, 'Europe/Copenhagen'], 'herning': [56.1360, 8.9750, 'Europe/Copenhagen'], 'celje': [46.2310, 15.2653, 'Europe/Ljubljana'],
   };
   const ALIAS = { milano: 'milan', torino: 'turin', napoli: 'naples', roma: 'rome', firenze: 'florence', genova: 'genoa', sevilla: 'seville', lisboa: 'lisbon',
@@ -222,7 +226,7 @@
   const COUNTRY = { England: 'Великобритания', Scotland: 'Великобритания', Wales: 'Великобритания', 'Northern Ireland': 'Великобритания', Spain: 'Испания', Italy: 'Италия',
     Germany: 'Германия', France: 'Франция', Portugal: 'Португалия', Netherlands: 'Нидерланды', Belgium: 'Бельгия', 'Türkiye': 'Турция', Turkey: 'Турция', Greece: 'Греция',
     Denmark: 'Дания', Norway: 'Норвегия', Sweden: 'Швеция', Switzerland: 'Швейцария', Austria: 'Австрия', 'Czech Republic': 'Чехия', Czechia: 'Чехия', Poland: 'Польша',
-    Croatia: 'Хорватия', Serbia: 'Сербия', Ukraine: 'Украина', Romania: 'Румыния', Hungary: 'Венгрия', Cyprus: 'Кипр', Israel: 'Израиль', };
+    Croatia: 'Хорватия', Serbia: 'Сербия', Ukraine: 'Украина', Romania: 'Румыния', Hungary: 'Венгрия', Cyprus: 'Кипр', Israel: 'Израиль', Monaco: 'Монако' };
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   /* Stadium towns found in GeoNames by tools/sport_db.js, kept in the football-db branch as venues.json:
      {"<town>|<country>": {lat, lon, tz}}. Loaded together with the fixtures; while it is missing (or if it

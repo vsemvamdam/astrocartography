@@ -15,7 +15,7 @@ on:
         description: 'past seasons, e.g. 2018-2025 (2018 = from August 2018 to July 2019); empty: the last week and the next three days'
         default: ''
       leagues:
-        description: 'leagues, comma-separated (empty: eng.1, esp.1, uefa.champions, uefa.europa, uefa.europa.conf)'
+        description: 'leagues, comma-separated (empty: eng.1, esp.1, fra.1, uefa.champions, uefa.europa, uefa.europa.conf)'
         default: ''
       rejudge:
         description: 'recompute the judgement of the whole base with the current js/sport.js'
