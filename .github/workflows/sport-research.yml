@@ -1,0 +1,90 @@
+# Research runs for the "Спорт" tab, started by a push to the sport-research branch that changes research/JOB.
+# research/JOB lists the jobs: probe (what ESPN gives for other sports), ligue1 (past seasons of Ligue 1 into the
+# football base), sports (Frawley's event chart over past seasons of other sports). Results go to results/ in this branch.
+name: Sport research
+
+on:
+  push:
+    branches: [sport-research]
+    paths: ['research/JOB']
+
+permissions:
+  contents: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      job: ${{ steps.r.outputs.job }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: research }
+      - id: r
+        run: echo "job=$(cat research/JOB | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+
+  probe:
+    needs: plan
+    if: contains(needs.plan.outputs.job, 'probe')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: node research/probe.js results/probe
+      - name: Save
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results && git commit -q -m "Probe of ESPN for other sports"
+          for i in 1 2 3 4 5; do git pull -q --rebase origin sport-research && git push -q origin HEAD:sport-research && exit 0; sleep $((i * 10)); done; exit 1
+
+  ligue1:
+    needs: plan
+    if: contains(needs.plan.outputs.job, 'ligue1')
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: site }
+      - run: npm i -s --no-save --prefix "$RUNNER_TEMP/n" astronomy-engine@2.1.19
+      - uses: actions/cache@v4
+        with:
+          path: geonames
+          key: geonames-cities500-v1
+      - name: GeoNames
+        run: |
+          if [ ! -s geonames/cities500.txt ]; then
+            mkdir -p geonames
+            curl -fsSL --retry 3 -o geonames/c.zip https://download.geonames.org/export/dump/cities500.zip
+            unzip -oq geonames/c.zip cities500.txt -d geonames && rm geonames/c.zip
+            curl -fsSL --retry 3 -o geonames/countryInfo.txt https://download.geonames.org/export/dump/countryInfo.txt
+          fi
+      - name: Past seasons of Ligue 1
+        env:
+          ASTRONOMY_JS: ${{ runner.temp }}/n/node_modules/astronomy-engine
+        run: |
+          git clone -q --depth 1 --branch football-db "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" db
+          for y in $(seq 2015 2026); do
+            to=$((y + 1))06; [ "$y" = 2026 ] && to=202611
+            node site/tools/sport_db.js db --geonames geonames --months "${y}07-${to}" --leagues fra.1 || echo "::warning::season $y did not finish"
+          done
+      - name: Into the base
+        env:
+          ASTRONOMY_JS: ${{ runner.temp }}/n/node_modules/astronomy-engine
+        run: |
+          for i in 1 2 3 4 5; do
+            rm -rf latest
+            git clone -q --depth 1 --branch football-db "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" latest
+            git -C latest config user.name "github-actions[bot]"
+            git -C latest config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            node site/research/merge_db.js db latest fra.1
+            # summary, table and the rule reports over the joined base
+            node site/tools/sport_db.js latest --rejudge
+            node site/tools/sport_rules.js latest || echo "::warning::rules report failed"
+            node site/tools/sport_ideas.js latest || echo "::warning::ideas report failed"
+            cp site/tools/football-db-README.md latest/README.md
+            git -C latest add -A
+            git -C latest commit -q -m "Ligue 1: seasons 2015/16 to 2026/27"
+            git -C latest push -q origin football-db && exit 0
+            sleep $((i * 20))
+          done
+          exit 1
