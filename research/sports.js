@@ -176,6 +176,19 @@ function tennisElo(list) {
     R.set(a, ra + K(na) * (sA - pA)); R.set(b, rb + K(nb) * ((1 - sA) - (1 - pA)));
     N.set(a, na + 1); N.set(b, nb + 1);
   }
+  // Elo is overconfident on these data (the favourite wins less often than it promises): one scale factor on the
+  // log-odds, fitted on all rated matches, makes its chances match the results on average
+  const rows = list.filter((g) => g.fav && !g.ret).map((g) => ({ x: Math.log(g.fav.p / (1 - g.fav.p)), y: g.winner === g.fav.side ? 1 : 0 }));
+  let c = 1;
+  for (let it = 0; it < 50; it++) {
+    let gr = 0, h = 0;
+    for (const { x, y } of rows) { const p = 1 / (1 + Math.exp(-c * x)); gr += (y - p) * x; h -= p * (1 - p) * x * x; }
+    const nc = h ? c - gr / h : c;
+    if (Math.abs(nc - c) < 1e-9) break;
+    c = nc;
+  }
+  console.log(`Elo calibration: log-odds × ${c.toFixed(3)} over ${rows.length} matches`);
+  for (const g of list) if (g.fav) { g.fav.pElo = g.fav.p; g.fav.p = Math.round(1000 / (1 + Math.exp(-c * Math.log(g.fav.p / (1 - g.fav.p))))) / 1000; }
   return n;
 }
 
@@ -298,7 +311,7 @@ function markdown(S_, extra) {
     `Сезоны ${S_.seasons[0]}–${S_.seasons[S_.seasons.length - 1]}. Сыгранных игр: ${S_.games}; с коэффициентами и точным местом: ${S_.judged}; карта назвала победителя в ${S_.picks} (${pc(S_.picks / S_.judged)}), в остальных свидетельства уравновешены.`, '',
     '«Угадано» — как часто побеждал тот, кого назвала карта. «Фаворит в тех же играх» — сколько угадал бы человек, всегда ставящий на фаворита. «По ставкам» — сколько обещали коэффициенты без маржи. Если карта что-то знает, «Угадано» должно быть заметно выше «По ставкам». «±» — две стандартные ошибки; ** — разница больше неё.', '',
     ...T,
-    ...(SPORT === 'tennis' ? ['', 'В теннисе у ESPN нет коэффициентов, поэтому фаворит — игрок с более высоким рейтингом Эло перед матчем (посчитан по результатам ESPN с 2019 года, учитываются игроки, у которых уже не меньше 10 матчей), а «По рейтингу» — его шанс по Эло. Время матча — фактическое начало по ESPN: назначенного времени у большинства теннисных матчей нет.', ''] : []),
+    ...(SPORT === 'tennis' ? ['', 'В теннисе у ESPN нет коэффициентов, поэтому фаворит — игрок с более высоким рейтингом Эло перед матчем (посчитан по результатам ESPN с 2019 года, учитываются игроки, у которых уже не меньше 10 матчей), а «По рейтингу» — его шанс по Эло, поправленный одним множителем так, чтобы в среднем совпасть с результатами (сырой Эло завышает шансы фаворита). Время матча — фактическое начало по ESPN: назначенного времени у большинства теннисных матчей нет.', ''] : []),
     line(SPORT === 'tennis' ? 'Фаворит по рейтингу (для сравнения)' : 'Фаворит по ставкам (для сравнения)', S_.fav),
     line('Карта назвала победителя', S_.chart, S_.chartFavSame),
     line('— карта за фаворита', S_.forFav),
