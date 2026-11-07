@@ -52,8 +52,9 @@ for name, cmd in BODIES.items():
     out['bodies'][name] = data
     print(name, len(data), data[0])
 # the Moon's osculating geocentric orbit on the J2000 ecliptic (OM = node, W = argument of perigee)
+# (elements are given only on TDB; the UT instants are used as TDB: ΔT of a minute moves the node by ~0.0001°)
 res = call(dict(COMMAND="'301'", OBJ_DATA='NO', MAKE_EPHEM='YES', EPHEM_TYPE='ELEMENTS', CENTER="'500@399'", REF_PLANE='ECLIPTIC',
-                REF_SYSTEM='ICRF', TLIST_TYPE='JD', TIME_TYPE='UT', TLIST=' '.join('%.8f' % x for x in jds), CSV_FORMAT='YES', OUT_UNITS='KM-S'))
+                REF_SYSTEM='ICRF', TLIST_TYPE='JD', TIME_TYPE='TDB', TLIST=' '.join('%.8f' % x for x in jds), CSV_FORMAT='YES', OUT_UNITS='KM-S'))
 lines = rows(res)
 # columns: JDTDB, Calendar, EC, QR, IN, OM, W, Tp, N, MA, TA, A, AD, PR
 out['moon_elements_j2000'] = [{'EC': float(r[2]), 'IN': float(r[4]), 'OM': float(r[5]), 'W': float(r[6])} for r in lines]
