@@ -72,6 +72,44 @@ test('F02-E2 несуществующее и двойное местное вр�
   expect(twice).toMatch(/30\.10\.2010 2[23]:30 UTC/);
 });
 
+test('F02-E7 несуществующее и двойное время: одно правило и подсказка (A-08)', async ({ page }) => {
+  await open(page, 'map');
+  const f = await form(page);
+  const note = page.locator('#tzNote');
+  await setPlace(page, 'Берлин');
+  await f.date.fill('2026-03-29'); await f.time.fill('02:30');
+  await expect(page.locator('#utcOut')).toHaveText('29.03.2026 01:30 UTC');
+  await expect(note).toBeVisible(); await expect(note).toContainText('такого времени на часах не было');
+  await setPlace(page, 'Москва');
+  await f.date.fill('2010-10-31'); await f.time.fill('02:30');
+  await expect(page.locator('#utcOut')).toHaveText('30.10.2010 22:30 UTC');       // первое, ещё летнее
+  await expect(note).toContainText('было дважды');
+  await setPlace(page, 'Нью-Йорк');
+  await f.date.fill('2010-11-07'); await f.time.fill('01:30');
+  await expect(page.locator('#utcOut')).toHaveText('07.11.2010 05:30 UTC');       // тоже первое
+  await f.date.fill('2010-07-01'); await f.time.fill('12:00');
+  await expect(page.locator('#utcOut')).toHaveText('01.07.2010 16:00 UTC');
+  await expect(note).toBeHidden();
+});
+
+test('F02-E8 старые даты: история поясов до 1970 и местное среднее время (A-02, A-03)', async ({ page }) => {
+  await open(page, 'map');
+  const f = await form(page);
+  await setPlace(page, 'Осло');
+  await f.date.fill('1960-07-15'); await f.time.fill('12:00');
+  await expect(page.locator('#utcOut')).toHaveText('15.07.1960 10:00 UTC');       // летнее время Норвегии 1959–1965
+  await expect(page.locator('#tzOffset')).toHaveText('UTC+02:00');
+  await setPlace(page, 'Ульм');
+  await f.date.fill('1879-03-14'); await f.time.fill('11:30');
+  await expect(page.locator('#utcOut')).toHaveText('14.03.1879 10:50 UTC');       // как у astro.com
+  await expect(page.locator('#tzOffset')).toHaveText('UTC+00:40');                // 10° в. д.: 4 минуты на градус
+  await expect(page.locator('#tzNote')).toContainText('местное среднее время');
+  await setPlace(page, 'Воронеж');
+  await f.date.fill('1996-04-11'); await f.time.fill('05:54');
+  await expect(page.locator('#utcOut')).toHaveText('11.04.1996 01:54 UTC');
+  await expect(page.locator('#tzNote')).toBeHidden();
+});
+
 test('F02-E3 ручное смещение часового пояса', async ({ page }) => {
   await open(page, 'map');
   const f = await form(page);

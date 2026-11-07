@@ -1,0 +1,1209 @@
+{
+ "generated_by": "qa/verify/astro",
+ "unit_note": "arcsec unless stated",
+ "items": [
+  {
+   "calc": "Положение Sun: эклиптическая долгота (видимая, на дату)",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 1.97,
+    "Skyfield+DE421": 1.96,
+    "PyEphem 4.2.1": 2.17,
+    "Astropy/ERFA builtin": 1.97,
+    "JPL Horizons DE441": 5.32
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Sun: широта, RA, Dec",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "lat": 2.73,
+    "ra": 5.27,
+    "dec": 2.79
+   },
+   "unit": "arcsec (max без Astropy)",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Moon: эклиптическая долгота (видимая, на дату)",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 9.56,
+    "Skyfield+DE421": 4.04,
+    "PyEphem 4.2.1": 9.27,
+    "Astropy/ERFA builtin": 12.98,
+    "JPL Horizons DE441": 78.77,
+    "JPL Horizons DE441 (до 2026)": 7.08
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": "Astropy builtin (plan94/moon98) сам грубее; Луна vs Horizons в 2088–2100 до 79″ — разная ΔT, не эфемерида"
+  },
+  {
+   "calc": "Положение Moon: широта, RA, Dec",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "lat": 7.64,
+    "ra": 70.9,
+    "dec": 35.09
+   },
+   "unit": "arcsec (max без Astropy)",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Mercury: эклиптическая долгота (видимая, на дату)",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 9.42,
+    "Skyfield+DE421": 7.38,
+    "PyEphem 4.2.1": 9.58,
+    "Astropy/ERFA builtin": 9.05,
+    "JPL Horizons DE441": 9.05
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Mercury: широта, RA, Dec",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "lat": 10.56,
+    "ra": 9.13,
+    "dec": 10.57
+   },
+   "unit": "arcsec (max без Astropy)",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Venus: эклиптическая долгота (видимая, на дату)",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 15.66,
+    "Skyfield+DE421": 14.62,
+    "PyEphem 4.2.1": 15.8,
+    "Astropy/ERFA builtin": 9.79,
+    "JPL Horizons DE441": 14.65
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Venus: широта, RA, Dec",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "lat": 9.78,
+    "ra": 15.81,
+    "dec": 10.75
+   },
+   "unit": "arcsec (max без Astropy)",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Mars: эклиптическая долгота (видимая, на дату)",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 13.59,
+    "Skyfield+DE421": 9.2,
+    "PyEphem 4.2.1": 12.23,
+    "Astropy/ERFA builtin": 32.89,
+    "JPL Horizons DE441": 13.91
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Mars: широта, RA, Dec",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "lat": 10.57,
+    "ra": 15.54,
+    "dec": 10.44
+   },
+   "unit": "arcsec (max без Astropy)",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Jupiter: эклиптическая долгота (видимая, на дату)",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 8.15,
+    "Skyfield+DE421": 8.15,
+    "PyEphem 4.2.1": 8.05,
+    "Astropy/ERFA builtin": 71.82,
+    "JPL Horizons DE441": 7.0
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Jupiter: широта, RA, Dec",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "lat": 11.45,
+    "ra": 8.51,
+    "dec": 11.41
+   },
+   "unit": "arcsec (max без Astropy)",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Saturn: эклиптическая долгота (видимая, на дату)",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 11.5,
+    "Skyfield+DE421": 10.27,
+    "PyEphem 4.2.1": 12.25,
+    "Astropy/ERFA builtin": 83.07,
+    "JPL Horizons DE441": 10.53
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Saturn: широта, RA, Dec",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "lat": 20.51,
+    "ra": 14.19,
+    "dec": 18.52
+   },
+   "unit": "arcsec (max без Astropy)",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Uranus: эклиптическая долгота (видимая, на дату)",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 12.09,
+    "Skyfield+DE421": 12.11,
+    "PyEphem 4.2.1": 12.33,
+    "Astropy/ERFA builtin": 87.2,
+    "JPL Horizons DE441": 12.04
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Uranus: широта, RA, Dec",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "lat": 18.32,
+    "ra": 10.66,
+    "dec": 18.44
+   },
+   "unit": "arcsec (max без Astropy)",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Neptune: эклиптическая долгота (видимая, на дату)",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 19.14,
+    "Skyfield+DE421": 17.88,
+    "PyEphem 4.2.1": 21.02,
+    "Astropy/ERFA builtin": 15.44,
+    "JPL Horizons DE441": 18.88
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Neptune: широта, RA, Dec",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "Astropy/ERFA builtin",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "lat": 10.07,
+    "ra": 18.3,
+    "dec": 15.21
+   },
+   "unit": "arcsec (max без Astropy)",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Pluto: эклиптическая долгота (видимая, на дату)",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 19.26,
+    "Skyfield+DE421": 5.02,
+    "PyEphem 4.2.1": 11.42,
+    "JPL Horizons DE441": 19.78
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Pluto: широта, RA, Dec",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "Skyfield+DE421",
+    "PyEphem 4.2.1",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "lat": 3.8,
+    "ra": 19.25,
+    "dec": 4.48
+   },
+   "unit": "arcsec (max без Astropy)",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Chiron",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 315,
+    "hz": 75
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 1.74,
+    "JPL Horizons DE441": 0.78
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Ceres",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 3.54,
+    "JPL Horizons DE441": 3.29
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Pallas",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 9.94,
+    "JPL Horizons DE441": 7.8
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Juno",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 9.63,
+    "JPL Horizons DE441": 7.09
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Vesta",
+   "sources": [
+    "Swiss Ephemeris 2.10.03",
+    "JPL Horizons DE441"
+   ],
+   "n": {
+    "swe": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "Swiss Ephemeris 2.10.03": 12.82,
+    "JPL Horizons DE441": 10.61
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Eros",
+   "sources": [
+    "JPL Horizons DE441",
+    "astro.com swetest (online)"
+   ],
+   "n": {
+    "hz": 76
+   },
+   "max_dev": {
+    "JPL Horizons DE441": 9.82
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Psyche",
+   "sources": [
+    "JPL Horizons DE441",
+    "astro.com swetest (online)"
+   ],
+   "n": {
+    "hz": 76
+   },
+   "max_dev": {
+    "JPL Horizons DE441": 2.92
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Amor",
+   "sources": [
+    "JPL Horizons DE441",
+    "astro.com swetest (online)"
+   ],
+   "n": {
+    "hz": 76
+   },
+   "max_dev": {
+    "JPL Horizons DE441": 4.96
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": "онлайн astro.com: 13 дат 1800–2100; Amor там расходится с Horizons до 86″ (ошибка файла Swiss Ephemeris, не сайта)"
+  },
+  {
+   "calc": "Положение Hygiea",
+   "sources": [
+    "JPL Horizons DE441",
+    "astro.com swetest (online)"
+   ],
+   "n": {
+    "hz": 76
+   },
+   "max_dev": {
+    "JPL Horizons DE441": 1.55
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Положение Proserpina",
+   "sources": [
+    "JPL Horizons DE441",
+    "astro.com swetest (online)"
+   ],
+   "n": {
+    "hz": 76
+   },
+   "max_dev": {
+    "JPL Horizons DE441": 2.79
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Скорость (°/сут) и ретроградность",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield",
+    "PyEphem",
+    "Astropy"
+   ],
+   "n": 4740,
+   "max_dev": {
+    "Sun": 5e-05,
+    "Moon": 0.00812,
+    "Mercury": 0.00162,
+    "Venus": 0.00043,
+    "Mars": 0.00011,
+    "Jupiter": 0.0001,
+    "Saturn": 0.00063,
+    "Uranus": 0.0001,
+    "Neptune": 0.00013,
+    "Pluto": 2e-05,
+    "Chiron": 2e-05,
+    "Ceres": 5e-05,
+    "Pallas": 0.00023,
+    "Juno": 0.00026,
+    "Vesta": 0.00013
+   },
+   "unit": "deg/day",
+   "verdict": "OK",
+   "note": "несовпадений признака R у планет и астероидов: 0; у истинного узла 5 из 316 при |v|<0,001°/сут"
+  },
+  {
+   "calc": "Звёздное время GAST",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield",
+    "PyEphem",
+    "Astropy/ERFA"
+   ],
+   "n": 316,
+   "max_dev": {
+    "swe": 2.06,
+    "sky": 0.229,
+    "pe": 0.684,
+    "apy": 0.229
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Истинный наклон эклиптики",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield",
+    "PyEphem+Meeus Δε",
+    "Astropy/ERFA"
+   ],
+   "n": 316,
+   "max_dev": {
+    "swe": 0.063,
+    "sky": 0.063,
+    "pe": 0.077,
+    "apy": 0.063
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "ΔT (TT−UT), модель Espenak–Meeus",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield",
+    "PyEphem"
+   ],
+   "n": 316,
+   "max_dev": {
+    "swe": 109.5,
+    "sky": 106.7,
+    "pe": 22.7
+   },
+   "unit": "s",
+   "verdict": "CONVENTION",
+   "note": "до 1900 расхождение до 5 с, 2026 — +6,5 с, после 2040 — десятки секунд (экстраполяция)"
+  },
+  {
+   "calc": "Истинный узел",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield+DE421 (r×v)",
+    "PyEphem (r×v)",
+    "Astropy/ERFA moon98 (r×v)",
+    "Horizons оскулирующие элементы"
+   ],
+   "n": {
+    "swe": 316,
+    "sky": 165,
+    "pe": 316,
+    "apy": 316,
+    "hz": 76
+   },
+   "max_dev": {
+    "swe": 18.7,
+    "sky": 18.7,
+    "pe": 18.1,
+    "apy": 72.3,
+    "hz": 17.8
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Средний узел",
+   "sources": [
+    "ERFA faom03 (Simon 1994)",
+    "Skyfield fundamental args",
+    "ELP2000-82B",
+    "Swiss Ephemeris",
+    "astro.com"
+   ],
+   "n": 316,
+   "max_dev": {
+    "erfa": 0.2,
+    "elp82": 0.22,
+    "swe": 19.2,
+    "swe_without_nutation": 0.54
+   },
+   "unit": "arcsec",
+   "verdict": "OK (S4)",
+   "note": "сайт даёт узел на среднее равноденствие даты, без нутации (до 17″), планеты — на истинное"
+  },
+  {
+   "calc": "Средняя Лилит",
+   "sources": [
+    "ELP/MPP02 (Chapront 2002)+проекция",
+    "то же с узлом ERFA",
+    "Swiss Ephemeris MEAN_APOG",
+    "astro.com"
+   ],
+   "n": 316,
+   "max_dev": {
+    "elp02": 0.58,
+    "swe": 19.7,
+    "swe_without_nutation": 1.12
+   },
+   "unit": "arcsec",
+   "verdict": "OK (S4)",
+   "note": "без нутации, как и средний узел; проекция на эклиптику совпадает со Swiss Ephemeris (без неё было бы до 7′)"
+  },
+  {
+   "calc": "Дома, обычные широты (сетка 45 широт × 48 RAMC × 3 ε)",
+   "sources": [
+    "Swiss Ephemeris houses_armc",
+    "своя векторная реализация"
+   ],
+   "n": 48384,
+   "max_dev": {
+    "P": 0.0045,
+    "K": 0.0,
+    "R": 0.0,
+    "C": 0.0,
+    "O": 0.0,
+    "E": 0.0,
+    "W": 0.0
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "ASC/MC/куспиды по моменту (16 карт + 300 случайных)",
+   "sources": [
+    "Swiss Ephemeris houses_ex",
+    "Skyfield",
+    "PyEphem",
+    "Astropy/ERFA",
+    "astro.com (4 карты)"
+   ],
+   "n": 2212,
+   "max_dev": {
+    "swe": 5.11,
+    "sky": 0.55,
+    "pe": 2.35,
+    "apy": 0.55
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": "вне полярного круга"
+  },
+  {
+   "calc": "Дома за полярным кругом (|φ| ≥ 90°−ε)",
+   "sources": [
+    "Swiss Ephemeris",
+    "astro.com",
+    "своя реализация"
+   ],
+   "n": 1584,
+   "max_dev": {
+    "ASC развёрнут на 180°": 403
+   },
+   "unit": "случаев из 1584",
+   "verdict": "FAIL",
+   "note": "A-01: в 25 % случаев ASC — заходящая точка, дома Порфирия перекрываются"
+  },
+  {
+   "calc": "Парс Фортуны (день/ночь), вне полярного круга",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield",
+    "PyEphem",
+    "Astropy",
+    "Horizons (Солнце, Луна)"
+   ],
+   "n": 337,
+   "max_dev": {
+    "swe": 10.06,
+    "sky": 3.9,
+    "pe": 9.69,
+    "apy": 13.08,
+    "hz": 75.15
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": "день/ночь сайта совпал с высотой Солнца во всех 354 случаях"
+  },
+  {
+   "calc": "Релокация (5 городов × 16 карт)",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield",
+    "PyEphem",
+    "Astropy"
+   ],
+   "n": 560,
+   "max_dev": {
+    "swe": 3.49,
+    "sky": 0.28,
+    "pe": 0.93,
+    "apy": 0.28
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": "Норильск 69,35° — та же ошибка A-01"
+  },
+  {
+   "calc": "Линии MC/IC",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield",
+    "PyEphem",
+    "Astropy",
+    "Horizons (через RA)"
+   ],
+   "n": 9478,
+   "max_dev": {
+    "swe": 20.7,
+    "sky": 18.6,
+    "pe": 19.0,
+    "apy": 95.7
+   },
+   "unit": "arcsec of longitude",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Линии ASC/DSC (высота светила в точках линии = расстояние до верной линии)",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield",
+    "PyEphem",
+    "Astropy"
+   ],
+   "n": 222090,
+   "max_dev": {
+    "swe": 19.3,
+    "sky": 19.3,
+    "pe": 19.3,
+    "apy": 82.4
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Аспектные линии (MC и ASC)",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield",
+    "PyEphem",
+    "Astropy"
+   ],
+   "n": 334138,
+   "max_dev": {
+    "swe": 19.3,
+    "sky": 17.3,
+    "pe": 17.6,
+    "apy": 81.5
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Параны: точность найденных",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield",
+    "PyEphem",
+    "Astropy"
+   ],
+   "n": 17110,
+   "max_dev": {
+    "swe": 1.9,
+    "sky": 3.1,
+    "pe": 3.3,
+    "apy": 5.6
+   },
+   "unit": "arcsec of latitude (median; max до 22′ в плохо обусловленных случаях)",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Параны: полнота",
+   "sources": [
+    "плотный поиск 0,002°"
+   ],
+   "n": 18580,
+   "max_dev": {
+    "пропущено": 1470
+   },
+   "unit": "parans",
+   "verdict": "FAIL",
+   "note": "A-04: пропуск корней в пределах 0,25° от широты незаходимости"
+  },
+  {
+   "calc": "Транзиты на натальной сетке",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield",
+    "PyEphem",
+    "Astropy"
+   ],
+   "n": 240,
+   "max_dev": {
+    "swe": 16.7,
+    "sky": 15.5,
+    "pe": 16.7,
+    "apy": 28.4
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "calc": "Вторичные прогрессии",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield",
+    "PyEphem",
+    "Astropy"
+   ],
+   "n": 235,
+   "max_dev": {
+    "swe": 65.1,
+    "sky": 20.1,
+    "pe": 66.8,
+    "apy": 86.5
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": "момент прогрессии = натал + Δ/365,2422 точно; 57–87″ только в 2100 (ΔT)"
+  },
+  {
+   "calc": "Город: азимут и высота (геоцентрические)",
+   "sources": [
+    "Swiss Ephemeris",
+    "Skyfield",
+    "PyEphem",
+    "Astropy"
+   ],
+   "n": 717,
+   "max_dev": {
+    "swe": 19.2,
+    "sky": 19.2,
+    "pe": 19.3,
+    "apy": 81.8
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": "топоцентрическая высота Луны отличается до 0.96° (параллакс) — A-07"
+  },
+  {
+   "calc": "Соляр: момент",
+   "sources": [
+    "Swiss Ephemeris solcross",
+    "Skyfield",
+    "PyEphem",
+    "Astropy"
+   ],
+   "n": 90,
+   "max_dev": {
+    "swe": 77.7,
+    "sky": 57.4,
+    "pe": 55.8,
+    "apy": 77.2
+   },
+   "unit": "s",
+   "verdict": "OK",
+   "note": "типично 9–13 с (1″ долготы Солнца = 24 с)"
+  },
+  {
+   "calc": "Лунар: момент",
+   "sources": [
+    "Swiss Ephemeris mooncross",
+    "Skyfield",
+    "PyEphem",
+    "Astropy"
+   ],
+   "n": 92,
+   "max_dev": {
+    "swe": 19.0,
+    "sky": 12.5,
+    "pe": 16.5,
+    "apy": 15.6
+   },
+   "unit": "s",
+   "verdict": "OK",
+   "note": "выбор «последний не позже момента» и «следующий» верны во всех случаях"
+  },
+  {
+   "calc": "Неподвижные звёзды: долгота на дату",
+   "sources": [
+    "Swiss Ephemeris fixstar2",
+    "Skyfield (каталог sefstars)",
+    "PyEphem (свой каталог)",
+    "Astropy (каталог sefstars)"
+   ],
+   "n": 672,
+   "max_dev": {
+    "swe": 946.1,
+    "sky": 340.0,
+    "pe": 942.0,
+    "apy": 946.1
+   },
+   "unit": "arcsec",
+   "verdict": "FAIL (S4)",
+   "note": "A-06: без собственного движения и аберрации; Толиман 1800 — 15,8′, типично 18″"
+  },
+  {
+   "calc": "Эфемериды на месяц",
+   "sources": [
+    "Swiss Ephemeris (0h UT)",
+    "календарь"
+   ],
+   "n": 2216,
+   "max_dev": {
+    "swe": 73.6
+   },
+   "unit": "arcsec",
+   "verdict": "OK",
+   "note": "дни месяца верны (вкл. февраль 1900 и 2024); 2100-12 без Хирона и астероидов — A-05"
+  },
+  {
+   "calc": "Часовые пояса: localToUtc, однозначное время",
+   "sources": [
+    "ICU напрямую",
+    "pytz",
+    "zoneinfo",
+    "dateutil",
+    "Wikipedia/timeanddate"
+   ],
+   "n": 110794,
+   "max_dev": {
+    "≠ ICU >30 с": 0,
+    "≠ zoneinfo >30 с": 6598,
+    "≠ pytz >30 с": 2717
+   },
+   "unit": "cases",
+   "verdict": "FAIL",
+   "note": "A-02: 73 зоны с неверной историей до 1970 (данные ICU без backzone); A-03: LMT пояса, а не места"
+  },
+  {
+   "calc": "Часовые пояса: несуществующее и двойное время",
+   "sources": [
+    "zoneinfo",
+    "pytz",
+    "ICU"
+   ],
+   "n": 5441,
+   "max_dev": {
+    "двойное → второе": 2943,
+    "двойное → первое": 576,
+    "пропуск → смещение до перевода": 1517,
+    "пропуск → после": 303
+   },
+   "unit": "cases",
+   "verdict": "FAIL (S3)",
+   "note": "A-08: правило зависит от знака смещения; без предупреждения"
+  },
+  {
+   "calc": "Часовые пояса: tzOffsetMin",
+   "sources": [
+    "ICU напрямую",
+    "zoneinfo",
+    "pytz",
+    "dateutil"
+   ],
+   "n": 20170,
+   "max_dev": {
+    "≠ ICU >7,5 с": 0,
+    "≠ ICU 0,5–7,5 с": 1098
+   },
+   "unit": "cases",
+   "verdict": "OK (S4)",
+   "note": "A-09: округление до 15 с (LMT)"
+  }
+ ]
+}

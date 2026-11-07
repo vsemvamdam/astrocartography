@@ -1,0 +1,660 @@
+[
+ {
+  "calculator": "Планетарные часы: восход, заход, следующий восход",
+  "function": "FEAT.planetaryHours",
+  "sources": [
+   "Swiss Ephemeris",
+   "Skyfield DE421",
+   "PyEphem",
+   "Astropy",
+   "Kerykeion"
+  ],
+  "n": {
+   "swe": 196,
+   "sf": 193,
+   "ep": 196,
+   "ap": 196,
+   "kery": 176,
+   "polar": 12
+  },
+  "max_dev": {
+   "swe": 15.4,
+   "sf": 7.3,
+   "ep": 109.0,
+   "ap": 34.4,
+   "kery": 11.2
+  },
+  "unit": "s",
+  "tolerance": 120,
+  "verdict": "OK",
+  "bugs": [],
+  "note": ""
+ },
+ {
+  "calculator": "Планетарные часы: управитель дня и 24 часов",
+  "function": "FEAT.planetaryHours",
+  "sources": [
+   "flatlib planetarytime",
+   "Kerykeion",
+   "халдейский порядок (Лилли)"
+  ],
+  "n": {
+   "flatlib": 196,
+   "kery": 176
+  },
+  "max_dev": {
+   "mismatch": 0
+  },
+  "unit": "случаев",
+  "tolerance": 0,
+  "verdict": "OK",
+  "bugs": [],
+  "note": ""
+ },
+ {
+  "calculator": "Луна без курса",
+  "function": "FEAT.voidOfCourse",
+  "sources": [
+   "Swiss Ephemeris (полный пересчёт)",
+   "Skyfield DE421",
+   "PyEphem",
+   "Astropy",
+   "Kerykeion (классические планеты)"
+  ],
+  "n": {
+   "swe": 258,
+   "sf": 126,
+   "ep": 258,
+   "ap": 252,
+   "kery": 106
+  },
+  "max_dev": {
+   "swe": 86.1,
+   "sf": 24.8,
+   "ep": 29.2,
+   "ap": 140.6,
+   "kery": 87.3,
+   "last_aspect_mismatch": 0
+  },
+  "unit": "s",
+  "tolerance": 180,
+  "verdict": "OK",
+  "bugs": [],
+  "note": ""
+ },
+ {
+  "calculator": "Лунные дни: новолуния",
+  "function": "FEAT.lunarDays",
+  "sources": [
+   "Swiss Ephemeris",
+   "Skyfield DE421",
+   "PyEphem",
+   "Astropy",
+   "Kerykeion"
+  ],
+  "n": {
+   "swe": 128,
+   "ep": 128,
+   "ap": 128,
+   "sf": 42,
+   "kery": 88
+  },
+  "max_dev": {
+   "swe": 50.5,
+   "ep": 50.1,
+   "ap": 60.8,
+   "sf": 49.9,
+   "kery": 51.3
+  },
+  "unit": "s",
+  "tolerance": 120,
+  "verdict": "OK",
+  "bugs": [],
+  "note": ""
+ },
+ {
+  "calculator": "Лунные дни: восходы Луны и номер дня",
+  "function": "FEAT.lunarDays",
+  "sources": [
+   "Swiss Ephemeris",
+   "Skyfield DE421",
+   "PyEphem",
+   "Astropy"
+  ],
+  "n": {
+   "swe": 1686,
+   "ep": 1687,
+   "ap": 450,
+   "sf": 555
+  },
+  "max_dev": {
+   "swe": 25.6,
+   "ep": 285.1,
+   "ap": 38.6,
+   "sf": 0.4
+  },
+  "unit": "s",
+  "tolerance": 300,
+  "verdict": "ОШИБКА (высокие широты)",
+  "bugs": [
+   "B-02"
+  ],
+  "note": "на широтах выше ~62° список лунных дней обрывается"
+ },
+ {
+  "calculator": "Фаза Луны (освещённость)",
+  "function": "moonPhase (tools-view.js)",
+  "sources": [
+   "Swiss Ephemeris pheno_ut",
+   "Skyfield",
+   "PyEphem",
+   "Astropy"
+  ],
+  "n": {
+   "swe": 300,
+   "ep": 300,
+   "ap": 300,
+   "sf": 152
+  },
+  "max_dev": {
+   "swe": 0.7,
+   "ep": 0.9,
+   "ap": 0.5,
+   "sf": 0.6
+  },
+  "unit": "п. п.",
+  "tolerance": 1.5,
+  "verdict": "OK",
+  "bugs": [],
+  "note": ""
+ },
+ {
+  "calculator": "Вход Луны в знак",
+  "function": "moonIngress (tools-view.js)",
+  "sources": [
+   "Swiss Ephemeris",
+   "Skyfield DE421",
+   "PyEphem",
+   "Astropy"
+  ],
+  "n": {
+   "swe": 600,
+   "ep": 600,
+   "ap": 600,
+   "sf": 304
+  },
+  "max_dev": {
+   "swe": 112.0,
+   "ep": 24.5,
+   "ap": 107.7,
+   "sf": 24.4
+  },
+  "unit": "s",
+  "tolerance": 180,
+  "verdict": "OK",
+  "bugs": [],
+  "note": ""
+ },
+ {
+  "calculator": "Термы, фасы, триплицитеты, обители",
+  "function": "FEAT.termRuler/faceRuler, NATAL.dignity, HORARY.rulersAt",
+  "sources": [
+   "flatlib tables.py",
+   "Astrolog 7 calc.cpp/data.cpp",
+   "Kerykeion dignities",
+   "Лилли, CA с. 104",
+   "реализация здесь"
+  ],
+  "n": {
+   "half_degrees": 720
+  },
+  "max_dev": {
+   "egy_flatlib": 0,
+   "egy_astrolog": 0,
+   "egy_kery": 0,
+   "faces": 0,
+   "lilly_CA": 0,
+   "lilly_astrolog": 0,
+   "lilly_flatlib": 2,
+   "vs_tetrabiblos(школа)": 132
+  },
+  "unit": "полуградусов",
+  "tolerance": 0,
+  "verdict": "OK",
+  "bugs": [],
+  "note": "flatlib LILLY_TERMS: опечатка в Рыбах (Марс до 25°); сайт совпадает с Лилли и Astrolog"
+ },
+ {
+  "calculator": "Достоинства по Лилли, альмутен, градусы",
+  "function": "FEAT.dignityTable, FEAT.degreeRulers, HORARY.essential",
+  "sources": [
+   "flatlib (таблицы и баллы)",
+   "реализация здесь по Лилли"
+  ],
+  "n": {
+   "planets": 112,
+   "degree_rulers": 1440,
+   "horary_essential": 10080
+  },
+  "max_dev": {
+   "mismatch": 0
+  },
+  "unit": "случаев",
+  "tolerance": 0,
+  "verdict": "OK",
+  "bugs": [],
+  "note": ""
+ },
+ {
+  "calculator": "Диспозиторы",
+  "function": "FEAT.dispositors",
+  "sources": [
+   "реализация здесь"
+  ],
+  "n": 32,
+  "max_dev": {
+   "mismatch": 0
+  },
+  "unit": "карт",
+  "tolerance": 0,
+  "verdict": "OK",
+  "bugs": [],
+  "note": "один источник: правило тривиально"
+ },
+ {
+  "calculator": "Арабские жребии",
+  "function": "FEAT.lots",
+  "sources": [
+   "flatlib arabicparts.py (7 жребиев)",
+   "Astrolog 7 ai[] (4 жребия)",
+   "Павел Александрийский"
+  ],
+  "n": 112,
+  "max_dev": {
+   "flatlib": 1.1368683772161603e-13,
+   "astrolog": 5.684341886080802e-14,
+   "valens_diff": 0
+  },
+  "unit": "°",
+  "tolerance": 1e-09,
+  "verdict": "OK",
+  "bugs": [],
+  "note": ""
+ },
+ {
+  "calculator": "Неподвижные звёзды",
+  "function": "FEAT.starContacts",
+  "sources": [
+   "Swiss Ephemeris fixstar2",
+   "Skyfield Star",
+   "PyEphem stars",
+   "Astropy SkyCoord"
+  ],
+  "n": {
+   "swe": 672,
+   "sf": 546,
+   "ep": 624,
+   "ap": 672
+  },
+  "max_dev": {
+   "swe": 15.77,
+   "sf": 5.67,
+   "ep": 15.64,
+   "ap": 15.77
+  },
+  "unit": "′",
+  "tolerance": 30,
+  "verdict": "OK (S4)",
+  "bugs": [
+   "B-06"
+  ],
+  "note": "контакты в орбе 1,5°: 2 расхождения на 16 карт"
+ },
+ {
+  "calculator": "Тридцатиградусник",
+  "function": "renderDeg30 (tools-view.js)",
+  "sources": [
+   "реализация здесь (круговая шкала)"
+  ],
+  "n": 476,
+  "max_dev": {
+   "missed_pairs": 10
+  },
+  "unit": "пар",
+  "tolerance": 0,
+  "verdict": "ОШИБКА",
+  "bugs": [
+   "B-04"
+  ],
+  "note": ""
+ },
+ {
+  "calculator": "Профекции",
+  "function": "CYCLES.profections",
+  "sources": [
+   "реализация здесь",
+   "Kerykeion ProfectionsFactory (целые знаки)"
+  ],
+  "n": 35,
+  "max_dev": {
+   "mismatch": 0,
+   "crash": 9,
+   "kery_mismatch": 3
+  },
+  "unit": "случаев",
+  "tolerance": 0,
+  "verdict": "ОШИБКА",
+  "bugs": [
+   "B-01"
+  ],
+  "note": "kery_mismatch — Тромсё: ASC сайта на 180° от Swiss Ephemeris (вопрос к проверке домов)"
+ },
+ {
+  "calculator": "Календарь транзитов: точные даты",
+  "function": "CYCLES.transitCalendar",
+  "sources": [
+   "Swiss Ephemeris (полный пересчёт)",
+   "Skyfield DE421",
+   "PyEphem",
+   "Astropy"
+  ],
+  "n": {
+   "swe": 6421,
+   "sf": 503,
+   "ep": 503,
+   "ap": 480
+  },
+  "max_dev": {
+   "swe": 20.64,
+   "sf": 12.18,
+   "ep": 11.15,
+   "ap": 26.17
+  },
+  "unit": "″ (невязка аспекта в момент сайта)",
+  "tolerance": 60,
+  "verdict": "OK",
+  "bugs": [],
+  "note": "пропущено 0, лишних 0"
+ },
+ {
+  "calculator": "Календарь транзитов: проходы и период в орбе 1°",
+  "function": "CYCLES.transitCalendar",
+  "sources": [
+   "Swiss Ephemeris"
+  ],
+  "n": 476,
+  "max_dev": {
+   "pass_mismatch": 351,
+   "window_days": 93.97
+  },
+  "unit": "случаев / дни",
+  "tolerance": "±2 дня",
+  "verdict": "ОШИБКА",
+  "bugs": [
+   "B-03"
+  ],
+  "note": ""
+ },
+ {
+  "calculator": "Циклы жизни",
+  "function": "CYCLES.lifeCycles",
+  "sources": [
+   "Swiss Ephemeris (полный пересчёт)",
+   "Skyfield DE421",
+   "PyEphem",
+   "Astropy"
+  ],
+  "n": {
+   "swe": 507,
+   "sf": 139,
+   "ep": 184,
+   "ap": 175
+  },
+  "max_dev": {
+   "swe": 17.58,
+   "sf": 17.5,
+   "ep": 16.84,
+   "ap": 70.65
+  },
+  "unit": "″",
+  "tolerance": 60,
+  "verdict": "OK (S4)",
+  "bugs": [
+   "B-09",
+   "B-10"
+  ],
+  "note": "узлы: 3 расхождения числа проходов, 2 сдвига даты > 5 дней"
+ },
+ {
+  "calculator": "Нумерология",
+  "function": "CYCLES.numerology",
+  "sources": [
+   "реализация здесь по правилам",
+   "таблица Хейро (халдейская)",
+   "пример психоматрицы (Халва Медиа, 25.08.1990)"
+  ],
+  "n": 108,
+  "max_dev": {
+   "mismatch": 0
+  },
+  "unit": "случаев",
+  "tolerance": 0,
+  "verdict": "OK",
+  "bugs": [],
+  "note": "расхождения школ: число пути и личный год с мастер-числами"
+ },
+ {
+  "calculator": "Биоритмы",
+  "function": "bioVal/bioCrit (tools-view.js)",
+  "sources": [
+   "формула sin(2πt/P) (Википедия, Томмен)",
+   "реализация здесь"
+  ],
+  "n": 21283,
+  "max_dev": {
+   "value": 1.1102230246251565e-16,
+   "crit_mismatch": 0
+  },
+  "unit": "доля / дни",
+  "tolerance": 1e-12,
+  "verdict": "OK (S4)",
+  "bugs": [
+   "B-07"
+  ],
+  "note": ""
+ },
+ {
+  "calculator": "Аспекты натала и орбы",
+  "function": "NATAL.computeAspects",
+  "sources": [
+   "реализация здесь по README",
+   "Swiss Ephemeris (сходящийся/расходящийся)",
+   "Astrolog и Kerykeion (сравнение орбов)"
+  ],
+  "n": 1540,
+  "max_dev": {
+   "mismatch": 0,
+   "applying_mismatch": 0
+  },
+  "unit": "аспектов",
+  "tolerance": 0,
+  "verdict": "OK",
+  "bugs": [],
+  "note": ""
+ },
+ {
+  "calculator": "Синастрия",
+  "function": "FEAT.crossAspects",
+  "sources": [
+   "реализация здесь"
+  ],
+  "n": 1768,
+  "max_dev": {
+   "mismatch": 0
+  },
+  "unit": "аспектов",
+  "tolerance": 0,
+  "verdict": "OK",
+  "bugs": [],
+  "note": "орбы синастрии в README не описаны"
+ },
+ {
+  "calculator": "Композит",
+  "function": "FEAT.composite, FEAT.midpoint",
+  "sources": [
+   "реализация здесь",
+   "Kerykeion CompositeSubjectFactory",
+   "Swiss Ephemeris houses_armc"
+  ],
+  "n": 350,
+  "max_dev": {
+   "midpoint_deg": 1.1368683772161603e-13,
+   "kery_deg": 0.003599710649609733,
+   "asc_vs_swe_deg": 5.684341886080802e-14
+  },
+  "unit": "°",
+  "tolerance": 1e-06,
+  "verdict": "OK",
+  "bugs": [],
+  "note": "ASC композита — от MC композита (у Kerykeion — середина ASC): школа"
+ },
+ {
+  "calculator": "Хорар: перфекции, курс Луны",
+  "function": "HORARY.analyse, scanPair",
+  "sources": [
+   "Swiss Ephemeris (полный пересчёт)",
+   "Skyfield DE421",
+   "PyEphem",
+   "Astropy",
+   "таблица Лилли"
+  ],
+  "n": {
+   "swe": 836,
+   "sf": 402,
+   "ep": 836,
+   "ap": 836
+  },
+  "max_dev": {
+   "swe": 56.6,
+   "sf": 16.08,
+   "ep": 18.16,
+   "ap": 120.61
+  },
+  "unit": "″",
+  "tolerance": 180,
+  "verdict": "OK",
+  "bugs": [],
+  "note": "несовпадений перфекций 0, Луны без курса 0"
+ },
+ {
+  "calculator": "Хорар: сроки",
+  "function": "HORARY.analyse (timing)",
+  "sources": [
+   "Фроули, «How to Beat Time» (Skyscript)",
+   "Kerykeion (традиция)"
+  ],
+  "n": 0,
+  "max_dev": {
+   "rule": "дома наоборот"
+  },
+  "unit": "",
+  "tolerance": "",
+  "verdict": "ОШИБКА",
+  "bugs": [
+   "B-05"
+  ],
+  "note": ""
+ },
+ {
+  "calculator": "Спорт по Фроули",
+  "function": "SPORT.judge, SPORT.eventChart",
+  "sources": [
+   "реализация здесь на Swiss Ephemeris",
+   "футбольная база (ветка football-db)"
+  ],
+  "n": 196,
+  "max_dev": {
+   "lords": 0,
+   "moon": 0,
+   "testimonies": 0,
+   "verdict": 0,
+   "cusp_deg": 7.991525325223847e-05
+  },
+  "unit": "матчей",
+  "tolerance": 0,
+  "verdict": "OK (по описанию)",
+  "bugs": [],
+  "note": "шесть примеров книги в репозитории не найдены — не проверены"
+ },
+ {
+  "calculator": "Звёзды: данные рождения",
+  "function": "tools/celebs.tsv",
+  "sources": [
+   "astro-charts.com (данные Astro-Databank)",
+   "Astrotheme"
+  ],
+  "n": 21,
+  "max_dev": {
+   "date_time_mismatch": 0,
+   "rating_mismatch": 1
+  },
+  "unit": "человек",
+  "tolerance": 0,
+  "verdict": "OK",
+  "bugs": [],
+  "note": "Хемингуэй: AA на сайте и Astrotheme, A на astro-charts"
+ },
+ {
+  "calculator": "Звёзды: индекс сходства",
+  "function": "CELEBS.compare",
+  "sources": [
+   "описание в README"
+  ],
+  "n": 154,
+  "max_dev": {
+   "readme_mismatch": 1
+  },
+  "unit": "",
+  "tolerance": "",
+  "verdict": "OK (S4)",
+  "bugs": [
+   "B-08"
+  ],
+  "note": ""
+ },
+ {
+  "calculator": "Лучшие города",
+  "function": "FEAT.scoreCities",
+  "sources": [
+   "реализация здесь (Swiss Ephemeris, точная геометрия линий)"
+  ],
+  "n": 360,
+  "max_dev": {
+   "score": 0.109,
+   "km": 10.74
+  },
+  "unit": "балл / км",
+  "tolerance": 0.2,
+  "verdict": "OK (S4)",
+  "bugs": [
+   "B-11"
+  ],
+  "note": ""
+ },
+ {
+  "calculator": "Оценка места соляра",
+  "function": "FEAT.scoreSolarPlace, rankSolarCities",
+  "sources": [
+   "реализация здесь (дома Плацидуса Swiss Ephemeris)"
+  ],
+  "n": 864,
+  "max_dev": {
+   "score": 0.0
+  },
+  "unit": "балл",
+  "tolerance": 0,
+  "verdict": "OK",
+  "bugs": [],
+  "note": ""
+ }
+]

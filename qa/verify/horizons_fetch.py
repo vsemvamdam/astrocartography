@@ -9,7 +9,8 @@ cases = json.load(open(sys.argv[1]))
 def jd(iso):
     t = dt.datetime.fromisoformat(iso.replace('Z', '+00:00'))
     return 2440587.5 + t.timestamp() / 86400
-times = [c['utc'] for c in cases['charts']] + cases['random_utc'][::5]
+# Horizons returns the rows of a TLIST in time order, so the times are kept sorted: row k belongs to times[k]
+times = sorted([c['utc'] for c in cases['charts']] + cases['random_utc'][::5], key=lambda t: dt.datetime.fromisoformat(t.replace('Z', '+00:00')))
 jds = [jd(t) for t in times]
 # Uranus, Neptune and Pluto by their system barycentres: the planet-centre ephemerides start on 1800-01-01 23:59 UT
 # (the barycentre is within ~0.1″ of the planet seen from the Earth)

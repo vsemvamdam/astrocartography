@@ -95,3 +95,13 @@ test('F10-E3 биоритмы семьи: добавить людей и ска�
   expect(head).toBe('%PDF-');
   test.info().annotations.push({ type: 'note', description: `PDF ${dl.suggestedFilename()} ${require('fs').statSync(p).size} байт` });
 });
+
+test('F10-E4 тридцатиградусник: пара через шов 29°/0° (B-04)', async ({ page }) => {
+  await setBirth(page, { date: '1988-12-07', time: '11:41', place: 'Ереван' });
+  await page.locator('nav.tabs a[data-view="tools"]').click();
+  await nav(page).getByRole('button', { name: 'Тридцатиградусник' }).click();
+  // Юпитер 29°10′ Тельца и Уран 0°16′ Козерога: на шкале 1,1° друг от друга
+  const pair = page.locator('#toolOut ul.chains li').filter({ hasText: 'Юпитер' }).filter({ hasText: 'Уран' });
+  await expect(pair).toHaveCount(1);
+  await expect(pair).toContainText('1,1');
+});
