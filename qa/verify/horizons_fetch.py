@@ -11,8 +11,10 @@ def jd(iso):
     return 2440587.5 + t.timestamp() / 86400
 times = [c['utc'] for c in cases['charts']] + cases['random_utc'][::5]
 jds = [jd(t) for t in times]
-BODIES = {'Sun': '10', 'Moon': '301', 'Mercury': '199', 'Venus': '299', 'Mars': '499', 'Jupiter': '599', 'Saturn': '699', 'Uranus': '799',
-          'Neptune': '899', 'Pluto': '999', 'Chiron': '2060;', 'Ceres': '1;', 'Pallas': '2;', 'Juno': '3;', 'Vesta': '4;',
+# Uranus, Neptune and Pluto by their system barycentres: the planet-centre ephemerides start on 1800-01-01 23:59 UT
+# (the barycentre is within ~0.1″ of the planet seen from the Earth)
+BODIES = {'Sun': '10', 'Moon': '301', 'Mercury': '199', 'Venus': '299', 'Mars': '499', 'Jupiter': '599', 'Saturn': '699', 'Uranus': '7',
+          'Neptune': '8', 'Pluto': '9', 'Chiron': '2060;', 'Ceres': '1;', 'Pallas': '2;', 'Juno': '3;', 'Vesta': '4;',
           'Eros': '433;', 'Psyche': '16;', 'Amor': '1221;', 'Hygiea': '10;', 'Proserpina': '26;'}
 
 def call(params):
