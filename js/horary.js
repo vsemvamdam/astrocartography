@@ -130,7 +130,15 @@
     return gap <= 5 && signOf(cusps[next]) === signOf(lon) ? { h: next, near: true } : { h, near: false };
   }
   const SIGN_QUAL = (s) => s % 3;    // 0 cardinal, 1 fixed, 2 mutable
-  const UNITS = ['дни', 'дни или недели', 'недели', 'месяцы', 'годы'];
+  // Timing (Frawley, "How to Beat Time"): fixed signs and angular houses give the longest unit, cardinal signs and cadent
+  // houses the shortest, mutable signs and succedent houses the middle one. Long or short only when sign and house agree,
+  // any other pair gives the middle unit. Which units these are depends on the question. 0 short, 1 middle, 2 long.
+  const UNITS = ['короткие (скорее дни)', 'средние (скорее недели)', 'длинные (скорее месяцы)'];
+  function timingUnit(sign, house) {
+    const q = SIGN_QUAL(sign), s = q === 0 ? 0 : q === 1 ? 2 : 1;
+    const h = ANGULAR.includes(house) ? 2 : SUCCEDENT.includes(house) ? 1 : 0;
+    return s === h ? s : 1;
+  }
 
   /* nat: NATAL.computeNatal(chart, lat, lon, { house: 'R' }); opt: { base, rel } houses (1 = querent). */
   function analyse(chart, nat, opt) {
@@ -222,9 +230,8 @@
         res.degrees = Math.min(...TARGETS.filter((T) => aspOfTarget(T) === e.asp).map((T) => Math.abs(n180(d0 - T))));
         // who is moving to perfection: the faster one
         const fast = Math.abs(P[a].speed) >= Math.abs(P[b].speed) ? a : b;
-        const score = SIGN_QUAL(signOf(P[fast].lon)) === 0 ? 0 : SIGN_QUAL(signOf(P[fast].lon)) === 2 ? 1 : 2;
-        const hs = ANGULAR.includes(P[fast].house) ? 0 : SUCCEDENT.includes(P[fast].house) ? 1 : 2;
-        res.timing = { fast, units: UNITS[score + hs], days: (e.t - t0) / DAY };
+        const unit = timingUnit(signOf(P[fast].lon), P[fast].house);
+        res.timing = { fast, unit, units: UNITS[unit], days: (e.t - t0) / DAY };
         // prohibition: another planet perfects with one of them first (the Moon meets everyone on the way, so it is listed apart)
         res.prohibit = [];
         for (const x of SEVEN) {
@@ -323,5 +330,5 @@
   ];
   const BASES = [[1, 'Мой'], [7, 'Партнёра или другого человека'], [5, 'Ребёнка'], [3, 'Брата или сестры'], [4, 'Отца'], [10, 'Матери или начальника'], [11, 'Друга']];
 
-  root.HORARY = { SEVEN, RU, GEN, DAT, ASP, DIGN_RU, HOUSES, BASES, MEAN, essential, rulersAt, analyse, scanPair, lonAt, signBoundary };
+  root.HORARY = { SEVEN, RU, GEN, DAT, ASP, DIGN_RU, HOUSES, BASES, MEAN, essential, rulersAt, analyse, scanPair, lonAt, signBoundary, timingUnit };
 })(typeof window !== 'undefined' ? window : globalThis);

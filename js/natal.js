@@ -48,12 +48,17 @@
   }
 
   function computeHouses(sys, ramc, eps, phi) {
-    const asc = ascFor(ramc, phi, eps), mc = mcFor(ramc, eps);
+    const polar = Math.abs(phi) >= 90 - eps;
+    let asc = ascFor(ramc, phi, eps);
+    const mc = mcFor(ramc, eps);
+    // Beyond the polar circle the formula sometimes gives the setting point of the ecliptic. The Ascendant is the
+    // rising one, on the eastern horizon; it is the setting point exactly when it falls behind the MC (Swiss Ephemeris rule).
+    const flip = polar && n180(asc - mc) < 0;
+    if (flip) asc = n360(asc + 180);
     const c = new Array(13);
     c[1] = asc; c[10] = mc;
     let used = sys, note = '';
     const quad = (c11, c12, c2, c3) => { c[11] = c11; c[12] = c12; c[2] = c2; c[3] = c3; };
-    const polar = Math.abs(phi) >= 90 - eps;
     if ((sys === 'P' || sys === 'K') && polar) { used = 'O'; note = 'За полярным кругом Плацидус и Кох не определены — дома посчитаны по Порфирию.'; }
     if (used === 'P') {
       const v = [11, 12, 2, 3].map((h) => placidusCusp(ramc, eps, phi, h));
@@ -77,6 +82,11 @@
       const p1 = asin(sin(phi) / 2), p2 = asin(Math.sqrt(3) / 2 * sin(phi));
       const x1 = atan2(Math.sqrt(3), cos(phi)), x2 = atan2(1 / Math.sqrt(3), cos(phi));
       quad(ascFor(ramc - x1, p1, eps), ascFor(ramc - x2, p2, eps), ascFor(ramc + x2, p2, eps), ascFor(ramc + x1, p1, eps));
+    }
+    if (flip && (used === 'R' || used === 'C')) {
+      // the intermediate cusps come out of the same formula and turn with the Ascendant; Swiss Ephemeris then puts the IC on the X cusp
+      for (const h of [10, 11, 12, 2, 3]) c[h] = n360(c[h] + 180);
+      note = 'За полярным кругом MC в этот момент оказался перед Асцендентом. Вершины домов — как у Swiss Ephemeris: X дома — точка IC, IV дома — MC.';
     }
     if (used === 'O') {
       const q1 = n360(asc - mc) / 3, q2 = n360(mc + 180 - asc) / 3;
@@ -110,7 +120,7 @@
     const apogee = n360(83.3532465 + 4069.0137287 * T - 0.0103200 * T * T - T * T * T / 80053 + T * T * T * T / 18999000 + 180);
     const node = ACG.meanNodeLon(time);
     const u = apogee - node;
-    return n360(node + atan2(sin(u) * cos(MOON_INC), cos(u)));
+    return n360(node + atan2(sin(u) * cos(MOON_INC), cos(u)) + root.Astronomy.e_tilt(time).dpsi / 3600);   // + nutation: true equinox of date
   }
 
   /* ------------------------------- dignities ------------------------------ */

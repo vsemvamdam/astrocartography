@@ -314,6 +314,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .tz-row .k { color: var(--muted); }
 .tz-row .v { font-family: var(--f-mono); font-size: 12.5px; text-align: right; font-variant-numeric: tabular-nums; }
 .tz-row .v.strong { color: var(--fg); font-size: 13.5px; }
+.tz-note { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
 .chk { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); cursor: pointer; }
 .chk input { width: 16px; height: 16px; accent-color: var(--brass); margin: 0; }
 .status { grid-column: 1 / -1; font-size: 13px; color: var(--danger); margin: 0; }
@@ -1939,7 +1940,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
       </section>
       <div class="natal-grid top">
         <figure class="wheel-box">
-          <svg id="wheel" viewBox="-62 -62 1124 1124" role="img" aria-label="Колесо натальной карты"></svg>
+          <svg id="wheel" viewBox="-62 -62 1124 1124" role="group" aria-label="Колесо натальной карты"></svg>
           <figcaption>Нажмите на планету в круге или в таблице, чтобы выделить её аспекты.</figcaption>
         </figure>
         <div class="nat-side">
@@ -2102,6 +2103,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <div class="tz-row"><span class="k">Часовой пояс</span><span class="v" id="tzName">—</span></div>
           <div class="tz-row"><span class="k">Смещение на дату рождения</span><span class="v" id="tzOffset">—</span></div>
           <div class="tz-row"><span class="k">Всемирное время</span><span class="v strong" id="utcOut">—</span></div>
+          <p class="tz-note" id="tzNote" hidden></p>
           <label class="chk"><input type="checkbox" id="manualTz"> Задать смещение вручную</label>
           <select class="inp" id="manualOffset" hidden aria-label="Смещение от UTC"></select>
         </div>
@@ -2231,7 +2233,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <p>Натальная карта: тропический зодиак, дома по выбранной системе (по умолчанию Плацидус), истинный или средний узел, средняя Лилит (апогей лунной орбиты, спроецированный на эклиптику, как в Сотисе). Хирон — по таблице, рассчитанной численным интегрированием орбиты с учётом притяжения планет (1800–2100). Парс Фортуны: днём ASC + Луна − Солнце, ночью ASC + Солнце − Луна.</p>
       <p>Лучшие города: для каждой цели у планет и углов свой вес (например, для карьеры сильнее всего Солнце и Юпитер на MC, против — Нептун на MC). Линия влияет на город в пределах 600 км, и чем ближе, тем сильнее. Баллы всех линий складываются; для пары — линии обоих.</p>
       <p>Соляр — карта на момент, когда Солнце возвращается в свой градус рождения; дома строятся на место, где вы встречаете день рождения. Синастрия — аспекты между планетами двух карт (орбы до 7°, для узлов, Хирона, Лилит и углов до 4°). Композит — карта средних точек двух карт.</p>
-      <p>Часовые пояса берутся из базы IANA с историей: летнее и декретное время, переходы 1991, 2011 и 2014 годов. Если в документах время другое, задайте смещение вручную.</p>
+      <p>Часовые пояса берутся из базы IANA с историей: летнее и декретное время, переходы 1991, 2011 и 2014 годов, старая история поясов, которой нет в браузерах (Осло, Стокгольм, Рейкьявик, Амстердам и другие). До введения поясного времени — местное среднее время места рождения, по долготе. Если в документах время другое, задайте смещение вручную.</p>
     </section>
   </aside>
 </div>
@@ -2239,24 +2241,25 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 <script src="js/data.js?v=20261104u"></script>
 <script src="js/country-labels.js?v=20261104u"></script>
-<script src="js/chiron-data.js?v=20261104u"></script>
-<script src="js/asteroids-data.js?v=20261104u"></script>
-<script src="js/acg-core.js?v=20261104u"></script>
+<script src="js/chiron-data.js?v=20261107qa"></script>
+<script src="js/asteroids-data.js?v=20261107qa"></script>
+<script src="js/tz-history.js?v=20261107qa"></script>
+<script src="js/acg-core.js?v=20261107qa"></script>
 <script src="js/meanings.js?v=20261104u"></script>
-<script src="js/natal.js?v=20261104u"></script>
-<script src="js/features.js?v=20261104u"></script>
-<script src="js/horary.js?v=20261104u"></script>
+<script src="js/natal.js?v=20261107qa"></script>
+<script src="js/features.js?v=20261107qa"></script>
+<script src="js/horary.js?v=20261107qa"></script>
 <script src="js/interpret.js?v=20261105lun"></script>
 <script src="js/celebs.js?v=20261104u"></script>
-<script src="js/natal-view.js?v=20261105node"></script>
-<script src="js/cycles.js?v=20261105psy"></script>
-<script src="js/tools-view.js?v=20261105psy"></script>
+<script src="js/natal-view.js?v=20261107qa"></script>
+<script src="js/cycles.js?v=20261107qa"></script>
+<script src="js/tools-view.js?v=20261107qa"></script>
 <script src="js/city-view.js?v=20261104cs"></script>
-<script src="js/sport.js?v=20261104fc"></script>
-<script src="js/sport-view.js?v=20261104u"></script>
+<script src="js/sport.js?v=20261107qa"></script>
+<script src="js/sport-view.js?v=20261107qa"></script>
 <script src="js/firebase-config.js?v=20261104u"></script>
-<script src="js/account.js?v=20261105fam"></script>
+<script src="js/account.js?v=20261107qa"></script>
 <script src="js/home-view.js?v=20261105home"></script>
-<script src="js/app.js?v=20261105node"></script>
+<script src="js/app.js?v=20261107qa"></script>
 </body>
 </html>

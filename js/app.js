@@ -59,7 +59,10 @@
   }
 
   /* -------------------------------- cities -------------------------------- */
-  const normName = (s) => s.toLowerCase().replace(/ё/g, 'е').replace(/[-‐–—'’`.]/g, ' ').replace(/\s+/g, ' ').trim();
+  // Latin diacritics are folded (Zurich finds Zürich, Sao Paulo finds São Paulo); й keeps its breve, ё becomes е
+  const normName = (s) => s.toLowerCase().replace(/ё/g, 'е').normalize('NFD').replace(/[\u0300-\u0305\u0307-\u036f]/g, '').normalize('NFC')
+    .replace(/ø/g, 'o').replace(/ß/g, 'ss').replace(/æ/g, 'ae').replace(/œ/g, 'oe').replace(/ł/g, 'l').replace(/đ/g, 'd').replace(/ı/g, 'i')
+    .replace(/[-‐–—'’`.]/g, ' ').replace(/\s+/g, ' ').trim();
   const CITIES = D.cities.split('\n').map((row) => {
     const f = row.split('|');
     const lat = +f[3] / 100;
@@ -104,8 +107,9 @@
   const fmtLon = (v) => { v = ACG.norm180(v); return `${num(Math.abs(v), 2)}° ${v >= 0 ? 'в.д.' : 'з.д.'}`; };
   const pad = (n) => String(n).padStart(2, '0');
   function fmtOffset(min) {
-    const s = min < 0 ? '−' : '+', a = Math.abs(min);
-    return `UTC${s}${pad(Math.floor(a / 60))}:${pad(Math.round(a % 60))}`;
+    // mean times have seconds: Moscow +2:30:17, a place at 39.2° E +2:36:48
+    const s = min < 0 ? '−' : '+', sec = Math.round(Math.abs(min) * 60), ss = sec % 60;
+    return `UTC${s}${pad(Math.floor(sec / 3600))}:${pad(Math.floor(sec / 60) % 60)}${ss ? `:${pad(ss)}` : ''}`;
   }
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   const kmText = (km) => km < 10 ? '< 10 км' : `${Math.round(km / 5) * 5} км`;
@@ -1097,6 +1101,7 @@
       input.blur();
     }
     input.setAttribute('role', 'combobox'); input.setAttribute('aria-autocomplete', 'list'); input.setAttribute('aria-controls', list.id);
+    input.setAttribute('aria-expanded', 'false');
     input.addEventListener('focus', () => input.select());
     input.addEventListener('input', render);
     input.addEventListener('keydown', (e) => {
@@ -1316,7 +1321,7 @@
     const p = state.partner;
     const m = p && /^(\d{4})-(\d{2})-(\d{2})$/.exec(p.date || ''), t = p && /^(\d{1,2}):(\d{2})/.exec(p.time || '');
     if (!p || !m || !t || !p.place) { renderPartnerStatus(); return; }
-    try { partnerConv = ACG.localToUtc(+m[1], +m[2], +m[3], +t[1], +t[2], p.place.tz || 'UTC', p.manualOffset); }
+    try { partnerConv = ACG.localToUtc(+m[1], +m[2], +m[3], +t[1], +t[2], p.place.tz || 'UTC', p.manualOffset, p.place.lon); }
     catch (e) { partnerConv = ACG.localToUtc(+m[1], +m[2], +m[3], +t[1], +t[2], 'UTC', 0); }
     partnerChart = ACG.computeChart(partnerConv.utc, { node: state.nodeMode });
     partnerChart.bodies.forEach((b) => { if (b.id === 'Node') b.retro = b.speed < 0.005; });
@@ -1388,7 +1393,7 @@
     state.date = bDate.value; state.time = bTime.value.slice(0, 5);
     const P = state.place;
     let conv;
-    try { conv = ACG.localToUtc(y, mo, d, hh, mi, P.tz, state.manualOffset); }
+    try { conv = ACG.localToUtc(y, mo, d, hh, mi, P.tz, state.manualOffset, P.lon); }
     catch (e) { conv = ACG.localToUtc(y, mo, d, hh, mi, 'UTC', 0); }
     currentOffset = conv.offset; lastConv = conv;
     chart = ACG.computeChart(conv.utc, { node: state.nodeMode });
@@ -1402,6 +1407,10 @@
     const utcStr = `${pad(u.getUTCDate())}.${pad(u.getUTCMonth() + 1)}.${u.getUTCFullYear()} ${pad(u.getUTCHours())}:${pad(u.getUTCMinutes())}`;
     $('tzName').textContent = state.manualOffset != null ? 'вручную' : P.tz;
     $('tzOffset').textContent = fmtOffset(conv.offset);
+    const tzNote = conv.source === 'lmt' ? 'Поясного времени тогда ещё не было: взято местное среднее время места рождения, по его долготе (4 минуты на градус). Если в документах время другого города, задайте смещение вручную.'
+      : conv.gap ? 'В этот день часы переводили вперёд, и такого времени на часах не было. Оно взято по смещению до перевода; если в документах другое, задайте смещение вручную.'
+      : conv.ambiguous ? 'В этот день часы переводили назад, и такое время было дважды. Взято первое, по смещению до перевода; если имелось в виду второе, задайте смещение вручную.' : '';
+    $('tzNote').textContent = tzNote; $('tzNote').hidden = !tzNote;
     $('utcOut').textContent = `${utcStr} UTC`;
     const dmS = (v) => { const a = Math.abs(v), d = Math.floor(a); let m = Math.round((a - d) * 60); return m === 60 ? `${d + 1}°00′` : `${d}°${pad(m)}′`; };
     $('placeCoords').textContent = `${dmS(P.lat)} ${P.lat >= 0 ? 'с.ш.' : 'ю.ш.'} · ${dmS(ACG.norm180(P.lon))} ${ACG.norm180(P.lon) >= 0 ? 'в.д.' : 'з.д.'}`;

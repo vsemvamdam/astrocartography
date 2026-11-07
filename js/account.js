@@ -196,7 +196,8 @@
     if (first && screen !== 'profile' && !('ontouchstart' in window)) first.focus();
   }
   function renderCharts() {
-    const ul = dlg && dlg.open && $('accCharts');
+    // the list is drawn into the dialog even while it is closed: open() renders before showModal()
+    const ul = dlg && dlg.querySelector('#accCharts');
     if (!ul) return;
     ul.innerHTML = charts.length ? charts.map((c) => `<li>
         <span class="al-n">${esc(c.name)}</span>

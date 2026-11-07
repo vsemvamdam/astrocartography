@@ -205,10 +205,10 @@
       svg += it.p.angle ? `<text x="${x}" y="${y}" class="d30-ang">${it.p.glyph}</text>` : `<text x="${x}" y="${y}" class="d30-pl" style="fill:${it.p.color}">${g(it.p.glyph)}</text>`;
       svg += `<text x="${x}" y="${y + 22}" class="d30-deg">${Math.floor(it.v)}°${pad(Math.floor((it.v % 1) * 60))}</text>`;
     }
-    // close pairs: degree conjunctions regardless of sign
+    // close pairs: degree conjunctions regardless of sign; the scale is a circle, so 29°50′ and 0°10′ are 0°20′ apart
     const pairs = [];
     for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
-      const dv = Math.abs(items[i].v - items[j].v);
+      const d0 = Math.abs(items[i].v - items[j].v), dv = Math.min(d0, 30 - d0);
       if (dv <= 1.5) pairs.push([items[i].p, items[j].p, dv]);
     }
     // the aspect the pair actually makes in the chart: the nearest multiple of 30°
@@ -251,7 +251,7 @@
     const months = pr.months.map((m) => `<tr class="${now >= m.from && now < m.to ? 'on' : ''}"><td class="pos">${dayMonth(m.from, tz)} – ${dayMonth(m.to - 86400000, tz)}</td><td><span class="sg">${g(ACG.SIGNS[m.sign][0])}</span> ${ACG.SIGNS[m.sign][1]}</td><td>${bodyName(m.lord)}</td><td class="hs">${RN[((cur.house - 1 + m.k) % 12) + 1]}</td></tr>`).join('');
     const wheel = Array.from({ length: 12 }, (_, h) => {
       const sign = (Math.floor(n360(nat.asc) / 30) + h) % 12, ages = [];
-      for (let a = h; a <= 95; a += 12) ages.push(a === pr.age ? `<b>${a}</b>` : a);
+      for (let a = h; a <= Math.max(95, pr.age); a += 12) ages.push(a === pr.age ? `<b>${a}</b>` : a);
       return `<tr class="${h + 1 === cur.house ? 'on' : ''}"><td class="hs">${RN[h + 1]}</td><td><span class="sg">${g(ACG.SIGNS[sign][0])}</span> ${ACG.SIGNS[sign][1]}</td><td>${bodyName(C.DOMICILE[sign])}</td><td class="pos">${ages.join(', ')}</td></tr>`;
     }).join('');
     return `<div class="tool-lead"><div class="big-glyph" style="color:${BODY[lord].color}">${g(BODY[lord].glyph)}</div><div><b>${pr.age} ${plural(pr.age, 'год', 'года', 'лет')}: год ${RN[cur.house]} дома, знак ${sname} ${g(sg)}. Управитель года — ${BODY[lord].ru}</b>
@@ -787,6 +787,10 @@
     $('toolToday').addEventListener('click', () => { opts().date = null; app.save(); update(); });
     app.makePlaceSearch($('toolPlace'), $('toolSuggest'), place, (p) => { opts().place = p; app.save(); update(); });
     $('toolHome').addEventListener('click', () => { opts().place = null; $('toolPlace').value = app.placeLabel(place()); app.save(); update(); });
+    let famPending = false;
+    const inFam = (el) => !!(el && el.closest && el.closest('.fam-edit'));
+    function famLater() { famPending = true; setTimeout(() => { if (famPending && !inFam(document.activeElement)) { famPending = false; update(); } }, 0); }
+    $('toolOut').addEventListener('focusout', (e) => { if (famPending && !inFam(e.relatedTarget)) setTimeout(() => { if (famPending && !inFam(document.activeElement)) { famPending = false; update(); } }, 0); });
     $('toolOut').addEventListener('change', (e) => {
       if (e.target.id === 'vocClassic') { opts().classic = e.target.checked; app.save(); update(); }
       if (e.target.id === 'dispModern') { opts().modern = e.target.checked; app.save(); update(); }
@@ -794,8 +798,10 @@
       if (e.target.id === 'trMars') { opts().mars = e.target.checked; app.save(); update(); }
       if (e.target.id === 'bioBirth') { opts().bioBirth = e.target.value && e.target.value !== app.state.date ? e.target.value : null; app.save(); update(); }
       if (e.target.id === 'bioDate') { opts().bioDate = e.target.value && e.target.value !== todayISO() ? e.target.value : null; app.save(); update(); }
-      if (e.target.classList.contains('fam-name')) { family()[+e.target.dataset.famK].name = e.target.value.trim().slice(0, 30); app.save(); update(); }
-      if (e.target.classList.contains('fam-birth')) { family()[+e.target.dataset.famK].birth = e.target.value; app.save(); update(); }
+      // a name or date in the family list is saved at once, but the block is redrawn only when the focus leaves the
+      // list: redrawing right away threw away the field the person had just tapped (typing a name, then the date)
+      if (e.target.classList.contains('fam-name')) { family()[+e.target.dataset.famK].name = e.target.value.trim().slice(0, 30); app.save(); famLater(); }
+      if (e.target.classList.contains('fam-birth')) { family()[+e.target.dataset.famK].birth = e.target.value; app.save(); famLater(); }
       if (e.target.id === 'famSaved') {
         const c = (window.Account && Account.charts ? Account.charts() : []).find((x) => x.id === e.target.value);
         if (c && family().length < FAM_MAX) { family().push({ name: String(c.name || '').slice(0, 30), birth: c.date }); app.save(); update(); }

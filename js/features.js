@@ -300,10 +300,12 @@
     for (;;) { const nx = Ax.SearchMoonPhase(0, start.AddDays(1), 31); if (nx.date.getTime() > atUtc) break; start = nx; }
     const nextNew = Ax.SearchMoonPhase(0, start.AddDays(1), 31);
     const days = [{ n: 1, start: start.date.getTime() }];
+    // far north or south the Moon can stay below the horizon for days: then the current day simply goes on
     let t = start;
-    for (let i = 0; i < 32; i++) {
+    while (t.date.getTime() < nextNew.date.getTime() && days.length < 40) {
       const r = Ax.SearchRiseSet(Ax.Body.Moon, obs, +1, t, 3);
-      if (!r || r.date.getTime() >= nextNew.date.getTime()) break;
+      if (!r) { t = t.AddDays(3); continue; }
+      if (r.date.getTime() >= nextNew.date.getTime()) break;
       days.push({ n: days.length + 1, start: r.date.getTime() });
       t = r.AddDays(0.01);
     }

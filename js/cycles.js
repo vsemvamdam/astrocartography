@@ -30,7 +30,7 @@
     let age = 0;
     while (bday(age + 1) <= now) age++;
     const years = [];
-    for (let a = 0; a <= 96; a++) { const sign = (ascSign + a) % 12; years.push({ age: a, from: bday(a), to: bday(a + 1), sign, house: (a % 12) + 1, lord: DOMICILE[sign] }); }
+    for (let a = 0, last = Math.max(96, age + 1); a <= last; a++) { const sign = (ascSign + a) % 12; years.push({ age: a, from: bday(a), to: bday(a + 1), sign, house: (a % 12) + 1, lord: DOMICILE[sign] }); }
     const cur = years[age], months = [];
     for (let k = 0; k < 12; k++) {
       const d = new Date(cur.from), from = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + k, d.getUTCDate()), to = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + k + 1, d.getUTCDate());
@@ -62,7 +62,9 @@
     const hits = [];
     for (const tr of trIds) {
       const fast = tr === 'Sun' || tr === 'Mars' || tr === 'Venus' || tr === 'Mercury';
-      const step = fast ? 1 : 2, margin = (fast ? 120 : 330) * DAY;   // look past the year so earlier and later passes are counted
+      // look past the year so earlier and later passes are counted: a retrograde loop of Mars spans up to ~8 months,
+      // the five passes of Neptune or Pluto up to three years
+      const step = fast ? 1 : 2, margin = ({ Mars: 270, Neptune: 1200, Pluto: 1200 }[tr] || (fast ? 150 : 420)) * DAY;
       const { ts, ls } = samples(tr, from - margin, to + margin, step);
       for (const p of natPts) {
         for (const a of ASPECTS) for (const sg of a === 0 || a === 180 ? [1] : [1, -1]) {
@@ -70,11 +72,12 @@
           const list = [];
           for (let i = 1; i < ts.length; i++) {
             const f1 = n180(ls[i - 1] - target), f2 = n180(ls[i] - target);
-            if (Math.abs(f1) < 20 && Math.abs(f2) < 20 && (f1 < 0) !== (f2 < 0)) list.push({ t: bisect(f, ts[i - 1], ts[i]), i });
+            if (Math.abs(f1) < 20 && Math.abs(f2) < 20 && (f1 < 0) !== (f2 < 0)) list.push({ t: bisect(f, ts[i - 1], ts[i]), i, dir: f2 > f1 ? 1 : -1 });
           }
-          // passes that belong together: the orb is never left for long between them (one retrograde loop)
+          // passes that belong together: each next one comes from the other side, the planet having turned in between
+          // (one retrograde loop); a pass in the same direction means the planet went round the zodiac, a new transit
           const groups = [];
-          for (const h of list) { const gr = groups[groups.length - 1]; if (gr && h.t - gr[gr.length - 1].t < 300 * DAY) gr.push(h); else groups.push([h]); }
+          for (const h of list) { const gr = groups[groups.length - 1]; if (gr && gr[gr.length - 1].dir !== h.dir) gr.push(h); else groups.push([h]); }
           for (const gr of groups) {
             let a0 = gr[0].i, a1 = gr[gr.length - 1].i;
             while (a0 > 0 && Math.abs(n180(ls[a0 - 1] - target)) < ORB) a0--;
@@ -117,7 +120,7 @@
     ['Node', 0, 'Возвращение узлов', 'новый виток пути: судьбоносные встречи и повороты'],
     ['Node', 180, 'Обращение узлов', 'выбор между привычным и новым путём'],
   ];
-  const STEP = { Jupiter: 5, Saturn: 6, Uranus: 12, Neptune: 12, Pluto: 12, Chiron: 8, Node: 6 };
+  const STEP = { Jupiter: 5, Saturn: 6, Uranus: 12, Neptune: 12, Pluto: 12, Chiron: 8, Node: 2 };   // the true node turns every few days
   const PERIOD = { Jupiter: 11.86, Saturn: 29.46, Uranus: 84, Neptune: 165, Pluto: 248, Chiron: 50.7, Node: 18.6 };
   let lifeCache = null;
   function lifeCycles(natPts, birth, years) {

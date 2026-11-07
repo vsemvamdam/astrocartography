@@ -81,7 +81,7 @@
     const off = ACG.tzOffsetMin(tz || 'UTC', ms), d = new Date(ms + off * 60000);
     return { text: `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`, off };
   };
-  const offText = (off) => `UTC${off < 0 ? '−' : '+'}${pad(Math.floor(Math.abs(off) / 60))}:${pad(Math.abs(off) % 60)}`;
+  const offText = (off) => { const sec = Math.round(Math.abs(off) * 60), ss = sec % 60; return `UTC${off < 0 ? '−' : '+'}${pad(Math.floor(sec / 3600))}:${pad(Math.floor(sec / 60) % 60)}${ss ? `:${pad(ss)}` : ''}`; };
   function plural(n, one, few, many) { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; }
 
   /* --------------------------------- wheel -------------------------------- */
@@ -627,7 +627,7 @@
     lines.push(`<p class="hp-h">${HN(p.a)} <span class="muted">и</span> ${HN(p.b)} <span class="muted">· ${esc(p.label)}</span></p>`);
     if (p.perfects) {
       lines.push(`<p><b>${H.ASP[p.asp].g} ${H.ASP[p.asp].ru} станет точным</b> через ${orbText(p.degrees)} — в небе ${whenText(p.t, tz)} (через ${inDays(p.t, an.t0)}). Характер: ${ASP_NATURE[p.asp]}.</p>`);
-      lines.push(`<p class="muted">Срок по Фроули: около ${Math.max(1, Math.round(p.degrees))} единиц; к перфекции идёт ${H.RU[p.timing.fast]} (${ACG.SIGNS[Math.floor(n360(an.P[p.timing.fast].lon) / 30)][1]}, ${RN[an.P[p.timing.fast].house]} дом) — единицы скорее ${p.timing.units}. Кардинальные знаки и угловые дома ускоряют, фиксированные знаки и падающие дома замедляют; единицу выбирайте и по смыслу вопроса.</p>`);
+      lines.push(`<p class="muted">Срок по Фроули: около ${Math.max(1, Math.round(p.degrees))} единиц; к перфекции идёт ${H.RU[p.timing.fast]} (${ACG.SIGNS[Math.floor(n360(an.P[p.timing.fast].lon) / 30)][1]}, ${RN[an.P[p.timing.fast].house]} дом) — единицы ${p.timing.units}. Фиксированные знаки и угловые дома дают самую длинную единицу, кардинальные знаки и падающие дома — самую короткую, мутабельные знаки и последующие дома — среднюю; длинная или короткая — только когда знак и дом согласны. Какие это единицы, решает смысл вопроса.</p>`);
       if (p.prohibit.length) lines.push(`<p class="hp-warn">Возможный запрет: раньше ${p.prohibit.slice(0, 2).map((x) => `${H.RU[x.x]} образует ${meets(x.s, x.asp)} (через ${inDays(x.t, an.t0)})`).join('; ')}. Если эта планета мешает по смыслу вопроса, дело может сорваться.</p>`);
     } else {
       if (!p.now.applying && p.now.orb < 1) lines.push(`<p class="hp-good">Аспект (${H.ASP[p.now.asp].ru}) только что был точным: событие, скорее всего, уже произошло или происходит сейчас.</p>`);

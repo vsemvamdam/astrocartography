@@ -46,6 +46,22 @@
   const norm180 = (x) => { const y = norm360(x); return y > 180 ? y - 360 : y; };
 
   /* ---------- time zones (IANA history from the browser's tzdb) ---------- */
+  // js/tz-history.js, when loaded: the history before 1970 that browsers lack (zones merged by IANA, kept in
+  // "backzone") and the years each zone was still on a mean time
+  const TZH = () => root.TZ_HISTORY;
+  function histOffsetSec(tz, sec) {
+    const H = TZH(), z = H && sec < H.until && H.hist[tz];
+    if (!z) return null;
+    let lo = 0, hi = z.length / 2 - 1;                  // the last period starting at or before sec; period 0 has no start
+    while (lo < hi) { const m = (lo + hi + 1) >> 1; if (z[2 * m] <= sec) lo = m; else hi = m - 1; }
+    return z[2 * lo + 1];
+  }
+  function inMeanTime(tz, sec) {
+    const H = TZH(), z = H && sec < H.until && H.mean[tz];
+    if (!z) return false;
+    for (let i = 0; i < z.length; i += 2) if ((z[i] == null || z[i] <= sec) && sec < z[i + 1]) return true;
+    return false;
+  }
   const fmtCache = {};
   function tzFormatter(tz) {
     if (!fmtCache[tz]) {
@@ -58,6 +74,8 @@
   }
   /** Offset of zone tz from UTC at instant utcMs, in minutes (east positive). */
   function tzOffsetMin(tz, utcMs) {
+    const h = histOffsetSec(tz, Math.floor(utcMs / 1000));
+    if (h != null) return h / 60;
     const parts = tzFormatter(tz).formatToParts(new Date(utcMs));
     const g = (t) => { const p = parts.find((x) => x.type === t); return p ? p.value : '0'; };
     let year = +g('year');
@@ -65,17 +83,24 @@
     let hour = +g('hour'); if (hour === 24) hour = 0;
     const asUtc = Date.UTC(year, +g('month') - 1, +g('day'), hour, +g('minute'), +g('second'));
     const base = Math.floor(utcMs / 1000) * 1000;
-    return Math.round((asUtc - base) / 60000 * 4) / 4;
+    return (asUtc - base) / 60000;                      // whole seconds: mean times have them (Moscow +2:30:17)
   }
-  /** Local wall-clock time in zone tz → UTC ms. offsetOverrideMin bypasses tzdb. */
-  function localToUtc(y, mo, d, hh, mi, tz, offsetOverrideMin) {
+  /** Local wall-clock time in zone tz → UTC ms. offsetOverrideMin bypasses tzdb. lon (degrees east), when given,
+      replaces a mean time of the zone (the time of the city that names it) with the mean time of the place itself.
+      A wall time that happened twice (clocks put back) gives the first instant, ambiguous: true; one that never
+      happened (clocks put forward) is read with the offset before the change, gap: true — as Temporal does. */
+  function localToUtc(y, mo, d, hh, mi, tz, offsetOverrideMin, lon) {
     const local = Date.UTC(y, mo - 1, d, hh, mi);
     if (offsetOverrideMin != null) return { utc: local - offsetOverrideMin * 60000, offset: offsetOverrideMin, source: 'manual' };
-    let off = tzOffsetMin(tz, local);
-    let utc = local - off * 60000;
-    const off2 = tzOffsetMin(tz, utc);
-    if (off2 !== off) { utc = local - off2 * 60000; off = off2; }
-    return { utc, offset: off, source: 'tz' };
+    if (lon != null && isFinite(lon)) {
+      const lmt = Math.round(norm180(lon) * 240) / 60;    // 4 minutes a degree, to the second
+      const utc = local - lmt * 60000;
+      if (inMeanTime(tz, Math.floor(utc / 1000))) return { utc, offset: lmt, source: 'lmt' };
+    }
+    const before = tzOffsetMin(tz, local - 86400000), after = tzOffsetMin(tz, local + 86400000);
+    const ok = [...new Set([before, after, tzOffsetMin(tz, local)])].filter((o) => tzOffsetMin(tz, local - o * 60000) === o).sort((a, b) => b - a);
+    if (!ok.length) return { utc: local - before * 60000, offset: before, source: 'tz', gap: true };
+    return { utc: local - ok[0] * 60000, offset: ok[0], source: 'tz', ambiguous: ok.length > 1 };
   }
 
   /* ---------------------------- ephemeris ---------------------------- */
@@ -93,7 +118,8 @@
     const h = [p[1] * v[2] - p[2] * v[1], p[2] * v[0] - p[0] * v[2], p[0] * v[1] - p[1] * v[0]];
     return norm360(Math.atan2(h[0], -h[1]) * R2D);
   }
-  const nodeLon = (time, mode) => (mode === 'mean' ? meanNodeLon(time) : trueNodeLon(time));
+  // the mean node is on the mean equinox of date; nutation in longitude puts it on the true equinox, as the planets are
+  const nodeLon = (time, mode) => (mode === 'mean' ? norm360(meanNodeLon(time) + root.Astronomy.e_tilt(time).dpsi / 3600) : trueNodeLon(time));
 
   /* (2060) Chiron from a precomputed heliocentric table (tools/build_chiron.js), 1800–2100. */
   let CH = null;
@@ -286,20 +312,32 @@
       for (const ea of EV) for (const eb of EV) {
         if ((ea === 'MC' || ea === 'IC') && (eb === 'MC' || eb === 'IC')) continue;
         if (evOn && (!evOn[ea] || !evOn[eb])) continue;
-        let p0 = null, f0 = null;
+        const cross = (a, b) => (a < 0 && b >= 0) || (a > 0 && b <= 0);
+        const root = (lo, hi, flo) => {
+          for (let k = 0; k < 40; k++) {
+            const mid = (lo + hi) / 2, fm = f(A, ea, B, eb, mid);
+            if (fm == null) break;
+            if (cross(flo, fm)) hi = mid; else { lo = mid; flo = fm; }
+          }
+          out.push({ A, ea, B, eb, lat: (lo + hi) / 2 });
+        };
+        // the latitude where a rising or setting starts or stops happening (the planet becomes circumpolar)
+        const edge = (good, bad) => { for (let k = 0; k < 50; k++) { const m = (good + bad) / 2; if (f(A, ea, B, eb, m) == null) bad = m; else good = m; } return good; };
+        let p0 = null, f0 = null, pp = null, vp = null;
         for (let phi = -LAT_LIMIT; phi <= LAT_LIMIT + 1e-9; phi += 0.25) {
           const v = f(A, ea, B, eb, phi);
-          if (v == null) { f0 = null; continue; }
-          if (f0 != null && ((f0 < 0 && v >= 0) || (f0 > 0 && v <= 0)) && Math.abs(v - f0) < 90) {
-            let lo = p0, hi = phi, flo = f0;
-            for (let k = 0; k < 40; k++) {
-              const mid = (lo + hi) / 2, fm = f(A, ea, B, eb, mid);
-              if (fm == null) break;
-              if ((flo < 0 && fm >= 0) || (flo > 0 && fm <= 0)) hi = mid; else { lo = mid; flo = fm; }
-            }
-            out.push({ A, ea, B, eb, lat: (lo + hi) / 2 });
+          // a root can lie between the last sample with the event and that latitude: check the edge as a sample too
+          if (pp != null && (vp == null) !== (v == null)) {
+            const e = edge(v != null ? phi : pp, v != null ? pp : phi), fe = f(A, ea, B, eb, e);
+            if (v == null && f0 != null && fe != null && cross(f0, fe) && Math.abs(fe - f0) < 90) root(p0, e, f0);
+            if (v != null && fe != null && cross(fe, v) && Math.abs(v - fe) < 90) root(e, phi, fe);
           }
-          p0 = phi; f0 = v;
+          if (v == null) f0 = null;
+          else {
+            if (f0 != null && cross(f0, v) && Math.abs(v - f0) < 90) root(p0, phi, f0);
+            p0 = phi; f0 = v;
+          }
+          pp = phi; vp = v;
         }
       }
     }
@@ -367,7 +405,8 @@
     const L = norm360(elon);
     let sign = Math.floor(L / 30);
     let deg = Math.floor(L - sign * 30);
-    let min = Math.round(((L - sign * 30) - deg) * 60);
+    // cut, not rounded: the way the natal tables, Sotis and astro.com show positions
+    let min = Math.floor(((L - sign * 30) - deg) * 60 + 1e-9);
     if (min === 60) { min = 0; deg += 1; }
     if (deg === 30) { deg = 0; sign = (sign + 1) % 12; }
     return { deg, min, glyph: SIGNS[sign][0], name: SIGNS[sign][1] };
