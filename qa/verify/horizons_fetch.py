@@ -58,5 +58,6 @@ res = call(dict(COMMAND="'301'", OBJ_DATA='NO', MAKE_EPHEM='YES', EPHEM_TYPE='EL
 lines = rows(res)
 # columns: JDTDB, Calendar, EC, QR, IN, OM, W, Tp, N, MA, TA, A, AD, PR
 out['moon_elements_j2000'] = [{'EC': float(r[2]), 'IN': float(r[4]), 'OM': float(r[5]), 'W': float(r[6])} for r in lines]
+import os; os.makedirs(os.path.dirname(sys.argv[2]) or '.', exist_ok=True)
 json.dump(out, open(sys.argv[2], 'w'), indent=0)
 print('moon elements', len(lines), out['moon_elements_j2000'][0])
