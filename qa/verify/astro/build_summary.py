@@ -57,10 +57,10 @@ item('Истинный узел', ['Swiss Ephemeris', 'Skyfield+DE421 (r×v)', '
      {'swe': round(Sm['tn_swe']['max'], 1), 'sky': round(Sm['tn_sky']['max'], 1), 'pe': round(Sm['tn_pe']['max'], 1), 'apy': round(Sm['tn_apy']['max'], 1), 'hz': round(Sm['hz_tn_hz']['max'], 1)}, 'arcsec', 'OK')
 item('Средний узел', ['ERFA faom03 (Simon 1994)', 'Skyfield fundamental args', 'ELP2000-82B', 'Swiss Ephemeris', 'astro.com'], 316,
      {'erfa': round(Sm['mn_erfa']['max'], 2), 'elp82': round(Sm['mn_elp82']['max'], 2), 'swe': round(Sm['mn_swe']['max'], 1), 'swe_without_nutation': round(Sm['mn_swe_minus_dpsi']['max'], 2)}, 'arcsec',
-     'OK (S4)', 'сайт даёт узел на среднее равноденствие даты, без нутации (до 17″), планеты — на истинное')
+     'OK' if Sm['mn_swe']['max'] < 5 else 'OK (S4)', 'A-10 исправлен: узел на истинное равноденствие даты, как планеты (ERFA и ELP — на среднее, отсюда до 17″)' if Sm['mn_swe']['max'] < 5 else 'сайт даёт узел на среднее равноденствие даты, без нутации (до 17″), планеты — на истинное')
 item('Средняя Лилит', ['ELP/MPP02 (Chapront 2002)+проекция', 'то же с узлом ERFA', 'Swiss Ephemeris MEAN_APOG', 'astro.com'], 316,
      {'elp02': round(Sm['lil_elp02']['max'], 2), 'swe': round(Sm['lil_swe']['max'], 1), 'swe_without_nutation': round(Sm['lil_swe_minus_dpsi']['max'], 2)}, 'arcsec',
-     'OK (S4)', 'без нутации, как и средний узел; проекция на эклиптику совпадает со Swiss Ephemeris (без неё было бы до 7′)')
+     'OK' if Sm['lil_swe']['max'] < 5 else 'OK (S4)', ('A-10 исправлен: с нутацией' if Sm['lil_swe']['max'] < 5 else 'без нутации, как и средний узел') + '; проекция на эклиптику совпадает со Swiss Ephemeris (без неё было бы до 7′)')
 
 H = hou
 item('Дома, обычные широты (сетка 45 широт × 48 RAMC × 3 ε)', ['Swiss Ephemeris houses_armc', 'своя векторная реализация'], H['grid']['P_normal']['n'] * 7,
@@ -69,7 +69,7 @@ item('ASC/MC/куспиды по моменту (16 карт + 300 случай�
      {k: round(max(H['random_agg'][s + '_' + k]['max_arcsec'] for s in 'PKRCOEW'), 2) for k in ('swe', 'sky', 'pe', 'apy')}, 'arcsec', 'OK', 'вне полярного круга')
 pol = H['grid']['O_polar']
 item('Дома за полярным кругом (|φ| ≥ 90°−ε)', ['Swiss Ephemeris', 'astro.com', 'своя реализация'], pol['n'], {'ASC развёрнут на 180°': pol['swe_n_over_1arcsec']}, 'случаев из %d' % pol['n'],
-     'FAIL', 'A-01: в 25 % случаев ASC — заходящая точка, дома Порфирия перекрываются')
+     'OK' if pol['swe_n_over_1arcsec'] == 0 else 'FAIL', 'A-01 исправлен: ASC — восходящая точка, как у Swiss Ephemeris' if pol['swe_n_over_1arcsec'] == 0 else 'A-01: в 25 % случаев ASC — заходящая точка, дома Порфирия перекрываются')
 
 # Part of Fortune, outside the polar circle, plus Horizons Sun/Moon with Skyfield ASC
 fr = [r for r in H['fortune'] if abs(r['lat']) < 66.5]
@@ -104,8 +104,8 @@ item('Аспектные линии (MC и ASC)', ['Swiss Ephemeris', 'Skyfield'
 pa = L('paran_audit.json')
 item('Параны: точность найденных', ['Swiss Ephemeris', 'Skyfield', 'PyEphem', 'Astropy'], Li['parans']['site_n'],
      {k: round(v['median'], 1) for k, v in Li['parans']['dlat_arcsec'].items()}, 'arcsec of latitude (median; max до 22′ в плохо обусловленных случаях)', 'OK')
-item('Параны: полнота', ['плотный поиск 0,002°'], pa['stats']['found'] + pa['stats']['missing'], {'пропущено': pa['stats']['missing']}, 'parans', 'FAIL',
-     'A-04: пропуск корней в пределах 0,25° от широты незаходимости')
+item('Параны: полнота', ['плотный поиск 0,002°'], pa['stats']['found'] + pa['stats']['missing'], {'пропущено': pa['stats']['missing']}, 'parans', 'OK' if pa['stats']['missing'] == 0 else 'FAIL',
+     'A-04 исправлен' if pa['stats']['missing'] == 0 else 'A-04: пропуск корней в пределах 0,25° от широты незаходимости')
 dy = Li['dynamic']
 item('Транзиты на натальной сетке', ['Swiss Ephemeris', 'Skyfield', 'PyEphem', 'Astropy'], dy['transit']['mc_arcsec']['swe']['n'],
      {k: round(max(dy['transit']['mc_arcsec'][k]['max'], dy['transit']['alt_arcsec'][k]['max']), 1) for k in ('swe', 'sky', 'pe', 'apy')}, 'arcsec', 'OK')
@@ -125,15 +125,17 @@ item('Неподвижные звёзды: долгота на дату', ['Swis
      R['stars']['by_src_arcsec']['swe']['n'], {k: round(v['max'], 1) for k, v in R['stars']['by_src_arcsec'].items()}, 'arcsec', 'FAIL (S4)',
      'A-06: без собственного движения и аберрации; Толиман 1800 — 15,8′, типично 18″')
 item('Эфемериды на месяц', ['Swiss Ephemeris (0h UT)', 'календарь'], R['ephemeris']['lon_vs_swe_ut_arcsec']['n'], {'swe': round(R['ephemeris']['lon_vs_swe_ut_arcsec']['max'], 1)}, 'arcsec',
-     'OK', 'дни месяца верны (вкл. февраль 1900 и 2024); 2100-12 без Хирона и астероидов — A-05')
+     'OK', 'дни месяца верны (вкл. февраль 1900 и 2024); Хирон и астероиды — весь 2100 год (A-05 исправлен, тест qa/unit A-05)')
 T = tz
 item('Часовые пояса: localToUtc, однозначное время', ['ICU напрямую', 'pytz', 'zoneinfo', 'dateutil', 'Wikipedia/timeanddate'], T['local']['unique'],
-     {'≠ ICU >30 с': 0, '≠ zoneinfo >30 с': T['local']['zoneinfo_mismatch_over_30s'], '≠ pytz >30 с': T['local']['pytz_mismatch_over_30s']}, 'cases', 'FAIL',
-     'A-02: 73 зоны с неверной историей до 1970 (данные ICU без backzone); A-03: LMT пояса, а не места')
+     {'≠ ICU >30 с': T['local'].get('icu_direct_mismatch_over_30s', 0), '≠ zoneinfo >30 с': T['local'].get('zoneinfo_mismatch_over_30s', 0), '≠ pytz >30 с': T['local'].get('pytz_mismatch_over_30s', 0)}, 'cases',
+     'OK' if T['local'].get('zoneinfo_mismatch_over_30s', 0) == 0 else 'FAIL',
+     'A-02 исправлен: совпадает с tzdata с backzone (zoneinfo); ICU браузера отличается до 1970 года в 73 поясах — это его ошибка; pytz и dateutil не умеют LMT до 1901. A-03 исправлен: LMT места (проверяет qa/unit A-03)' if T['local'].get('zoneinfo_mismatch_over_30s', 0) == 0 else 'A-02: 73 зоны с неверной историей до 1970 (данные ICU без backzone); A-03: LMT пояса, а не места')
 item('Часовые пояса: несуществующее и двойное время', ['zoneinfo', 'pytz', 'ICU'], T['gap']['n'] + T['fold']['n'],
      {'двойное → второе': T['fold']['site_second'], 'двойное → первое': T['fold']['site_first'], 'пропуск → смещение до перевода': T['gap']['site_eq_zoneinfo_fold0'], 'пропуск → после': T['gap']['site_eq_zoneinfo_fold1']},
-     'cases', 'FAIL (S3)', 'A-08: правило зависит от знака смещения; без предупреждения')
-item('Часовые пояса: tzOffsetMin', ['ICU напрямую', 'zoneinfo', 'pytz', 'dateutil'], T['offsets']['n'], {'≠ ICU >7,5 с': 0, '≠ ICU 0,5–7,5 с': T['offsets']['icu_direct_mismatch']}, 'cases', 'OK (S4)',
-     'A-09: округление до 15 с (LMT)')
+     'cases', 'OK' if T['fold']['site_second'] == 0 and T['gap']['site_eq_zoneinfo_fold1'] == 0 else 'FAIL (S3)',
+     'A-08 исправлен: одно правило — из двух первое, пропуск по смещению до перевода, с подсказкой' if T['fold']['site_second'] == 0 and T['gap']['site_eq_zoneinfo_fold1'] == 0 else 'A-08: правило зависит от знака смещения; без предупреждения')
+item('Часовые пояса: tzOffsetMin', ['ICU напрямую', 'zoneinfo', 'pytz', 'dateutil'], T['offsets']['n'], {'≠ zoneinfo >0,5 с': T['offsets'].get('zoneinfo_mismatch', 0), '≠ ICU (backzone)': T['offsets'].get('icu_direct_mismatch', 0)}, 'cases', 'OK' if T['offsets'].get('zoneinfo_mismatch', 0) == 0 else 'OK (S4)',
+     'A-09 исправлен: смещение до секунды, совпадает с zoneinfo' if T['offsets'].get('zoneinfo_mismatch', 0) == 0 else 'A-09: округление до 15 с (LMT)')
 json.dump(out, open(sys.argv[2], 'w'), ensure_ascii=False, indent=1)
 for it in out['items']: print(it['verdict'], '|', it['calc'], '|', it['max_dev'])

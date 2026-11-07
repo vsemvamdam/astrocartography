@@ -37,9 +37,10 @@ for c in data['days']:
     days = r['days']
     srises = []
     tt = r['newMoon']
-    while True:
+    while tt < r['nextNewMoon']:
         x = R.swe_rise('Moon', tt, lat, lon, True)
-        if x is None or x >= r['nextNewMoon']: break
+        if x is None: tt += R.DAY; continue        # far north the Moon can stay below the horizon for days
+        if x >= r['nextNewMoon']: break
         srises.append(x); tt = x + 0.01 * R.DAY
         if len(srises) > 40: break
     site_r = [d['start'] for d in days[1:]]
