@@ -1,1 +1,5 @@
 node_modules/
+e2e/test-results/
+e2e/results.json
+e2e/axe/
+e2e/live/test-results/

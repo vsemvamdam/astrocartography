@@ -1,0 +1,15 @@
+{
+  "name": "astrosky-qa",
+  "private": true,
+  "description": "Tests of the AstroSky site: Playwright end-to-end tests (e2e/) and checks of the calculators against other sources (verify/).",
+  "scripts": {
+    "e2e": "playwright test -c e2e/playwright.config.js",
+    "e2e:mobile": "playwright test -c e2e/playwright.config.js --project=mobile"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.11.0",
+    "@playwright/test": "1.63.0",
+    "astronomy-engine": "2.1.19",
+    "html2pdf.js": "0.10.3"
+  }
+}

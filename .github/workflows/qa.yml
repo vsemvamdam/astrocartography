@@ -1,5 +1,6 @@
 # QA runs for the site, started by a push to the qa branch that changes qa/JOB.
 # horizons: JPL Horizons reference positions for qa/verify (qa/verify/data/horizons.json).
+# live: smoke test of the published site with the real network (qa/e2e/live), results in qa/e2e/live/results.json.
 name: QA
 
 on:
@@ -29,4 +30,28 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add qa/verify/data && git commit -q -m "QA: JPL Horizons reference positions"
+          for i in 1 2 3 4 5; do git pull -q --rebase origin qa && git push -q origin HEAD:qa && exit 0; sleep $((i * 10)); done; exit 1
+
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the job list
+        id: j
+        run: echo "job=$(cat qa/JOB | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+      - name: Playwright
+        if: contains(steps.j.outputs.job, 'live')
+        working-directory: qa
+        run: npm ci --no-audit --no-fund && npx playwright install --with-deps chromium
+      - name: Live smoke test
+        if: contains(steps.j.outputs.job, 'live')
+        working-directory: qa
+        run: npx playwright test -c e2e/live/playwright.config.js || echo "::warning::live test failed"
+      - name: Save
+        if: contains(steps.j.outputs.job, 'live')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f qa/e2e/live/results.json && git commit -q -m "QA: live smoke test" || exit 0
           for i in 1 2 3 4 5; do git pull -q --rebase origin qa && git push -q origin HEAD:qa && exit 0; sleep $((i * 10)); done; exit 1
