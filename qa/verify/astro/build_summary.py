@@ -104,8 +104,8 @@ item('Аспектные линии (MC и ASC)', ['Swiss Ephemeris', 'Skyfield'
 pa = L('paran_audit.json')
 item('Параны: точность найденных', ['Swiss Ephemeris', 'Skyfield', 'PyEphem', 'Astropy'], Li['parans']['site_n'],
      {k: round(v['median'], 1) for k, v in Li['parans']['dlat_arcsec'].items()}, 'arcsec of latitude (median; max до 22′ в плохо обусловленных случаях)', 'OK')
-item('Параны: полнота', ['плотный поиск 0,002°'], pa['stats']['found'] + pa['stats']['missing'], {'пропущено': pa['stats']['missing']}, 'parans', 'OK' if pa['stats']['missing'] == 0 else 'FAIL',
-     'A-04 исправлен' if pa['stats']['missing'] == 0 else 'A-04: пропуск корней в пределах 0,25° от широты незаходимости')
+item('Параны: полнота', ['плотный поиск 0,002°'], pa['stats']['found'] + pa['stats'].get('missing', 0), {'пропущено': pa['stats'].get('missing', 0)}, 'parans', 'OK' if pa['stats'].get('missing', 0) == 0 else 'FAIL',
+     'A-04 исправлен' if pa['stats'].get('missing', 0) == 0 else 'A-04: пропуск корней в пределах 0,25° от широты незаходимости')
 dy = Li['dynamic']
 item('Транзиты на натальной сетке', ['Swiss Ephemeris', 'Skyfield', 'PyEphem', 'Astropy'], dy['transit']['mc_arcsec']['swe']['n'],
      {k: round(max(dy['transit']['mc_arcsec'][k]['max'], dy['transit']['alt_arcsec'][k]['max']), 1) for k in ('swe', 'sky', 'pe', 'apy')}, 'arcsec', 'OK')

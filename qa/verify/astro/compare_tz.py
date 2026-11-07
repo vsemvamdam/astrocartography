@@ -2,7 +2,17 @@
 own parser) and ICU used directly (Intl 'longOffset', brute-force local->UTC).
 python3 compare_tz.py <tz_cases.json> <tz_site.json> <out.json>"""
 import json, sys, collections, datetime as dt
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo as _ZoneInfo
+import os as _os
+# old names missing from the system tzdata (Ubuntu keeps them in tzdata-legacy) would silently come from the PyPI tzdata
+# package, which has no backzone; resolve them through the link lines of the system tzdata.zi instead
+_ZI = '/usr/share/zoneinfo'
+_LINKS = {}
+if _os.path.exists(_os.path.join(_ZI, 'tzdata.zi')):
+    for _l in open(_os.path.join(_ZI, 'tzdata.zi')):
+        if _l.startswith('L '): _t, _n = _l.split()[1:3]; _LINKS[_n] = _t
+def ZoneInfo(tz):
+    return _ZoneInfo(tz if _os.path.exists(_os.path.join(_ZI, tz)) else _LINKS.get(tz, tz))
 import pytz
 from dateutil import tz as dtz
 
