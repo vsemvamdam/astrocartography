@@ -2137,11 +2137,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <p class="layer-note">Данные второго человека: для синастрии, композита, общей астрокарты и городов для пары.</p>
       <div class="form" id="partnerForm">
         <div class="field wide" id="pSavedBox" hidden><label for="pSaved">Из сохранённых карт</label><select class="inp" id="pSaved"></select></div>
-        <div class="field wide"><label for="pName">Имя</label><input class="inp" type="text" id="pName" placeholder="Например, Маша" autocomplete="off" spellcheck="false" autocapitalize="words"></div>
-        <div class="field"><label for="pDate">Дата</label><input class="inp" type="date" id="pDate" min="1800-01-01" max="2100-12-31"></div>
-        <div class="field"><label for="pTime">Местное время</label><input class="inp" type="time" id="pTime"></div>
+        <div class="field wide"><label for="pName">Имя</label><input class="inp" type="text" id="pName" aria-label="Имя партнёра" placeholder="Например, Маша" autocomplete="off" spellcheck="false" autocapitalize="words"></div>
+        <div class="field"><label for="pDate">Дата</label><input class="inp" type="date" id="pDate" aria-label="Дата рождения партнёра" min="1800-01-01" max="2100-12-31"></div>
+        <div class="field"><label for="pTime">Местное время</label><input class="inp" type="time" id="pTime" aria-label="Местное время рождения партнёра"></div>
         <div class="field wide"><label for="pPlace">Место рождения</label>
-          <div class="place-box"><input class="inp" type="text" id="pPlace" placeholder="Город" spellcheck="false" autocapitalize="words"><ul class="suggest" id="pSuggest" role="listbox" hidden></ul></div>
+          <div class="place-box"><input class="inp" type="text" id="pPlace" aria-label="Место рождения партнёра" placeholder="Город" spellcheck="false" autocapitalize="words"><ul class="suggest" id="pSuggest" role="listbox" hidden></ul></div>
         </div>
         <p class="layer-hint wide-row" id="pStatus"></p>
         <label class="chk for-map wide-row"><input type="checkbox" id="pLines"> Показать линии партнёра на карте (со знаком ²)</label>
