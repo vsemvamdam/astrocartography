@@ -80,10 +80,11 @@ test('F10-E3 биоритмы семьи: добавить людей и ска�
   // as a person does it: type the name, tap the date field, type the date, tap elsewhere
   for (const [name, date] of [['Анна', '1990-05-17'], ['Пётр', '2015-01-09']]) {
     await page.locator('#famAdd').click();
-    await page.getByRole('textbox', { name: 'Имя' }).last().pressSequentially(name);
-    await page.getByLabel('Дата рождения').last().click();
-    await expect(page.getByLabel('Дата рождения').last(), 'поле даты не потеряло фокус').toBeFocused();
-    await page.getByLabel('Дата рождения').last().fill(date);
+    const out = page.locator('#toolOut');
+    await out.getByRole('textbox', { name: 'Имя' }).last().pressSequentially(name);
+    await out.getByLabel('Дата рождения').last().click();
+    await expect(out.getByLabel('Дата рождения').last(), 'поле даты не потеряло фокус').toBeFocused();
+    await out.getByLabel('Дата рождения').last().fill(date);
     await page.getByRole('heading', { name: 'Кто в семье' }).click();
   }
   await expect(page.locator('.fam-birth')).toHaveCount(3);

@@ -176,3 +176,12 @@ test('F02-N1 пустые дата и время — подсказка, без 
   await f.time.fill('');
   await expect(page.locator('#status')).toHaveText(/Укажите время/);
 });
+
+test('F02-E9 поля партнёра называются иначе, чем свои (UI-08)', async ({ page }) => {
+  await open(page, 'map');
+  await form(page);
+  for (const [f, own, partner] of [['Date', 'Дата', 'Дата рождения партнёра'], ['Time', 'Местное время', 'Местное время рождения партнёра'], ['Place', 'Место рождения', 'Место рождения партнёра']]) {
+    await expect(page.locator(`#b${f}`)).toHaveAccessibleName(own);
+    await expect(page.locator(`#p${f}`)).toHaveAccessibleName(partner);
+  }
+});
