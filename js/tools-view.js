@@ -339,31 +339,14 @@
       <div class="nat-scroll"><table class="nat-table cyc-table"><thead><tr><th>Возраст</th><th>Когда</th><th>Веха</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
-  /* Numerology: Pythagorean numbers (Russian and Latin letters), the Chaldean name number as used by Anupam Kapil, and the Pythagoras square */
+  /* Numerology: the Pythagoras square (psychomatrix) of the date of birth */
   function renderNum() {
-    const o = opts(), dob = app.state.date, cy = new Date().getFullYear();
-    const r = C.numerology(o.name || '', dob, cy);
-    const tile = (n, ru, sub) => `<div class="num-tile"><div class="big-num">${n == null ? '—' : n}</div><div><b>${ru}</b>${sub ? `<span class="muted"> ${sub}</span>` : ''}<p>${n == null ? 'Введите имя, чтобы посчитать.' : esc(C.NUM_TEXT[n] || '')}</p></div></div>`;
+    const dob = app.state.date, r = C.numerology('', dob, new Date().getFullYear());
     const digs = (k) => (r.square[k] ? String(k).repeat(r.square[k]) : '—');
     const cell = (k) => `<button type="button" class="psy-c ${r.square[k] ? '' : 'empty'}" data-psy="${k}"><span class="psy-d">${digs(k)}</span><span class="psy-l">${C.SQUARE_TEXT[k]}</span></button>`;
     const [y, m, d] = dob.split('-');
-    const years = [0, 1, 2].map((k) => { const v = C.numerology('', dob, cy + k).personalYear; return `<li><b>${cy + k}</b> <span class="big-mini">${v}</span> ${esc(C.YEAR_TEXT[v])}</li>`; }).join('');
-    return `<form class="tool-ctl" id="numForm" autocomplete="off"><div class="field tool-where"><label for="numName">Имя и фамилия</label><input class="inp" type="text" id="numName" value="${esc(o.name || '')}" placeholder="Например: Анна Иванова" spellcheck="false" autocapitalize="words"></div>
-        <button type="submit" class="pill">Посчитать</button></form>
-      <p class="muted">Дата рождения ${d}.${m}.${y} берётся из натальной карты. Буквы считаются по пифагорейской таблице (для русского алфавита: А, И, С, Ъ = 1; Б, Й, Т, Ы = 2 и так далее). Мастер-числа 11, 22 и 33 не сокращаются.</p>
-      <div class="num-grid">
-        ${tile(r.life, 'Число жизненного пути', 'сумма цифр даты рождения')}
-        ${tile(r.birthday, 'Число дня рождения', `${+d}-е число`)}
-        ${tile(r.expr, 'Число имени (выражения)', 'все буквы')}
-        ${tile(r.soul, 'Число души', 'гласные')}
-        ${tile(r.pers, 'Число личности', 'согласные')}
-      </div>
-      <h4>Халдейское число имени</h4>
-      ${r.chaldean ? `<div class="tool-lead"><div class="big-num">${r.chaldean.single}</div><div><b>${r.chaldean.compound} → ${r.chaldean.single}</b> <span class="muted">(латиницей: ${esc(r.chaldean.latin)})</span><p>${esc(C.NUM_TEXT[r.chaldean.single] || '')}</p></div></div>` : '<p class="muted">Введите имя, чтобы посчитать.</p>'}
-      <p class="muted">Анупам Капил работает с халдейской системой: буквы латиницы получают значения от 1 до 8 по звучанию (девятка не используется), считается то имя, которым человека зовут в жизни. Составное число (до сокращения) в этой школе тоже имеет значение.</p>
-      <h4>Личный год</h4>
-      <ul class="chains num-years">${years}</ul>
-      <h4>Квадрат Пифагора (психоматрица)</h4>
+    return `<h4>Квадрат Пифагора (психоматрица)</h4>
+      <p class="muted">Считается по дате рождения ${d}.${m}.${y} из натальной карты.</p>
       <div class="psy">${[1, 4, 7, 2, 5, 8, 3, 6, 9].map(cell).join('')}</div>
       ${psyHow(r, d, m, y)}
       <h4>Что значит каждая клетка</h4>
@@ -830,12 +813,7 @@
       if (sp) { opts().bioDays = +sp.dataset.n; app.save(); update(); return; }
       if (e.target.closest('#bioReset')) { opts().bioBirth = null; opts().bioDate = null; app.save(); update(); }
     });
-    $('toolOut').addEventListener('submit', (e) => {
-      if (e.target.id === 'bioForm') { e.preventDefault(); return; }
-      if (e.target.id !== 'numForm') return;
-      e.preventDefault();
-      opts().name = $('numName').value.trim().slice(0, 120); app.save(); update();
-    });
+    $('toolOut').addEventListener('submit', (e) => { if (e.target.id === 'bioForm') e.preventDefault(); });
   }
 
   function update() {
