@@ -28,7 +28,6 @@
     { id: 'eph', ru: 'Эфемериды', kind: 'date' },
     { id: 'disp', ru: 'Диспозиторы', kind: 'natal' },
     { id: 'lots', ru: 'Арабские жребии', kind: 'natal' },
-    { id: 'stars', ru: 'Неподвижные звёзды', kind: 'natal' },
     { id: 'deg30', ru: 'Тридцатиградусник', kind: 'natal' },
     { id: 'prof', ru: 'Профекции', kind: 'natal' },
     { id: 'transits', ru: 'Календарь транзитов', kind: 'natal' },
@@ -51,7 +50,7 @@
   let app = null;
   const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
   function opts() {
-    const o = app.state.tools || (app.state.tools = {}), defs = { tool: 'hours', date: null, place: null, classic: false, modern: false, year: null, mars: false, name: '', bioBirth: null, bioDate: null, bioDays: 30, bioMode: 'one', bioFamily: null, bioWho: null, bioFamDate: null };
+    const o = app.state.tools || (app.state.tools = {}), defs = { tool: 'hours', date: null, place: null, classic: false, modern: false, year: null, mars: false, name: '', bioBirth: null, bioDate: null, bioDays: 30, bioMode: 'one', bioFamily: null, bioWho: null, bioFamDate: null, psy2: null };
     for (const k in defs) if (!(k in o)) o[k] = defs[k];
     return o;
   }
@@ -169,17 +168,6 @@
     const nat = natal(), list = F.lots(nat);
     return `<p class="muted">Жребии Павла Александрийского. ${nat.isDay ? 'Карта дневная — формулы дневные.' : 'Карта ночная — слагаемые в формулах меняются местами.'}</p>
       <div class="nat-scroll"><table class="nat-table"><thead><tr><th>Жребий</th><th>Положение</th><th>Дом</th><th>Формула</th><th>Тема</th></tr></thead><tbody>${list.map((l) => `<tr><td class="nm">${esc(l.ru)}</td><td class="ps">${zpos(l.lon)}</td><td class="hs">${RN[l.house]}</td><td class="muted">${esc(l.formula)}</td><td>${esc(l.meaning)}</td></tr>`).join('')}</tbody></table></div>`;
-  }
-
-  function renderStars() {
-    const nat = natal(), pts = nat.points.filter((p) => p.id !== 'SNode').concat(nat.angles);
-    const r = F.starContacts(app.chart.utcMs, pts, 1.5);
-    const contact = r.contacts.length ? r.contacts.map((c) => `<tr><td class="nm">★ ${esc(c.star.ru)}</td><td>${c.point.angle ? `<span class="ang">${c.point.glyph}</span>` : `<span style="color:${c.point.color}">${g(c.point.glyph)}</span>`} ${esc(c.point.ru)}</td><td class="pos">${c.orb.toFixed(2).replace('.', ',')}°</td><td class="muted">${esc(c.star.nature)}</td></tr>`).join('')
-      : '<tr><td colspan="4" class="muted">Соединений с яркими звёздами в пределах 1,5° нет.</td></tr>';
-    const all = r.stars.slice().sort((a, b) => a.lon - b.lon).map((s) => `<tr><td>${esc(s.ru)}</td><td class="ps">${zpos(s.lon)}</td><td class="muted">${esc(s.nature)}</td></tr>`).join('');
-    return `<p class="muted">Соединения планет и углов карты с яркими звёздами, орб до 1,5°. Положения звёзд пересчитаны на дату рождения с учётом прецессии. «Природа» — традиционное сравнение звезды с планетами.</p>
-      <div class="nat-scroll"><table class="nat-table"><thead><tr><th>Звезда</th><th>Точка карты</th><th>Орб</th><th>Природа</th></tr></thead><tbody>${contact}</tbody></table></div>
-      <details class="more"><summary>Все звёзды на дату рождения (${r.stars.length})</summary><div class="nat-scroll"><table class="nat-table"><tbody>${all}</tbody></table></div></details>`;
   }
 
   function renderDeg30() {
@@ -354,7 +342,28 @@
       <div class="psy-reads">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => `<div class="psy-read" id="psyR${k}"><div class="psy-rh"><span class="psy-d${r.square[k] ? '' : ' none'}">${digs(k)}</span><b>${esc(C.SQUARE_READ[k].ru)}</b></div><p class="muted">${esc(C.SQUARE_READ[k].about)}</p><p>${esc(C.squareCell(k, r.square[k]))}</p></div>`).join('')}</div>
       <h4>Строки, столбцы и диагонали</h4>
       <p class="muted">Цифры трёх клеток в линии складываются: до двух — качество выражено слабо, три-четыре — средне, пять и больше — сильно.</p>
-      <ul class="psy-lines">${C.SQUARE_LINES.map((ln) => { const n = ln.cells.reduce((a, k) => a + r.square[k], 0), lv = n <= 2 ? 'low' : n <= 4 ? 'mid' : 'high'; return `<li><div class="psy-lh"><b>${esc(ln.ru)}</b> <span class="muted">${ln.kind} ${ln.cells.join('-')}</span><span class="tag psy-lv ${lv}">${n} · ${lv === 'low' ? 'слабо' : lv === 'mid' ? 'средне' : 'сильно'}</span></div><p>${esc(ln[lv])}</p></li>`; }).join('')}</ul>`;
+      <ul class="psy-lines">${C.SQUARE_LINES.map((ln) => { const n = ln.cells.reduce((a, k) => a + r.square[k], 0), lv = n <= 2 ? 'low' : n <= 4 ? 'mid' : 'high'; return `<li><div class="psy-lh"><b>${esc(ln.ru)}</b> <span class="muted">${ln.kind} ${ln.cells.join('-')}</span><span class="tag psy-lv ${lv}">${n} · ${lv === 'low' ? 'слабо' : lv === 'mid' ? 'средне' : 'сильно'}</span></div><p>${esc(ln[lv])}</p></li>`; }).join('')}</ul>
+      ${psyPair(r)}`;
+  }
+
+  // compatibility of two psychomatrices: your square and the second person's (the partner's date by default)
+  function psyPair(r) {
+    const o = opts(), P = app.state.partner, pDate = P && P.date ? P.date : null;
+    const d2 = o.psy2 || pDate, isPartner = !o.psy2 && !!pDate, who = isPartner ? (P.name || 'Партнёр') : 'Второй человек';
+    const head = `<h4 class="psy-cmp-h">Совместимость двух психоматриц</h4>
+      <p class="muted">Квадраты Пифагора двух людей сравниваются по линиям и клеткам, важным для жизни вместе: темперамент, отношение к семье, привычки, характеры, энергия и чувство долга. ${pDate ? 'По умолчанию берётся дата партнёра из раздела «Совместимость» натальной карты.' : 'Введите дату рождения второго человека.'}</p>
+      <form class="tool-ctl" id="psyForm" autocomplete="off"><div class="field"><label for="psyDate2">Дата рождения второго человека</label><input class="inp" type="date" id="psyDate2" min="1800-01-01" max="2100-12-31" value="${d2 || ''}"></div>
+        <button type="submit" class="pill">Сравнить</button>${pDate && o.psy2 ? `<button type="button" class="pill" id="psyPartner">Дата партнёра: ${esc(P.name || '')}</button>` : ''}</form>`;
+    if (!d2) return head;
+    const r2 = C.numerology('', d2, new Date().getFullYear()), cmp = C.psyCompat(r.square, r2.square);
+    const fmt = (iso) => iso.split('-').reverse().join('.');
+    const mini = (sq, title) => `<figure class="psy-fig"><div class="psy psy-mini">${[1, 4, 7, 2, 5, 8, 3, 6, 9].map((k) => `<span class="psy-c ${sq[k] ? '' : 'empty'}"><span class="psy-d">${sq[k] ? String(k).repeat(sq[k]) : '—'}</span></span>`).join('')}</div><figcaption>${title}</figcaption></figure>`;
+    const tag = (x) => (x.s >= 0.8 ? ['high', 'хорошо'] : x.s >= 0.5 ? ['mid', 'средне'] : ['low', 'трудно']);
+    return `${head}
+      <div class="psy-pair">${mini(r.square, `Вы · ${fmt(app.state.date)}`)}${mini(r2.square, `${esc(who)} · ${fmt(d2)}`)}</div>
+      <div class="tool-lead"><div class="big-num">${cmp.score}%</div><div><b>Совместимость: ${cmp.label}</b><p class="muted">${esc(cmp.summary)}</p></div></div>
+      <ul class="psy-lines psy-cmp">${cmp.items.map((x) => { const [cls, t] = tag(x); return `<li><div class="psy-lh"><b>${esc(x.head)}</b> <span class="muted">вы ${x.a} · ${esc(who.toLowerCase() === 'второй человек' ? 'второй' : who)} ${x.b}</span><span class="tag psy-lv ${cls}">${t}</span></div><p>${esc(x.text)}</p></li>`; }).join('')}</ul>
+      <p class="muted">Числа — количество цифр в клетке или в линии из трёх клеток. Важнее всего совпадение темперамента (разница не больше одной цифры), отношения к семье и к быту; общий процент — ориентир, а не приговор.</p>`;
   }
 
 
@@ -744,7 +753,7 @@
     }
   }
 
-  const RENDER = { bio: renderBio, hours: renderHours, voc: renderVoc, lunar: renderLunar, eph: renderEph, disp: renderDisp, lots: renderLots, stars: renderStars, deg30: renderDeg30, prof: renderProf, transits: renderTransits, cycles: renderCycles, num: renderNum };
+  const RENDER = { bio: renderBio, hours: renderHours, voc: renderVoc, lunar: renderLunar, eph: renderEph, disp: renderDisp, lots: renderLots, deg30: renderDeg30, prof: renderProf, transits: renderTransits, cycles: renderCycles, num: renderNum };
 
   /* ------------------------------- controls ------------------------------- */
   // biorhythms: show the reading of one critical day (from a date chip or a row of the table)
@@ -805,6 +814,7 @@
       if (e.target.closest('#bioBack')) { const o = opts(); o.bioMode = 'family'; o.bioBirth = null; o.bioDate = o.bioFamDate || null; o.bioWho = null; app.save(); update(); return; }
       const pdf = e.target.closest('#famPdf');
       if (pdf) { famPdf(pdf); return; }
+      if (e.target.closest('#psyPartner')) { opts().psy2 = null; app.save(); update(); return; }
       const psy = e.target.closest('[data-psy]');
       if (psy) { const c = $(`psyR${psy.dataset.psy}`); if (c) { c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); } return; }
       const pk = e.target.closest('[data-bio-pick]');
@@ -813,7 +823,13 @@
       if (sp) { opts().bioDays = +sp.dataset.n; app.save(); update(); return; }
       if (e.target.closest('#bioReset')) { opts().bioBirth = null; opts().bioDate = null; app.save(); update(); }
     });
-    $('toolOut').addEventListener('submit', (e) => { if (e.target.id === 'bioForm') e.preventDefault(); });
+    $('toolOut').addEventListener('submit', (e) => {
+      if (e.target.id === 'bioForm') { e.preventDefault(); return; }
+      if (e.target.id !== 'psyForm') return;
+      e.preventDefault();
+      const v = $('psyDate2').value;
+      opts().psy2 = /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null; app.save(); update();
+    });
   }
 
   function update() {
