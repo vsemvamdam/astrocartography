@@ -820,8 +820,12 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .two-col { display: grid; gap: 8px 24px; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 640px) { .two-col { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 .tool-out .nat-table tr.on td { background: rgba(217,181,110,.12); }
-.tool-out td.lsg { white-space: nowrap; font-family: var(--f-glyph); font-size: 16px; }
-.tool-out td.lsg .arr { margin: 0 3px; color: var(--faint); font-family: var(--f-body); font-size: 12px; }
+.tool-out td.lsg { font-size: 13.5px; }
+.tool-out td.lsg .sg { font-family: var(--f-glyph); font-size: 16px; }
+.tool-out td.lsg .arr { margin: 0 6px; color: var(--faint); font-size: 12px; }
+.tool-out td.lsg small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+.tool-out td.lper { white-space: nowrap; font-size: 13px; line-height: 1.5; }
+.lun-days td.hs { font-size: 15px; font-weight: 600; }
 .chains { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
 .chains li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 9px 2px; border-bottom: 1px solid var(--rule); font-size: 13.5px; }
 .chains li > span:not(.arr):not(.cn):not(.tag):not(.muted) { font-family: var(--f-glyph); font-size: 17px; }

@@ -13,6 +13,7 @@
   const MONTHS_FULL = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
   const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
   const WD = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+  const EL_COLOR = ['var(--el-fire)', 'var(--el-earth)', 'var(--el-air)', 'var(--el-water)'];
   const WD_FULL = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
   const BODY = Object.fromEntries(ACG.BODIES.map((b) => [b.id, b]));
   const ASP_RU = { 0: 'соединение', 60: 'секстиль', 90: 'квадрат', 120: 'трин', 180: 'оппозиция' };
@@ -122,8 +123,15 @@
     const at = today ? Date.now() : ACG.localToUtc(y, m, d, 12, 0, P.tz).utc;
     const r = F.lunarDays(at, P);
     const signOf = (t) => Math.floor(n360(C.lonOf('Moon', t)) / 30);
-    const sgShort = (t0, t1) => { const a = signOf(t0), b = signOf(t1); const one = (s) => `<span class="sg" title="${ACG.SIGNS[s][1]}">${g(ACG.SIGNS[s][0])}</span>`; return a === b ? one(a) : `${one(a)}<span class="arr">→</span>${one(b)}`; };
-    const rows = r.days.map((x) => `<tr class="${at >= x.start && at < x.end ? 'on' : ''}"><td class="hs">${x.n}</td><td class="pos">${tLocal(x.start, P.tz, true)}</td><td class="pos">${tLocal(x.end, P.tz, true)}</td><td class="lsg">${sgShort(x.start, x.end - 60000)}</td></tr>`).join('');
+    const sgName = (s) => `<span class="sg" style="color:${EL_COLOR[s % 4]}">${g(ACG.SIGNS[s][0])}</span> ${ACG.SIGNS[s][1]}`;
+    // the Moon's sign in words; when it changes sign during the lunar day, both signs and the moment of the change
+    const sgCell = (x) => {
+      const a = signOf(x.start), b = signOf(x.end - 60000);
+      if (a === b) return sgName(a);
+      const t = moonIngress(x.start, 1);
+      return `${sgName(a)}<span class="arr">→</span>${sgName(b)}<small>смена знака: ${tLocal(t, P.tz, true)}</small>`;
+    };
+    const rows = r.days.map((x) => `<tr class="${at >= x.start && at < x.end ? 'on' : ''}"><td class="hs">${x.n}</td><td class="lsg">${sgCell(x)}</td><td class="pos lper">с ${tLocal(x.start, P.tz, true)}<br>по ${tLocal(x.end, P.tz, true)}</td></tr>`).join('');
     const cur = r.days.find((x) => at >= x.start && at < x.end);
     const mLon = C.lonOf('Moon', at), ms = Math.floor(n360(mLon) / 30), z = ACG.formatZodiac(mLon), ph = moonPhase(at);
     const entered = moonIngress(at, -1), leaves = moonIngress(at, 1), next = (ms + 1) % 12;
@@ -131,7 +139,7 @@
       <p class="muted">Первый лунный день начинается в момент новолуния (${tLocal(r.newMoon, P.tz, true)}), каждый следующий — с восходом Луны. Следующее новолуние: ${tLocal(r.nextNewMoon, P.tz, true)}.</p></div></div>
       <div class="tool-lead"><div class="big-glyph" style="color:${BODY.Moon.color}">${g(ACG.SIGNS[ms][0])}</div><div><b>Луна в ${SIGN_LOC[ms]}, ${z.deg}°${pad(z.min)}′</b>
       <p class="muted">${today ? `Сейчас, ${tLocal(at, P.tz)}` : 'В полдень'}: ${ph.name}, освещено ${ph.lit}%. В знаке с ${tLocal(entered, P.tz, true)}, перейдёт в ${SIGN_ACC[next]} ${g(ACG.SIGNS[next][0])} ${tLocal(leaves, P.tz, true)}.</p></div></div>
-      <div class="nat-scroll"><table class="nat-table"><thead><tr><th>День</th><th>Начало</th><th>Конец</th><th>Знак</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      <div class="nat-scroll"><table class="nat-table lun-days"><thead><tr><th>Лунный день</th><th>Знак Луны</th><th>Период</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
   function renderEph() {
