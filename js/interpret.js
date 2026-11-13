@@ -8,7 +8,7 @@
   const RN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
   const ORDER = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
   const SLOW3 = new Set(['Uranus', 'Neptune', 'Pluto']);
-  const cap = (s) => s[0].toUpperCase() + s.slice(1);
+  const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : '');
 
   /* ----------------------------------- banks ---------------------------------- */
   const HOUSE = [null,
@@ -214,43 +214,275 @@
     return out;
   }
 
-  /* lun: the lunar return chart (computeNatal), base: the natal chart */
-  function lunar(lun, base) {
-    const P = (id) => lun.points.find((p) => p.id === id);
+  /* ------------------ the lunar return after Konstantin Daragan ------------------ */
+  // Daragan reads every return the same way: the return chart is the cause, the natal chart shows the
+  // consequences. The first house is the face of the period, the tenth its achievements; planets in houses
+  // take simplified meanings; angular houses act in full, cadent ones weakly; the leading aspect is the
+  // tightest major aspect to the returning point (the Moon); the return's ASC and MC are read by the natal
+  // houses they fall into, with their rulers; return planets conjunct natal points (within 2°) mark what
+  // the month leaves behind. Houses: Placidus.
+  const ANG_H = new Set([1, 4, 7, 10]), SUCC_H = new Set([2, 5, 8, 11]);
+  const MALEF = new Set(['Mars', 'Saturn', 'Uranus', 'Pluto']), BENEF = new Set(['Venus', 'Jupiter']);
+  const INSTR = { Sun: 'Солнцем', Moon: 'Луной', Mercury: 'Меркурием', Venus: 'Венерой', Mars: 'Марсом', Jupiter: 'Юпитером', Saturn: 'Сатурном', Uranus: 'Ураном', Neptune: 'Нептуном', Pluto: 'Плутоном', Lilith: 'Лилит' };
+  const LOC_NAT = { Sun: 'натальном Солнце', Moon: 'натальной Луне', Mercury: 'натальном Меркурии', Venus: 'натальной Венере', Mars: 'натальном Марсе', Jupiter: 'натальном Юпитере', Saturn: 'натальном Сатурне', Uranus: 'натальном Уране', Neptune: 'натальном Нептуне', Pluto: 'натальном Плутоне', ASC: 'натальном Асценденте', MC: 'натальном MC' };
+  const ACC_NAT = { Sun: 'натальное Солнце', Moon: 'натальную Луну', Mercury: 'натальный Меркурий', Venus: 'натальную Венеру', Mars: 'натальный Марс', Jupiter: 'натальный Юпитер', Saturn: 'натальный Сатурн', Uranus: 'натальный Уран', Neptune: 'натальный Нептун', Pluto: 'натальный Плутон', ASC: 'натальный Асцендент', MC: 'натальный MC' };
+  const NAT_THEME = { Sun: 'воля, самооценка, жизненные силы', Moon: 'чувства, дом, тело и близкие', Mercury: 'мысли, учёба, связи и бумаги', Venus: 'любовь, деньги и удовольствия',
+    Mars: 'энергия, работа, борьба', Jupiter: 'рост, удача, взгляды', Saturn: 'обязанности, сроки, ограничения', Uranus: 'свобода и перемены', Neptune: 'мечты, интуиция, творчество',
+    Pluto: 'власть, кризисы, глубокие перемены', ASC: 'вы сами, ваше самочувствие и поведение', MC: 'карьера, цели и положение' };
+  // Daragan's simplified meaning of a planet in a house of a return
+  const KEY = {
+    Sun: 'Солнце — самосознание: через эту сферу вы смотрите на весь месяц. Оно показывает не сами события, а то, как вы их воспринимаете.',
+    Moon: 'Луна — эмоциональная потребность: сфера, к которой вы неравнодушны, которая будет беспокоить и где чаще всего что-то меняется.',
+    Mercury: 'Меркурий — контакты и переговоры: об этом больше всего будут говорить и писать.',
+    Venus: 'Венера — удовольствие: здесь приятно и легко, отсюда приходят радость, симпатии и деньги.',
+    Mars: 'Марс — споры, нервы, конфликты: сюда уходит больше всего энергии.',
+    Jupiter: 'Юпитер — расширение: здесь становится больше и лучше.',
+    Saturn: 'Сатурн — ограничение: здесь придётся терпеть обстоятельства, от чего-то отказаться или что-то потерять.',
+    Uranus: 'Уран — неожиданности: здесь возможны внезапные перемены.',
+    Neptune: 'Нептун — иллюзии: здесь легко не понимать, что на самом деле происходит.',
+    Pluto: 'Плутон — то, что вне вашего контроля; при напряжённых аспектах — разрушительные обстоятельства.',
+  };
+  const POWER = (h) => (ANG_H.has(h) ? 'Угловой дом — планета проявится в полную силу.'
+    : SUCC_H.has(h) ? 'Последующий дом — проявление заметное, но без крайностей.'
+      : 'Падающий дом — проявление слабое: хорошего будет немного, но и плохого тоже.');
+  const LUN_ASC_SIGN = [
+    'Лицо месяца — напор и самостоятельность. Хочется действовать быстро и по-своему, начинать новое и отстаивать свои интересы. Терпения меньше, спешки больше: остерегайтесь горячности и мелких травм.',
+    'Месяц устойчивости и практичности: тянет к комфорту, вкусной еде, вещам и деньгам. Всё идёт медленнее, зато надёжнее — хорошо закреплять достигнутое. Главная ловушка — упрямство.',
+    'Подвижный, разговорчивый месяц: много контактов, новостей, поездок и переписки, планы меняются на ходу. Хорошо учиться и договариваться, трудно сосредоточиться на одном.',
+    'Чувствительный, домашний месяц: на первом месте семья, дом, близкие и собственное настроение. Хочется защищённости и заботы; обиды переживаются острее обычного.',
+    'Яркий месяц: хочется быть заметным, творить, любить и получать признание. Хорошо проявлять себя и брать руководство на себя; осторожнее с гордостью.',
+    'Деловой, рабочий месяц: много мелких дел, порядок, здоровье, режим. Хорошо разбирать завалы и доводить детали; минус — тревожность и придирчивость.',
+    'Месяц отношений и равновесия: важны партнёры, договоры, красота и мнение других. Хорошо мириться и заключать соглашения, трудно решать в одиночку.',
+    'Интенсивный месяц: сильные эмоции, скрытые процессы, вопросы общих денег и власти. Что-то заканчивается, чтобы освободить место новому; не стоит давить и подозревать.',
+    'Месяц расширения: поездки, учёба, новые идеи, оптимизм. Хочется большего и дальше — важно не обещать лишнего.',
+    'Серьёзный месяц: цели, ответственность, работа, медленный, но прочный результат. Эмоции сдержаннее, усталости больше; помогает план.',
+    'Месяц перемен и свободы: новые люди и идеи, неожиданные повороты, общение в группах. Хорошо пробовать новое; старые договорённости могут меняться.',
+    'Мягкий, неясный месяц: интуиция, творчество, сочувствие, потребность в отдыхе. Легко устать и поддаться настроению; важно не терять опору и проверять факты.'];
+  const ASC_NAT = [null,
+    'Месяц о вас лично: самочувствие, внешность, новые начинания. Как он пройдёт, во многом решают ваши собственные поступки.',
+    'В центре месяца деньги: доходы, покупки, имущество и то, что вы цените. Вы лично заняты финансовыми вопросами.',
+    'Месяц разговоров, переписки, учёбы и поездок; заметны родственники и соседи. Много информации и мелких дел.',
+    'Главные события — дома и в семье: родители, жильё, ремонт, возможно переезд или дела с недвижимостью.',
+    'Месяц личной радости: любовь, дети, творчество, отдых и развлечения.',
+    'Месяц трудов и заботы о себе: работа, обязанности, бытовые дела, здоровье и режим.',
+    'Многое решается через других людей: партнёр, брак, договоры, открытые соперники.',
+    'Месяц глубоких процессов: общие и чужие деньги, кредиты, налоги, близость, кризисы, которые обновляют.',
+    'Месяц расширения горизонтов: дальние поездки, учёба, заграница, документы, взгляды.',
+    'Вы на виду: карьера, статус, цели, отношения с руководством. Месяц работает на результат.',
+    'Месяц связей: друзья, единомышленники, покровители, планы на будущее.',
+    'Месяц тишины: уединение, отдых, восстановление, дела за кулисами. Лучше действовать тихо и не перегружаться.'];
+  const MC_NAT = [null,
+    'Цель месяца — вы сами; по Дарагану это благоприятное положение. Достижения связаны с личной инициативой, внешностью, самочувствием и новыми начинаниями.',
+    'Цель месяца — деньги и материальное: результат измеряется доходом, покупками, укреплением финансов.',
+    'Цель месяца — учёба, переговоры, документы и связи: результат — договорённость, сданный экзамен, удачная поездка.',
+    'Акцент на доме и семье. По Дарагану это часто месяц завершения какого-то дела, особенно при напряжённых аспектах к натальным углам. Хорошо заниматься жильём и близкими.',
+    'Цель месяца — любовь, дети, творчество и удовольствия: результат — в том, что приносит радость.',
+    'Цель месяца — работа и здоровье: результат даёт регулярный труд, порядок и режим.',
+    'Цель месяца — партнёрство: договор, союз, сотрудничество; достижения приходят через других людей.',
+    'Цель месяца — общие деньги и перемены: кредит, сделка, наследство, избавление от старого.',
+    'Цель месяца — расширение: поездка, обучение, заграница, юридические вопросы.',
+    'Цель месяца совпадает с карьерой: сильное положение для профессиональных достижений и признания.',
+    'Цели месяца — в кругу друзей и единомышленников, в планах на будущее; помогают покровители.',
+    'Цели скрыты от глаз: работа за кулисами, завершение старого, восстановление. Громкого результата ждать не стоит.'];
+  // the Moon's aspects: conjunction, harmonious (sextile, trine), tense (square, opposition)
+  const MOON_ASP = {
+    Sun: { conj: 'Новолуние в лунаре: месяц нового старта. Чувства и цели совпадают, хочется начать своё, и многое действительно зависит от вас.',
+      soft: 'Воля и чувства в согласии: легко понять, чего хочется, и добиться этого без внутренней борьбы. Хорошие отношения с близкими и с теми, кто старше по положению.',
+      hard: 'Хочется одного, а обстоятельства требуют другого: внутренний конфликт между желаниями и долгом, напряжение с близкими или руководством. Решения даются через усилие.',
+      opp: 'Полнолуние в лунаре: месяц кульминации. Эмоции на пике, многое становится явным, отношения с другими людьми выходят на первый план; важно не рубить с плеча.' },
+    Mercury: { conj: 'Месяц мыслей и разговоров о личном: много звонков, переписки, новостей, мелких поездок. Чувства легко выразить словами.',
+      soft: 'Легко договариваться и объяснять, что вы чувствуете. Удачны бумаги, учёба, короткие поездки, разговоры с родными.',
+      hard: 'Нервозность и суета: эмоции мешают ясно думать, легко сказать лишнее или понять не так. Перепроверяйте документы и не решайте важное на эмоциях.' },
+    Venus: { conj: 'Месяц нежности и удовольствий: хочется красоты, уюта, любви и приятных покупок. Отношения теплеют.',
+      soft: 'Тёплый эмоциональный фон: симпатии, примирения, приятные встречи, с деньгами легче. Хорошо для свиданий, красоты и отдыха.',
+      hard: 'Хочется удовольствий больше, чем позволяют обстоятельства: лишние траты, обиды в любви, ревность или капризы. Не «заедайте» и не «закупайте» плохое настроение.' },
+    Mars: { conj: 'Горячие эмоции: много энергии и импульсивности, быстрые решения. Хорошо для активных дел и спорта, но легко вспылить.',
+      soft: 'Энергия и чувства заодно: смелость, инициатива, желание действовать. Удачно для спорта, ремонта, решительных шагов.',
+      hard: 'Раздражительность и конфликты: ссоры с близкими, спешка, риск травм и перегрева. Главный сигнал месяца — беречь нервы и не провоцировать споры.' },
+    Jupiter: { conj: 'Душевный подъём: щедрость, оптимизм, ощущение удачи. Хорошо расширяться — поездки, учёба, семья, новые возможности.',
+      soft: 'Удача и поддержка: помогают люди, планы растут, настроение хорошее. Один из лучших ведущих аспектов для лунара.',
+      hard: 'Хочется большего, чем нужно: переоценка сил, лишние траты и обещания. Возможности есть, но важно знать меру.' },
+    Saturn: { conj: 'Серьёзный, сдержанный месяц: обязанностей больше, радости меньше, возможны усталость и одиночество. Зато хорошо для дисциплины и долгих дел.',
+      soft: 'Чувства под контролем: спокойствие, надёжность, умение довести дело до конца. Хорошо для серьёзных решений и обязательств.',
+      hard: 'Тяжёлый эмоциональный фон: ограничения, задержки, чувство долга вместо радости, холод в отношениях, возможны потери в сферах Луны и Сатурна. Терпение и порядок помогают пройти месяц без последствий.' },
+    Uranus: { conj: 'Месяц неожиданностей: резкие перемены настроения и планов, внезапные новости, тяга к свободе.',
+      soft: 'Приятные неожиданности: новые люди, свежие идеи, лёгкие перемены. Хорошо пробовать новое.',
+      hard: 'Нервный, непредсказуемый месяц: внезапные срывы планов, разрывы, спонтанные решения, о которых потом жалеют. Держите запасной вариант и не рискуйте.' },
+    Neptune: { conj: 'Тонкий, мечтательный месяц: интуиция и чувствительность обостряются, но реальность расплывается. Хорошо для творчества и отдыха, плохо для точных расчётов.',
+      soft: 'Вдохновение и сочувствие: хорошо для творчества, духовных практик, помощи другим и романтики.',
+      hard: 'Туман и самообман: недопонимание, нечёткие обещания, риск обмана, упадок сил и тревожность. Проверяйте факты и ничего не подписывайте на веру.' },
+    Pluto: { conj: 'Сильные, глубокие переживания: ситуации, которые меняют вас изнутри. Эмоции трудно контролировать.',
+      soft: 'Внутренняя сила: умение влиять на ситуацию, глубокие разговоры, полезные перемены и обновление.',
+      hard: 'Давление и кризисы: борьба за контроль, ревность, обстоятельства, которые от вас не зависят. Месяц требует отпустить то, что уже не удержать.' },
+    Lilith: { conj: 'Искушения и тёмные стороны чувств: соблазн поступить некорректно, рядом могут оказаться нечестные люди.',
+      soft: 'Интуиция подсказывает, где подвох: легче распознать чужую нечестность и собственные слабости.',
+      hard: 'Искушения и провокации: тянет на поступки, о которых потом жалеют; осторожнее с сомнительными людьми и предложениями.' },
+  };
+  const KEY_SHORT = { Sun: 'самосознание', Mercury: 'контакты и переговоры', Venus: 'удовольствие', Mars: 'энергия и споры', Jupiter: 'расширение', Saturn: 'ограничение', Uranus: 'неожиданности', Neptune: 'иллюзии', Pluto: 'то, что вне контроля' };
+  const FEM = new Set(['Moon', 'Venus', 'Lilith']);
+  const aspKind = (x) => (x.asp.a === 0 ? 'conj' : x.asp.kind === 'soft' ? 'soft' : 'hard');
+  const orbTxt = (o) => `${o.toFixed(1).replace('.', ',')}°`;
+  const applyTxt = (x) => (x.applying == null ? '' : x.applying ? ' Аспект сходящийся: его тема ещё набирает силу.' : ' Аспект расходящийся: тема уже проявилась и к концу месяца ослабевает.');
+  const ANGLE_LUN = {
+    ASC: ['на Асценденте', 'Событие коснётся вас лично — самочувствия, поведения, внешности.'],
+    MC: ['на MC', 'Событие будет на виду: работа, цели, положение.'],
+    DSC: ['на Десценденте', 'Событие придёт через других людей: партнёров, договоры, соперников.'],
+    IC: ['на IC', 'Событие коснётся дома, семьи, жилья; нередко это завершение какого-то дела.'],
+  };
+  const DIGN_TXT = {
+    dom: 'В обители планета сильна: эта линия месяца даст ясный, полноценный результат.',
+    exalt: 'В экзальтации планета сильна и щедра: события по этой линии запомнятся как удачные.',
+    det: 'В изгнании планета ослаблена: в этой сфере придётся действовать в неудобных условиях, результат может оказаться меньше ожиданий.',
+    fall: 'В падении планета слаба: здесь легко ошибиться в оценке своих сил.',
+  };
+  // a point's major aspects up to `orb`, as a phrase and a balance of help and hindrance
+  function aspSummary(id, ch, orb) {
+    const list = ch.aspects.filter((x) => x.asp.major && x.orb <= orb && (x.A.id === id || x.B.id === id)).map((x) => ({ x, o: x.A.id === id ? x.B : x.A })).filter((t) => INSTR[t.o.id]);
+    let help = 0, harm = 0;
+    for (const { x, o } of list) {
+      const k = aspKind(x);
+      if (BENEF.has(o.id)) { if (k === 'hard') harm += 0.5; else help += 1; }
+      else if (MALEF.has(o.id)) { if (k === 'soft') help += 0.5; else harm += 1; }
+      else if (k === 'soft') help += 0.5; else if (k === 'hard') harm += 0.5;
+    }
+    return { text: list.map(({ x, o }) => `${x.asp.ru.toLowerCase()} с ${INSTR[o.id]} (${orbTxt(x.orb)})`).join(', '), help, harm };
+  }
+  // what a ruler of the return's ASC or MC says: lunar house, natal house, sign, aspects
+  function rulerText(p, lun, base, role) {
+    const nh = root.NATAL.houseOf(p.lon, base.cusps);
+    const s = [];
+    s.push(role === 'ASC' ? `Управитель Асцендента — хозяин всего месяца: его положение объясняет, почему месяц будет именно таким.` : `Управитель MC показывает, через что достигаются цели месяца.`);
+    s.push(`${p.ru} стоит в ${RN[p.house]} доме лунара: ${HOUSE[p.house]}. ${KEY[p.id] ? KEY[p.id] : ''}`);
+    s.push(`В натальной карте ${FEM.has(p.id) ? 'она попадает' : 'он попадает'} в ваш ${RN[nh]} дом (${HOUSE[nh]}) — там отзовутся события.`);
+    for (const d of p.dign || []) if (DIGN_TXT[d.k]) s.push(DIGN_TXT[d.k]);
+    if (!(p.dign || []).length) s.push('Особых достоинств по знаку нет: многое решают его аспекты.');
+    if (p.retro && p.id !== 'Sun' && p.id !== 'Moon') s.push('Ретроградный: возвращение к старым делам, пересмотр, задержки.');
+    const a = aspSummary(p.id, lun, 5);
+    if (a.text) s.push(`Аспекты: ${a.text}. ${a.help - a.harm >= 1 ? 'Есть поддержка — события с ним запомнятся скорее хорошими.' : a.harm - a.help >= 1 ? 'Есть препятствия — по этой линии месяц потребует усилий.' : 'Поддержка и препятствия уравновешены.'}`);
+    return s.join(' ');
+  }
+  // return points conjunct natal points (orb `orb`): Daragan's "projection" of the return onto the natal chart
+  function crossConj(lun, base, orb) {
     const out = [];
-    const sun = P('Sun'), moon = P('Moon'), ascSign = Math.floor(n360(lun.asc) / 30), ascNat = root.NATAL.houseOf(lun.asc, base.cusps);
+    const natPts = ORDER.map((id) => base.points.find((p) => p.id === id)).filter(Boolean).concat([{ id: 'ASC', ru: 'Асцендент', lon: base.asc }, { id: 'MC', ru: 'MC', lon: base.mc }]);
+    const lunPts = ORDER.filter((id) => id !== 'Moon').map((id) => lun.points.find((p) => p.id === id)).filter(Boolean).concat([{ id: 'ASC', ru: 'ASC лунара', lon: lun.asc, angle: true }, { id: 'MC', ru: 'MC лунара', lon: lun.mc, angle: true }]);
+    for (const L of lunPts) for (const Nn of natPts) {
+      if (L.angle && (Nn.id === 'ASC' || Nn.id === 'MC')) continue;
+      if (SLOW3.has(L.id) && SLOW3.has(Nn.id)) continue;   // generational, the same for everyone born in those years
+      const d = Math.abs(((L.lon - Nn.lon + 540) % 360) - 180);
+      if (d <= orb) out.push({ L, Nn, d, nh: root.NATAL.houseOf(Nn.lon, base.cusps) });
+    }
+    return out.sort((a, b) => a.d - b.d);
+  }
+  // the month's tone: the lunar itself (the cause) and how hard it touches the natal chart (the consequences)
+  function lunarTone(moonAsp, ang, cross) {
+    let s = 0;
+    const plus = [], minus = [];
+    for (const m of moonAsp) {
+      const o = m.other.id, k = aspKind(m.x), w = m.x.orb <= 2 ? 1.5 : 1;
+      if (BENEF.has(o)) { if (k === 'hard') s -= 0.3; else { s += 1.5 * w; plus.push(m.head); } }
+      else if (MALEF.has(o) || o === 'Neptune') { if (k === 'soft') s += 0.5; else { s -= 1.5 * w; minus.push(m.head); } }
+      else if (k === 'hard') { s -= w; minus.push(m.head); } else if (k === 'soft') { s += w; plus.push(m.head); }
+    }
+    for (const a of ang) {
+      if (BENEF.has(a.p.id)) { s += 1; plus.push(`${a.p.ru} ${ANGLE_LUN[a.k][0]}`); }
+      if (MALEF.has(a.p.id)) { s -= 1; minus.push(`${a.p.ru} ${ANGLE_LUN[a.k][0]}`); }
+    }
+    const heavy = cross.filter((c) => MALEF.has(c.L.id) || (c.L.angle && MALEF.has(c.Nn.id)));
+    // Uranus, Neptune and Pluto stay on a natal point for many months: a transit in the background, not this month's own event
+    const kind = s >= 1.5 ? 'soft' : s <= -1.5 ? 'hard' : 'mixed';
+    const label = { soft: 'гармоничный', hard: 'напряжённый', mixed: 'смешанный' }[kind];
+    let text = kind === 'hard' ? (heavy.length ? 'Месяц напряжённый, и он задевает натальную карту: события могут иметь последствия. Не принимайте необратимых решений сгоряча и берегите сферы, о которых говорят контакты с наталом ниже.'
+      : 'Месяц эмоционально насыщенный и нервный, но натальную карту почти не задевает. По Дарагану это значит: переживаний много, серьёзных последствий мало.')
+      : kind === 'soft' ? (heavy.length ? 'Месяц пройдёт легко и приятно, но лунар задевает натальную карту: последствия могут вспоминаться иначе, чем сам месяц. Не расслабляйтесь в сферах, о которых говорят контакты с наталом ниже.'
+        : 'Гармоничный месяц без острых последствий: хорошее время, чтобы строить планы и пользоваться возможностями.')
+        : (heavy.length ? 'Месяц ровный, без явного перевеса хорошего или трудного, но лунар задевает натальную карту: главное в месяце — контакты с наталом ниже.'
+          : 'Месяц ровный: ни сильной поддержки, ни сильного напряжения. Многое зависит от ваших решений.');
+    const why = [];
+    if (plus.length) why.push(`помогают: ${plus.slice(0, 3).join(', ')}`);
+    if (minus.length) why.push(`напрягают: ${minus.slice(0, 3).join(', ')}`);
+    if (heavy.length) why.push(`задевают натал: ${heavy.slice(0, 3).map((c) => `${c.L.angle ? c.L.ru : c.L.ru + ' лунара'} на ${LOC_NAT[c.Nn.id]}`).join(', ')}`);
+    return { kind, label, text: `${text}${why.length ? ` ${cap(why.join('; '))}.` : ''} Лунар — причина, натал — следствия: напряжённый лунар без контактов с наталом даёт тяжёлый, но безопасный месяц, а гармоничный лунар с болезненной проекцией — приятный месяц с ощутимыми последствиями.` };
+  }
+
+  /* lun: the lunar return chart (computeNatal, Placidus), base: the natal chart (Placidus) */
+  function lunar(lun, base) {
+    const P = (id) => lun.points.find((p) => p.id === id), NH = (lon) => root.NATAL.houseOf(lon, base.cusps);
+    const out = [];
+    const sun = P('Sun'), moon = P('Moon'), ascSign = Math.floor(n360(lun.asc) / 30), mcSign = Math.floor(n360(lun.mc) / 30);
+    const ascNat = NH(lun.asc), mcNat = NH(lun.mc);
     const ph = PHASE_LUNAR[Math.floor(n360(moon.lon - sun.lon) / 45) % 8];
+    // the Moon's aspects; the tightest one to a planet is the leading aspect
+    const moonAsp = lun.aspects.filter((x) => x.asp.major && (x.A.id === 'Moon' || x.B.id === 'Moon')).map((x) => {
+      const other = x.A.id === 'Moon' ? x.B : x.A, bank = MOON_ASP[other.id];
+      if (!bank) return null;
+      const k = aspKind(x), text = (other.id === 'Sun' && x.asp.a === 180 ? bank.opp : bank[k]);
+      return { x, other, head: `Луна ${x.asp.ru.toLowerCase()} ${other.ru}`, text };
+    }).filter(Boolean).sort((a, b) => a.x.orb - b.x.orb);
+    const lead = moonAsp.find((m) => m.other.id !== 'Lilith' && m.x.orb <= 6);
+    const ang = lun.points.filter((p) => (p.planet || p.id === 'Node') && p.id !== 'Moon').map((p) => {
+      const a = angleOrb(p, lun);
+      return a ? { p, k: a.k, d: a.d } : null;
+    }).filter(Boolean).sort((a, b) => a.d - b.d);
+    const cross = crossConj(lun, base, 2);
+    const tone = lunarTone(moonAsp, ang, cross);
+    const sphere = (p) => `${p.ru} — ${RN[p.house]} дом лунара (${HOUSE_SHORT[p.house].toLowerCase()})`;
     out.push({
-      title: 'Главное в месяце',
+      title: 'Суть месяца',
+      note: 'Метод Константина Дарагана: лунар — причина, натальная карта — следствия. I дом лунара — лицо месяца, X дом — его достижения. Дома Плацидуса.',
       items: [
-        { id: 'Moon', head: `Луна лунара в ${RN[moon.house]} доме`, text: MOON_LUNAR[moon.house] },
-        { id: 'ASC', head: `Асцендент лунара — ${root.ACG.SIGNS[ascSign][1]}`, text: `Характер месяца ${ASC_SOLAR[ascSign]}. Асцендент лунара попадает в ваш натальный ${RN[ascNat]} дом: особенно важны ${HOUSE[ascNat]}.` },
-        { id: 'Sun', head: `Солнце лунара в ${RN[sun.house]} доме`, text: `Куда уходят силы и внимание месяца: ${HOUSE[sun.house]}.` },
-        { id: 'Moon', head: `Фаза: ${ph[0]}`, text: `${cap(ph[1])}. Фаза показывает ритм месяца: растущая Луна — время начинать и наращивать, убывающая — завершать и подводить итоги.` },
+        { id: 'Moon', head: `Тон месяца: ${tone.label}`, text: tone.text, tone: tone.kind === 'soft' ? 'soft' : tone.kind === 'hard' ? 'hard' : undefined },
+        { id: 'ASC', head: `Лицо месяца: Асцендент лунара в ${SIGN_IN[ascSign]}`, text: LUN_ASC_SIGN[ascSign] },
+        { id: 'ASC', head: `Асцендент лунара в натальном ${RN[ascNat]} доме`, text: `${ASC_NAT[ascNat]} По Дарагану дом натала, куда попадает Асцендент лунара, важен весь месяц: здесь вы лично вовлечены в события.` },
+        { id: 'MC', head: `MC лунара в ${SIGN_IN[mcSign]}, в натальном ${RN[mcNat]} доме`, text: `${MC_NAT[mcNat]} MC показывает, в какой сфере цели и достижения месяца приведут к переменам.` },
+        { id: 'Moon', head: `Луна лунара в ${RN[moon.house]} доме`, text: `${KEY.Moon} ${MOON_LUNAR[moon.house]} ${POWER(moon.house)}` },
+        { id: 'Sun', head: `Солнце лунара в ${RN[sun.house]} доме`, text: `${KEY.Sun} ${LUNAR_IN_HOUSE.Sun[sun.house]}` },
+        { id: 'Moon', head: `Фаза: ${ph[0]}`, text: `${cap(ph[1])}. Растущая Луна — время начинать и наращивать, убывающая — завершать и подводить итоги.` },
       ],
     });
-    const ang = lun.points.filter((p) => (p.planet || p.id === 'Node') && p.id !== 'Moon' && angleOrb(p, lun)).map((p) => {
-      const a = angleOrb(p, lun);
-      return { id: p.id, head: `${p.ru} ${ANGLE_M[a.k][0]} (${a.d.toFixed(1).replace('.', ',')}°)`, text: `Планета на угле — самая заметная в лунаре. ${cap(p.id === 'Sun' ? 'месяц вашей заметности и личной силы' : PLANET_YEAR[p.id] || '')}; это затрагивает ${ANGLE_M[a.k][1]}.` };
+    if (lead) {
+      const o = lead.other, x = lead.x;
+      out.push({
+        title: 'Ведущий аспект',
+        note: 'Самый точный мажорный аспект к Луне — точке обращения. Он задаёт главный сюжет месяца; дни, когда транзиты повторяют связь этих планет, становятся ключевыми.',
+        items: [{ id: o.id, asp: x.asp, tone: x.asp.kind, head: `${lead.head} (${orbTxt(x.orb)})`,
+          text: `${lead.text} Сюжет связывает сферы: Луна — ${RN[moon.house]} дом лунара (${HOUSE_SHORT[moon.house].toLowerCase()}), ${sphere(o)}.${x.orb <= 2 ? ' Аспект точный (до 2°): сработает почти наверняка.' : ''}${applyTxt(x)}` }],
+      });
+    } else {
+      out.push({ title: 'Ведущий аспект', items: [{ id: 'Moon', head: 'Ведущего аспекта нет', text: 'У Луны лунара нет тесных мажорных аспектов к планетам: месяц без одного главного сюжета. Ориентируйтесь на Асцендент, MC и планеты на углах.' }] });
+    }
+    const rest = moonAsp.filter((m) => m !== lead && m.x.orb <= 6).slice(0, 7).map((m) => ({ id: m.other.id, asp: m.x.asp, tone: m.x.asp.kind, head: `${m.head} (${orbTxt(m.x.orb)})`,
+      text: `${m.text} Сферы: ${m.other.id === 'Lilith' ? `Лилит — ${RN[m.other.house]} дом лунара` : sphere(m.other)}.${applyTxt(m.x)}` }));
+    if (rest.length) out.push({ title: 'Другие аспекты Луны', note: 'Луна — главная планета лунара: её аспекты (до 6°) показывают, что ещё будет волновать в этом месяце.', items: rest });
+    if (ang.length) out.push({
+      title: 'Планеты на углах лунара',
+      note: 'Планета до 5° от угла — самая сильная в лунаре и часто сама становится событием месяца. По Дарагану её оценивают по натальному дому, в который она попадает.',
+      items: ang.map(({ p, k, d }) => {
+        const nh = NH(p.lon);
+        return { id: p.id, head: `${p.ru} ${ANGLE_LUN[k][0]} (${orbTxt(d)})`, text: `${KEY[p.id] || (p.id === 'Node' ? 'Северный узел — направление роста.' : '')} ${ANGLE_LUN[k][1]} В натальной карте планета стоит в вашем ${RN[nh]} доме: ${HOUSE[nh]} — здесь событие и отзовётся.` };
+      }),
     });
-    if (ang.length) out.push({ title: 'Планеты на углах лунара', items: ang });
-    const moonAsp = lun.aspects.filter((x) => x.asp.major && (x.A.id === 'Moon' || x.B.id === 'Moon') && x.orb <= 5).map((x) => {
-      const other = x.A.id === 'Moon' ? x.B : x.A;
-      const key = pairKey('Moon', other.id);
-      if (!PAIR[key]) return null;
-      return { id: other.id, asp: x.asp, orb: x.orb, head: `Луна ${x.asp.ru.toLowerCase()} ${other.ru}`, tone: x.asp.kind, text: `${cap(PAIR[key])}. ${TONE_LUNAR[x.asp.a] || ''} Орб ${x.orb.toFixed(1).replace('.', ',')}°.` };
-    }).filter(Boolean).sort((a, b) => a.orb - b.orb).slice(0, 8);
-    if (moonAsp.length) out.push({ title: 'Аспекты Луны лунара', note: 'Луна — главная планета лунара: её аспекты (до 5°) показывают, с чем связано настроение месяца.', items: moonAsp });
-    out.push({
-      title: 'Планеты в домах лунара',
-      items: ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Node'].map(P).filter(Boolean)
-        .map((p) => ({ id: p.id, head: `${p.ru} в ${RN[p.house]} доме`, text: `${cap(p.id === 'Node' ? 'направление роста: здесь месяц подталкивает развиваться' : PLANET_YEAR[p.id])} — в сфере: ${HOUSE[p.house]}.` })),
+    if (cross.length) out.push({
+      title: 'Лунар на натальной карте',
+      note: 'Планеты и углы лунара в соединении (до 2°) с вашими натальными планетами и углами. По Дарагану соединения — самая прямая связь причины со следствием: эти темы месяца оставят след.',
+      items: cross.slice(0, 8).map((c) => {
+        const natPlanet = !(c.Nn.id === 'ASC' || c.Nn.id === 'MC');
+        const where = natPlanet ? ` — в сфере натального ${RN[c.nh]} дома (${HOUSE_SHORT[c.nh].toLowerCase()})` : '';
+        const head = c.L.angle ? `${c.L.ru} на ${LOC_NAT[c.Nn.id]} (${orbTxt(c.d)})` : `${c.L.ru} лунара на ${LOC_NAT[c.Nn.id]} (${orbTxt(c.d)})`;
+        let text;
+        if (c.L.angle) text = `Натальная планета становится ${c.L.id === 'ASC' ? 'лицом месяца' : 'целью месяца'}: включается её тема (${NAT_THEME[c.Nn.id]})${where}.`;
+        else {
+          const pair = !natPlanet ? '' : c.L.id === c.Nn.id ? 'Планета вернулась на своё натальное место, и её тема звучит в этом месяце особенно сильно. ' : PAIR[pairKey(c.L.id, c.Nn.id)] ? `${cap(PAIR[pairKey(c.L.id, c.Nn.id)])}. ` : '';
+          text = `${pair}${c.L.ru} лунара (${KEY_SHORT[c.L.id]}) ложится на ${ACC_NAT[c.Nn.id]}: затронуты ${NAT_THEME[c.Nn.id]}${where}.${MALEF.has(c.L.id) ? ' Контакт напряжённой планеты — последствия будут ощутимыми.' : BENEF.has(c.L.id) ? ' Контакт благоприятной планеты — месяц оставит хорошие последствия.' : ''}${SLOW3.has(c.L.id) ? ' Медленная планета стоит здесь много месяцев подряд: это фон, транзит, а в этом месяце он лишь получает повод проявиться.' : ''}`;
+        }
+        return { id: c.L.id, head, text, tone: MALEF.has(c.L.id) ? 'hard' : BENEF.has(c.L.id) ? 'soft' : undefined };
+      }),
     });
-    const asp = planetAspects(lun, 3).filter((x) => x.A.id !== 'Moon' && x.B.id !== 'Moon').slice(0, 6).map((x) => ({
-      id: x.A.id, id2: x.B.id, asp: x.asp, head: `${x.A.ru} ${x.asp.ru.toLowerCase()} ${x.B.ru}`, tone: x.asp.kind,
-      text: `${cap(PAIR[pairKey(x.A.id, x.B.id)])}. ${TONE_LUNAR[x.asp.a] || ''} Орб ${x.orb.toFixed(1).replace('.', ',')}°.`,
+    const asp = planetAspects(lun, 2).filter((x) => x.A.id !== 'Moon' && x.B.id !== 'Moon').slice(0, 6).map((x) => ({
+      id: x.A.id, id2: x.B.id, asp: x.asp, head: `${x.A.ru} ${x.asp.ru.toLowerCase()} ${x.B.ru} (${orbTxt(x.orb)})`, tone: x.asp.kind,
+      text: `${cap(PAIR[pairKey(x.A.id, x.B.id)])}. ${TONE_LUNAR[x.asp.a] || ''} Сферы: ${sphere(x.A)}; ${sphere(x.B)}.`,
     }));
-    if (asp.length) out.push({ title: 'Другие аспекты лунара', note: 'Самые точные аспекты между остальными планетами (до 3°). Медленные планеты почти не меняются за месяц, поэтому важнее их дома и углы.', items: asp });
+    if (asp.length) out.push({ title: 'Точные аспекты лунара', note: 'Аспекты между остальными планетами с орбом до 2° — по Дарагану они тоже важны: показывают, какие события месяца связаны между собой.', items: asp });
     return out;
   }
 
@@ -591,29 +823,61 @@
     return { score: s, label: STRENGTH_RU[s], why };
   }
   const LUNAR_PLANETS = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
-  /* lun: the lunar return chart, base: the natal chart */
+  // how the sign on a house cusp colours that area of life this month
+  const CUSP_SIGN = ['напористо, через инициативу и быстрые решения', 'неспешно и практично, с оглядкой на деньги и комфорт', 'подвижно, через разговоры, новости и мелкие поездки',
+    'через чувства, заботу и семейные связи', 'ярко, с желанием проявить себя и получить признание', 'деловито, через порядок, детали и труд',
+    'через договорённости, партнёров и компромиссы', 'глубоко и страстно, с вопросами контроля и общих ресурсов', 'широко, через планы, учёбу и дальние связи',
+    'серьёзно, через ответственность, сроки и правила', 'неожиданно, через новых людей, идеи и перемены', 'мягко и неясно, через интуицию, мечты и сочувствие'];
+  /* lun: the lunar return chart (Placidus), base: the natal chart (Placidus) */
   function lunarHouses(lun, base) {
-    const P = (id) => lun.points.find((p) => p.id === id), S = root.ACG.SIGNS;
+    const P = (id) => lun.points.find((p) => p.id === id), NH = (lon) => root.NATAL.houseOf(lon, base.cusps);
+    const R = root.NATAL.RULERS;
     const ascSign = Math.floor(n360(lun.asc) / 30), mcSign = Math.floor(n360(lun.mc) / 30);
-    const ascNat = root.NATAL.houseOf(lun.asc, base.cusps), mcNat = root.NATAL.houseOf(lun.mc, base.cusps);
-    const points = [
-      { sign: ascSign, head: `ASC лунара в ${SIGN_IN[ascSign]}`, text: `Характер месяца ${ASC_SOLAR[ascSign]}.` },
-      { sign: ascSign, head: `ASC лунара в ${RN[ascNat]} доме натальной карты`, text: `Главная сцена месяца — ваш натальный ${RN[ascNat]} дом: ${HOUSE[ascNat]}. Здесь больше всего событий и вашей собственной активности.` },
-      { sign: mcSign, head: `MC лунара в ${RN[mcNat]} доме натальной карты`, text: `Цель месяца лежит в сфере натального ${RN[mcNat]} дома: ${HOUSE[mcNat]}. Сюда стоит направить усилия, чтобы месяц принёс результат.` },
-    ];
+    const points = [];
+    // rulers of the lunar ASC and MC (modern and traditional where a sign has two)
+    for (const [role, sign, label] of [['ASC', ascSign, 'Асцендента'], ['MC', mcSign, 'MC']]) {
+      R[sign].forEach((id, i) => {
+        const p = P(id);
+        if (!p) return;
+        points.push({ id, head: `${i ? 'Второй управитель' : 'Управитель'} ${label} лунара (${root.ACG.SIGNS[sign][1]}) — ${p.ru}, ${RN[p.house]} дом`, text: rulerText(p, lun, base, role) });
+      });
+    }
     const lil = P('Lilith');
-    if (lil) points.push({ id: 'Lilith', head: `Лилит в ${RN[lil.house]} доме лунара`, text: `Сфера, где в этом месяце легче поддаться искушению, тайным страхам или самообману: ${HOUSE[lil.house]}. Здесь полезно быть честнее с собой и не драматизировать.` });
+    if (lil) {
+      const nh = NH(lil.lon);
+      points.push({ id: 'Lilith', head: `Лилит в ${RN[lil.house]} доме лунара`, text: `По Дарагану Лилит в обращении — искушения, некорректное поведение или дом, через который приходят нечестные люди и сомнительные предложения. В этом месяце это сфера: ${HOUSE[lil.house]}. В натальной карте Лилит лунара стоит в вашем ${RN[nh]} доме (${HOUSE_SHORT[nh].toLowerCase()}). Проверяйте людей и условия, не поддавайтесь на провокации и будьте честны с собой.` });
+    }
+    const fo = P('Fortune');
+    if (fo) points.push({ id: 'Fortune', head: `Парс Фортуны в ${RN[fo.house]} доме лунара`, text: `Сфера, где удача в этом месяце приходит легче всего: ${HOUSE[fo.house]}. Сюда стоит направить усилия, если хочется результата без лишней борьбы.` });
+    const node = P('Node');
+    if (node) points.push({ id: 'Node', head: `Северный узел в ${RN[node.house]} доме лунара`, text: `Направление роста месяца: ${HOUSE[node.house]}. Усилия здесь окупаются, даже если поначалу непривычно. ${P('SNode') ? `Южный узел — в ${RN[P('SNode').house]} доме: там легко застрять в старых привычках.` : ''}` });
     const houses = [];
     for (let h = 1; h <= 12; h++) {
-      const planets = LUNAR_PLANETS.map(P).filter((p) => p && p.house === h).map((p) => {
-        const st = planetStrength(p, lun);
-        return { id: p.id, ru: p.ru, sign: p.sign, retro: p.retro, ...st, text: p.id === 'Moon' ? MOON_LUNAR[h] : LUNAR_IN_HOUSE[p.id][h] };
+      const lo = lun.cusps[h], hi = lun.cusps[h === 12 ? 1 : h + 1], span = n360(hi - lo), sign = Math.floor(n360(lo) / 30);
+      // the natal houses this lunar house covers (Daragan: one lunar house over several natal ones involves several areas)
+      const nat = [NH(lo)];
+      for (let k = 1; k <= 12; k++) { const d = n360(base.cusps[k] - lo); if (d > 0.01 && d < span && !nat.includes(k)) nat.push(k); }
+      const projText = nat.length === 1 ? `Лежит в вашем натальном ${RN[nat[0]]} доме (${HOUSE_SHORT[nat[0]].toLowerCase()}): дела этой сферы отразятся там.`
+        : `Захватывает натальные ${nat.slice(0, -1).map((k) => RN[k]).join(', ')} и ${RN[nat[nat.length - 1]]} дома (${nat.map((k) => HOUSE_SHORT[k].toLowerCase()).join('; ')}): в развитии сферы участвуют несколько областей жизни.`;
+      const planets = LUNAR_PLANETS.concat(['Lilith']).map(P).filter((p) => p && p.house === h).map((p) => {
+        const nh = NH(p.lon);
+        const st = p.id === 'Lilith' ? { score: null, label: '', why: [] } : planetStrength(p, lun);
+        const text = p.id === 'Moon' ? MOON_LUNAR[h] : p.id === 'Lilith' ? `Искушения и сомнительные люди — в сфере: ${HOUSE[h]}. Проверяйте предложения и не поддавайтесь на провокации.` : LUNAR_IN_HOUSE[p.id][h];
+        return { id: p.id, ru: p.ru, sign: p.sign, retro: p.retro && p.id !== 'Lilith', ...st, key: KEY[p.id] || '', text, power: POWER(h), natHouse: nh, natText: `В натальной карте — ваш ${RN[nh]} дом: ${HOUSE_SHORT[nh].toLowerCase()}.` };
       });
-      houses.push({ h, topic: HOUSE_SHORT[h], planets, cusp: h === 1 ? { sign: ascSign, text: `Характер месяца ${ASC_SOLAR[ascSign]}.` } : null });
+      let empty = null;
+      if (!planets.length) {
+        const rul = R[sign].map(P).filter(Boolean);
+        empty = `Планет нет — сфера не на первом плане. Её ведёт управитель куспида: ${rul.map((r) => `${r.ru} в ${RN[r.house]} доме лунара (${HOUSE_SHORT[r.house].toLowerCase()})`).join(', ')}; от того, что происходит там, зависят и дела этого дома.`;
+      }
+      houses.push({ h, topic: HOUSE_SHORT[h], planets, empty, cusp: { sign, text: h === 1 ? LUN_ASC_SIGN[sign] : `Сфера проявится ${CUSP_SIGN[sign]}.` }, proj: { houses: nat, text: projText }, power: ANG_H.has(h) ? 'угловой' : SUCC_H.has(h) ? 'последующий' : 'падающий' });
     }
-    const most = houses.reduce((m, x) => (x.planets.length > m.planets.length ? x : m), houses[0]);
-    if (most.planets.length >= 3) points.push({ house: most.h, head: `Стеллиум в ${RN[most.h]} доме лунара`, text: `${['', '', '', 'Три', 'Четыре', 'Пять', 'Шесть', 'Семь'][most.planets.length] || most.planets.length} ${most.planets.length < 5 ? 'планеты' : 'планет'} в одном доме. Особое место в этом месяце займёт сфера: ${HOUSE[most.h]} — здесь будут самые заметные события.` });
-    else if (most.planets.length === 2 && houses.filter((x) => x.planets.length === 2).length === 1) points.push({ house: most.h, head: `Акцент на ${RN[most.h]} доме лунара`, text: `Больше всего планет в сфере: ${HOUSE[most.h]}. Она будет заметнее остальных.` });
+    const most = houses.reduce((m, x) => (x.planets.filter((p) => p.id !== 'Lilith').length > m.planets.filter((p) => p.id !== 'Lilith').length ? x : m), houses[0]);
+    const nMost = most.planets.filter((p) => p.id !== 'Lilith').length;
+    if (nMost >= 3) points.push({ house: most.h, head: `Стеллиум в ${RN[most.h]} доме лунара`, text: `${['', '', '', 'Три', 'Четыре', 'Пять', 'Шесть', 'Семь'][nMost] || nMost} ${nMost < 5 ? 'планеты' : 'планет'} в одном доме. Особое место в этом месяце займёт сфера: ${HOUSE[most.h]} — здесь будут самые заметные события. По Дарагану планеты в тесном соединении обычно описывают одно событие, а планеты, попадающие в разные натальные дома, — разные.` });
+    else if (nMost === 2 && houses.filter((x) => x.planets.filter((p) => p.id !== 'Lilith').length === 2).length === 1) points.push({ house: most.h, head: `Акцент на ${RN[most.h]} доме лунара`, text: `Больше всего планет в сфере: ${HOUSE[most.h]}. Она будет заметнее остальных.` });
+    const angular = houses.filter((x) => ANG_H.has(x.h)).reduce((n, x) => n + x.planets.filter((p) => p.id !== 'Lilith').length, 0);
+    points.push({ house: 10, head: `Планет в угловых домах: ${angular}`, text: angular >= 4 ? 'Много планет в угловых домах (I, IV, VII, X): месяц событийный, перемены будут заметны вам и окружающим.' : angular === 0 ? 'В угловых домах нет планет: месяц скорее внутренний и спокойный, без громких событий.' : 'Угловые дома (I, IV, VII, X) дают самые заметные события месяца; планеты в падающих домах (III, VI, IX, XII) проявятся слабо — и хорошее, и плохое.' });
     return { points, houses };
   }
 

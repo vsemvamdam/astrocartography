@@ -703,6 +703,8 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .lh-side small { font-size: 12px; line-height: 1.35; color: var(--muted); }
 .lh-cusp { margin-bottom: 12px; padding: 10px 14px; border-left: 4px solid var(--brass); border-radius: 8px; background: rgba(217,181,110,.1); font-size: 13.5px; line-height: 1.55; }
 .lh-cusp b { color: var(--brass); font-weight: 600; }
+.lh-proj { display: block; margin-top: 6px; color: var(--muted); }
+.lh-key { margin: 5px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--brass); max-width: 75ch; }
 .lh-p + .lh-p { margin-top: 14px; }
 .lh-ph { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
 .lh-ph .tg { font-size: 21px; line-height: 1; }
@@ -711,7 +713,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .lh-s { display: inline-grid; place-items: center; min-width: 28px; height: 22px; padding: 0 6px; border-radius: 5px; color: #fff; font-size: 12.5px; font-weight: 700; }
 .lh-s.pos { background: #2E9E7A; } .lh-s.neg { background: #D9483B; } .lh-s.zero { background: #56657E; }
 .lh-inf { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
-.lh-p > p:last-child { margin: 5px 0 0; font-size: 13.5px; line-height: 1.55; max-width: 75ch; }
+.lh-p > p:not([class]) { margin: 5px 0 0; font-size: 13.5px; line-height: 1.55; max-width: 75ch; }
 .lh-empty { margin: 0; padding-top: 4px; font-size: 13.5px; color: var(--faint); }
 @media (max-width: 559.98px) {
   .lh-row { grid-template-columns: 1fr; gap: 10px; }
@@ -2263,9 +2265,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/natal.js?v=20261107qa"></script>
 <script src="js/features.js?v=20261107qa"></script>
 <script src="js/horary.js?v=20261107qa"></script>
-<script src="js/interpret.js?v=20261105lun"></script>
+<script src="js/interpret.js?v=20261113lun"></script>
 <script src="js/celebs.js?v=20261104u"></script>
-<script src="js/natal-view.js?v=20261113zoom"></script>
+<script src="js/natal-view.js?v=20261113lun"></script>
 <script src="js/cycles.js?v=20261107qa"></script>
 <script src="js/tools-view.js?v=20261107qa"></script>
 <script src="js/city-view.js?v=20261104cs"></script>

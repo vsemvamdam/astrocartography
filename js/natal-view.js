@@ -756,17 +756,21 @@
     const SG = ACG.SIGNS;
     if (tab === 'points') {
       const icon = (pt) => (pt.id === 'Lilith' ? `<span class="lun-ic" style="--ic:#B9A7D8">${g('⚸')}</span>`
+        : pt.id === 'Fortune' ? `<span class="lun-ic" style="--ic:#D9B56E">${g('⊗')}</span>`
+        : pt.id && BODY[pt.id] ? `<span class="lun-ic" style="--ic:${BODY[pt.id].color}">${g(BODY[pt.id].glyph)}</span>`
         : pt.house ? `<span class="lun-ic lh-num h${pt.house}">${pt.house}</span>`
         : `<span class="lun-ic" style="--ic:${EL_COLOR[pt.sign % 4]}">${g(SG[pt.sign][0])}</span>`);
       return `<section class="rd-sec lun-pts">${lh.points.map((pt) => `<div class="lun-pt">${icon(pt)}<div><b>${esc(pt.head)}</b><p>${esc(pt.text)}</p></div></div>`).join('')}</section>`;
     }
-    const badge = (sc) => `<span class="lh-s ${sc > 0 ? 'pos' : sc < 0 ? 'neg' : 'zero'}">${sc > 0 ? '+' : sc < 0 ? '−' : ''}${Math.abs(sc)}</span>`;
-    const planet = (p) => { const b = BODY[p.id]; return `<div class="lh-p"><div class="lh-ph"><span class="tg" style="color:${b.color}">${g(b.glyph)}</span><b>${esc(p.ru)}</b>${badge(p.score)}<span class="muted lh-sg">в ${window.INTERP.SIGN_IN[p.sign]}${p.retro ? ', ретроградный' : ''}</span></div>
-        <p class="lh-inf">Влияние планеты: ${p.label}${p.why.length ? ` · ${esc(p.why.join(', '))}` : ''}</p><p>${esc(p.text)}</p></div>`; };
-    return `<section class="rd-sec lun-houses"><p class="bal-note">Каждый дом лунара — сфера жизни на этот месяц. Цифра у планеты — её сила от −3 до +3: учитываются природа планеты, её знак (обитель, экзальтация, изгнание, падение), ретроградность и точные аспекты к Венере, Юпитеру, Марсу и Сатурну (до 5°).</p>
-      ${lh.houses.map((x) => `<div class="lh-row"><div class="lh-side"><span class="lh-c h${x.h}">${RN[x.h]} дом</span><small>${esc(x.topic)}</small></div><div class="lh-body">
-        ${x.cusp ? `<div class="lh-cusp">Куспид I дома в <b>${window.INTERP.SIGN_IN[x.cusp.sign]}</b>. ${esc(x.cusp.text)}</div>` : ''}
-        ${x.planets.length ? x.planets.map(planet).join('') : '<p class="lh-empty">В этом месяце эта сфера не на первом плане: планет здесь нет.</p>'}
+    const badge = (sc) => (sc == null ? '' : `<span class="lh-s ${sc > 0 ? 'pos' : sc < 0 ? 'neg' : 'zero'}">${sc > 0 ? '+' : sc < 0 ? '−' : ''}${Math.abs(sc)}</span>`);
+    const glyphOf = (id) => (id === 'Lilith' ? ['#B9A7D8', '⚸'] : [BODY[id].color, BODY[id].glyph]);
+    const planet = (p) => { const [col, gl] = glyphOf(p.id); return `<div class="lh-p"><div class="lh-ph"><span class="tg" style="color:${col}">${g(gl)}</span><b>${esc(p.ru)}</b>${badge(p.score)}<span class="muted lh-sg">в ${window.INTERP.SIGN_IN[p.sign]}${p.retro ? ', ретроградный' : ''}</span></div>
+        ${p.label ? `<p class="lh-inf">Влияние планеты: ${p.label}${p.why.length ? ` · ${esc(p.why.join(', '))}` : ''}</p>` : ''}${p.key ? `<p class="lh-key">${esc(p.key)}</p>` : ''}<p>${esc(p.text)}</p>
+        <p class="lh-inf">${esc(p.power)} ${esc(p.natText)}</p></div>`; };
+    return `<section class="rd-sec lun-houses"><p class="bal-note">Каждый дом лунара — сфера жизни на этот месяц; по Дарагану угловые дома (I, IV, VII, X) проявляются сильнее всего, падающие (III, VI, IX, XII) — слабее. Строка «в натальной карте» показывает, где дела месяца дадут последствия. Цифра у планеты — её сила от −3 до +3: природа планеты, знак (обитель, экзальтация, изгнание, падение), ретроградность и точные аспекты к Венере, Юпитеру, Марсу и Сатурну (до 5°). Дома Плацидуса.</p>
+      ${lh.houses.map((x) => `<div class="lh-row"><div class="lh-side"><span class="lh-c h${x.h}">${RN[x.h]} дом</span><small>${esc(x.topic)}<br><span class="muted">${x.power}</span></small></div><div class="lh-body">
+        <div class="lh-cusp">Куспид ${RN[x.h]} дома в <b>${window.INTERP.SIGN_IN[x.cusp.sign]}</b>. ${esc(x.cusp.text)}<span class="lh-proj">${esc(x.proj.text)}</span></div>
+        ${x.planets.length ? x.planets.map(planet).join('') : `<p class="lh-empty">${esc(x.empty || 'Планет здесь нет.')}</p>`}
       </div></div>`).join('')}</section>`;
   }
 
@@ -946,6 +950,10 @@
     $('natMode').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === q.mode)));
     $('natSyn').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.s === q.syn)));
     $('natSyn').hidden = q.mode !== 'synastry';
+    // the lunar return always uses Placidus houses
+    $('natHouse').disabled = q.mode === 'lunar';
+    $('natHouse').value = q.mode === 'lunar' ? 'P' : q.house;
+    $('natHouse').title = q.mode === 'lunar' ? 'Лунар считается в домах Плацидуса' : '';
     document.body.dataset.natmode = q.mode;
   }
   function initControls() {
@@ -992,6 +1000,8 @@
     const o = opts(), P = app.state.place;
     const natOpts = { house: o.house, minor: o.minor, points: visible, anglesAspects: o.angles };
     outer = null; cross = []; solarInfo = null; lunarInfo = null; starInfo = null; natB = null; horInfo = null; likes = null;
+    // the lunar return is read by Konstantin Daragan's method in Placidus houses, the natal chart too
+    if (o.mode === 'lunar') natOpts.house = 'P';
     const natA = N.computeNatal(app.chart, P.lat, P.lon, natOpts);
     natal = natA; natBase = natA;
     // the people closest to your chart: for the "Звёзды" mode and the card under the natal chart
