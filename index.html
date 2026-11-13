@@ -599,6 +599,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 /* city view */
 .city-ctl { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; padding: 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--rule); }
 .city-ctl .city-where { flex: 1 1 260px; }
+.city-ctl .city-addr { flex: 1 1 300px; }
 .city-ctl .pill { min-height: 46px; }
 .city-ctl .layer-hint { flex: 1 1 100%; margin: 0; }
 .city-ctl .layer-hint:empty { display: none; }
@@ -615,6 +616,10 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .city-legend i.dot { border-top: 3px dotted var(--fg); }
 .city-legend i.dash { border-top-style: dashed; opacity: .6; }
 .city-legend i.acg { border-top-width: 3px; }
+.city-legend i.ring { border-top: 5px solid var(--brass); opacity: .8; }
+.cm-deg span { display: block; text-align: center; font-family: var(--f-mono); font-size: 11px; font-weight: 600; color: #C9D6EA; text-shadow: 0 0 3px #000, 0 0 6px #000; white-space: nowrap; }
+.cm-deg.card span { color: var(--brass); font-size: 12px; }
+.cm-pop .cm-sethome { margin-top: 10px; min-height: 36px; width: 100%; color: var(--fg); border-color: var(--brass); cursor: pointer; }
 .cm-home span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--brass); color: var(--brass-ink); font-size: 18px; line-height: 1; box-shadow: 0 0 0 3px rgba(0,0,0,.45); cursor: grab; }
 .cm-lbl.back span { width: 20px; height: 20px; opacity: .6; border-style: dashed; font-size: 12px; }
 .city-spread { margin: 0; padding: 10px 14px 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
@@ -2009,6 +2014,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <div class="field city-where"><label for="cityPlace">Город, где вы живёте или куда собираетесь</label>
           <div class="place-box"><input class="inp" type="text" id="cityPlace" placeholder="Введите город, например Москва" spellcheck="false" autocapitalize="words"><ul class="suggest" id="citySuggest" role="listbox" hidden></ul></div>
         </div>
+        <div class="field city-addr"><label for="cityAddr">Точка отсчёта (0°): адрес или координаты</label>
+          <div class="place-box"><input class="inp" type="text" id="cityAddr" placeholder="Например: Тверская 7 или 55.7558, 37.6173" spellcheck="false" autocomplete="street-address"><ul class="suggest" id="cityAddrSuggest" role="listbox" hidden></ul></div>
+        </div>
+        <button type="button" class="pill" id="cityAddrGo">Найти</button>
         <button type="button" class="pill" id="cityHere">Где я</button>
         <button type="button" class="pill" id="cityBirth">Город рождения</button>
         <button type="button" class="pill" id="cityToWorld">На карте мира</button>
@@ -2022,8 +2031,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
       </header>
       <section class="nat-card city-map-card">
         <div class="city-map-top">
-          <h3>Лучи планет по районам <span>перетащите ⌂ на свой дом или нажмите на карту</span></h3>
+          <h3>Лучи планет по районам <span>⌂ — точка отсчёта 0°: перетащите её, нажмите на карту или найдите адрес выше</span></h3>
           <div class="seg" id="cityLayers" role="group" aria-label="Слои">
+            <button type="button" data-k="dial">Шкала 360°</button>
             <button type="button" data-k="ls">Лучи от дома</button>
             <button type="button" data-k="natal">Лучи от места рождения</button>
             <button type="button" data-k="acg">Линии астрокартографии</button>
@@ -2034,7 +2044,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <p class="city-map-note" id="cityMapNote"></p>
         <p class="city-spread" id="citySpread"></p>
         <div class="city-legend">
-          <span><i></i>луч планеты от дома</span><span><i class="dash"></i>тот же луч за домом, в обратную сторону</span><span><i class="dot"></i>натальный луч от места рождения</span><span><i class="acg"></i>линия MC или ASC (пунктир — IC или DSC)</span>
+          <span><i class="ring"></i>шкала 360° от точки 0°: сектор окрашен цветом планеты, чей луч там проходит</span><span><i></i>луч планеты от дома</span><span><i class="dash"></i>тот же луч за домом, в обратную сторону</span><span><i class="dot"></i>натальный луч от места рождения</span><span><i class="acg"></i>линия MC или ASC (пунктир — IC или DSC)</span>
         </div>
       </section>
       <section class="nat-card">
@@ -2277,7 +2287,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/natal-view.js?v=20261113pdf"></script>
 <script src="js/cycles.js?v=20261107qa"></script>
 <script src="js/tools-view.js?v=20261113"></script>
-<script src="js/city-view.js?v=20261104cs"></script>
+<script src="js/city-view.js?v=20261113dial"></script>
 <script src="js/sport.js?v=20261107qa"></script>
 <script src="js/sport-view.js?v=20261107qa"></script>
 <script src="js/firebase-config.js?v=20261104u"></script>

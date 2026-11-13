@@ -44,7 +44,7 @@
   const fill = (o, defs) => { for (const k in defs) if (!(k in o)) o[k] = defs[k]; return o; };
   function opts() {
     const st = app.state;
-    return fill(st.city || (st.city = {}), { place: null, home: null, ls: true, natal: true, acg: true });
+    return fill(st.city || (st.city = {}), { place: null, home: null, ls: true, natal: true, acg: true, dial: true });
   }
   const cityPlace = () => opts().place || app.state.place;
   const homePt = () => opts().home || { lat: cityPlace().lat, lon: cityPlace().lon };
@@ -160,9 +160,10 @@
     map.on('zoomend', drawLabels);
     return true;
   }
-  let labelLayer = null;
+  let labelLayer = null, dialLayer = null;
   function drawLabels() {
     if (!map) return;
+    drawDial();
     if (labelLayer) labelLayer.clearLayers(); else labelLayer = LL.layerGroup().addTo(map);
     if (!opts().ls) return;
     const h = homePt(), size = map.getSize(), z = map.getZoom();
@@ -217,21 +218,94 @@
     }
     if (homeMarker) homeMarker.setLatLng([h.lat, h.lon]);
     else {
-      homeMarker = LL.marker([h.lat, h.lon], { draggable: true, keyboard: true, title: 'Ваш дом: перетащите', icon: LL.divIcon({ className: 'cm-home', html: '<span>⌂</span>', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(map);
-      homeMarker.on('dragend', () => {
-        const ll = homeMarker.getLatLng(), o = opts(), c = cityPlace();
-        o.home = { lat: +ll.lat.toFixed(5), lon: +ll.lng.toFixed(5) };
-        // the house dragged into another town: the town follows, so the title and the reading stay true
-        if (ACG.hav(c.lat, c.lon, ll.lat, ll.lng) > 30) {
-          const near = app.nearestCity(ll.lat, ll.lng);
-          o.place = near && near.km < 40 ? { name: near.city.ru, country: near.city.c, lat: near.city.lat, lon: near.city.lon, tz: near.city.tz }
-            : { name: `${num(ll.lat, 2)}°, ${num(ll.lng, 2)}°`, country: '', lat: o.home.lat, lon: o.home.lon, tz: near ? near.city.tz : 'UTC' };
-          hlId = null;
-        }
-        app.save(); refresh(false);
-      });
+      homeMarker = LL.marker([h.lat, h.lon], { draggable: true, keyboard: true, title: 'Точка отсчёта (0°): перетащите', icon: LL.divIcon({ className: 'cm-home', html: '<span>⌂</span>', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(map);
+      homeMarker.on('dragend', () => { const ll = homeMarker.getLatLng(); setHome(ll.lat, ll.lng, false); });
     }
     drawLabels();
+  }
+
+  // the reference point (0°) set by the person: by dragging, from the map, by address or by geolocation.
+  // When it lands in another town, the town follows, so the title and the reading stay true.
+  function setHome(lat, lon, recenter, name) {
+    const o = opts(), c = cityPlace();
+    o.home = { lat: +lat.toFixed(6), lon: +lon.toFixed(6) };
+    o.homeName = name || null;
+    if (ACG.hav(c.lat, c.lon, lat, lon) > 30) {
+      const near = app.nearestCity(lat, lon);
+      o.place = near && near.km < 40 ? { name: near.city.ru, country: near.city.c, lat: near.city.lat, lon: near.city.lon, tz: near.city.tz }
+        : { name: `${num(lat, 2)}°, ${num(lon, 2)}°`, country: '', lat: o.home.lat, lon: o.home.lon, tz: near ? near.city.tz : 'UTC' };
+      hlId = null;
+    }
+    if (map) map.closePopup();
+    app.save(); refresh(!!recenter);
+  }
+  // the 360° scale around the reference point: a spoke every 10°, a label every 30°, the cardinal points,
+  // and a ring of 10° sectors coloured by the planet whose ray (or its back side, fainter) passes through it
+  function drawDial() {
+    if (!map) return;
+    if (dialLayer) dialLayer.clearLayers(); else dialLayer = LL.layerGroup().addTo(map);
+    if (!opts().dial) return;
+    const h = homePt(), size = map.getSize(), z = map.getZoom();
+    const mpp = 156543.03392 * Math.cos(h.lat * D2R) / Math.pow(2, z);
+    const km = Math.min(size.x, size.y) * 0.34 * mpp / 1000, p = vec(h.lat, h.lon);
+    const at = (az, f) => along(p, tangent(h.lat, h.lon, az), (km * f) / R_KM);
+    const arc = (a0, a1, f) => { const out = []; for (let a = a0; a <= a1 + 1e-9; a += 1) out.push(at(a, f)); return out; };
+    for (let a = 0; a < 360; a += 10) {
+      const major = a % 30 === 0, card = a % 90 === 0;
+      LL.polyline([at(a, 0.06), at(a, 1)], { color: card ? '#D9B56E' : '#9FB3D1', weight: card ? 1.4 : major ? 1 : 0.6, opacity: card ? 0.7 : major ? 0.42 : 0.22, interactive: false }).addTo(dialLayer);
+    }
+    LL.polyline(arc(0, 360, 1), { color: '#9FB3D1', weight: 1, opacity: 0.45, interactive: false }).addTo(dialLayer);
+    LL.polyline(arc(0, 360, 0.5), { color: '#9FB3D1', weight: 0.6, opacity: 0.2, dashArray: '2 6', interactive: false }).addTo(dialLayer);
+    for (let a = 0; a < 360; a += 10) {
+      const mid = a + 5;
+      let best = null;
+      for (const r of rays) {
+        const d = Math.abs(n180(mid - r.az)), d2 = Math.abs(n180(mid - r.az - 180));
+        if (d <= 7.5 && (!best || d < best.d || best.back)) best = { r, d, back: false };
+        else if (d2 <= 7.5 && (!best || (best.back && d2 < best.d))) best = { r, d: d2, back: true };
+      }
+      const seg = LL.polyline(arc(a + 0.6, a + 9.4, 1.04), { color: best ? best.r.b.color : '#56657E', weight: 7, opacity: best ? (best.back ? 0.35 : 0.9) : 0.25, lineCap: 'butt', interactive: !!best }).addTo(dialLayer);
+      if (best) seg.bindTooltip(`${a}°–${a + 10}°: ${best.r.b.ru}${best.back ? ' (обратная сторона луча)' : ''}`, { sticky: true });
+    }
+    const CARD = { 0: 'С', 90: 'В', 180: 'Ю', 270: 'З' };
+    for (let a = 0; a < 360; a += 30) {
+      LL.marker(at(a, 1.16), { interactive: false, keyboard: false, icon: LL.divIcon({ className: 'cm-deg' + (CARD[a] != null ? ' card' : ''), html: `<span>${CARD[a] != null ? `${CARD[a]} ` : ''}${a}°</span>`, iconSize: [56, 18], iconAnchor: [28, 9] }) }).addTo(dialLayer);
+    }
+  }
+  // address or coordinates of the reference point: coordinates are read directly, an address goes to
+  // OpenStreetMap's Nominatim, first within the chosen town and then anywhere
+  async function findAddress() {
+    const q = $('cityAddr').value.trim(), box = $('cityAddrSuggest'), note = $('cityHereNote');
+    box.hidden = true; box.innerHTML = '';
+    if (!q) return;
+    const m = /^\s*(-?\d{1,2}(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:[.,]\d+)?)\s*$/.exec(q);
+    if (m) {
+      const lat = parseFloat(m[1].replace(',', '.')), lon = parseFloat(m[2].replace(',', '.'));
+      if (Math.abs(lat) <= 90 && Math.abs(lon) <= 180) { setHome(lat, lon, true, 'введённые координаты'); return; }
+    }
+    note.textContent = 'Ищем адрес…';
+    const c = cityPlace();
+    const ask = async (bounded) => {
+      const u = new URL('https://nominatim.openstreetmap.org/search');
+      u.search = new URLSearchParams({ q, format: 'jsonv2', limit: '6', 'accept-language': 'ru', addressdetails: '0', ...(bounded ? { viewbox: `${c.lon - 0.7},${c.lat + 0.45},${c.lon + 0.7},${c.lat - 0.45}`, bounded: '1' } : {}) }).toString();
+      const r = await fetch(u.toString(), { headers: { Accept: 'application/json' } });
+      if (!r.ok) throw new Error(String(r.status));
+      return r.json();
+    };
+    try {
+      let res = await ask(true);
+      if (!res.length) res = await ask(false);
+      note.textContent = res.length ? '' : 'Адрес не найден. Уточните улицу и дом или введите координаты, например 55.7558, 37.6173.';
+      if (!res.length) return;
+      if (res.length === 1) { const x = res[0]; setHome(+x.lat, +x.lon, true, x.display_name.split(',').slice(0, 2).join(',').trim()); return; }
+      box.innerHTML = res.map((x, i) => `<li role="option" tabindex="0" data-i="${i}">${esc(x.display_name.split(',').slice(0, 4).join(','))}</li>`).join('');
+      box.hidden = false;
+      const pickAddr = (e) => { const li = e.target.closest('li[data-i]'); if (!li) return; const x = res[+li.dataset.i]; box.hidden = true; setHome(+x.lat, +x.lon, true, x.display_name.split(',').slice(0, 2).join(',').trim()); };
+      box.onclick = pickAddr;
+      box.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickAddr(e); } };
+    } catch (e) {
+      note.textContent = 'Поиск адреса сейчас недоступен. Поставьте точку на карте: нажмите на нужное место и выберите «Сделать точкой отсчёта», или введите координаты.';
+    }
   }
   // what is at a clicked point: distance and direction from home, the nearest ray
   function pointInfo(lat, lon) {
@@ -247,7 +321,8 @@
       ? `<b style="color:${best.r.b.color}">${g(best.r.b.glyph)} ${esc(best.r.b.ru)}</b>${best.opp ? ' — обратная сторона луча' : ''}, отклонение ${Math.round(best.d)}°.<br>${esc(best.opp ? 'Обратная сторона луча слабее, но тема та же.' : 'Направление: ' + LS_TEXT[best.r.id])}`
       : 'Рядом нет лучей планет (дальше 10°): нейтральное направление.';
     LL.popup({ maxWidth: 300, className: 'cm-pop' }).setLatLng([lat, lon])
-      .setContent(`<div class="cm-pop-h">${kmText(km)} от дома · ${Math.round(az)}° ${compass(az)}</div><p>${txt}</p>`).openOn(map);
+      .setContent(`<div class="cm-pop-h">${kmText(km)} от точки 0° · азимут ${Math.round(az)}° ${compass(az)}</div><p>${txt}</p>
+        <button type="button" class="pill cm-sethome" data-lat="${lat.toFixed(6)}" data-lon="${lon.toFixed(6)}">Сделать точкой отсчёта (0°)</button>`).openOn(map);
   }
   function pick(id) { hlId = hlId === id ? null : id; drawMap(); renderRays(); }
 
@@ -261,16 +336,17 @@
   }
   const HOUSES = () => (window.INTERP && window.INTERP.HOUSE) || [];
   function cityCharts() {
-    const c = cityPlace(), o = app.state.natal || {}, house = o.house || 'P';
+    const c = homePt(), o = app.state.natal || {}, house = o.house || 'P';
     const pts = (id) => IDS.includes(id) || id === 'Node';
     const base = N.computeNatal(app.chart, app.state.place.lat, app.state.place.lon, { house, minor: false, points: pts, anglesAspects: false });
+    // the chart for the reference point itself: a few kilometres move the angles by a fraction of a degree
     const here = N.computeNatal(app.chart, c.lat, c.lon, { house, minor: false, points: pts, anglesAspects: false });
     return { base, here, sys: N.HOUSE_SYSTEMS.find((s) => s.id === here.used) };
   }
   const signText = (lon) => { const z = ACG.formatZodiac(lon); return `${g(z.glyph)} ${z.name} ${z.deg}°`; };
   function renderReloc() {
-    const { base, here, sys } = cityCharts(), c = cityPlace();
-    const same = Math.abs(c.lat - app.state.place.lat) < 0.05 && Math.abs(n180(c.lon - app.state.place.lon)) < 0.05;
+    const { base, here, sys } = cityCharts(), c = cityPlace(), h0 = homePt();
+    const same = Math.abs(h0.lat - app.state.place.lat) < 0.05 && Math.abs(n180(h0.lon - app.state.place.lon)) < 0.05;
     let ascText = '';
     try {
       const sec = window.INTERP.natal(here).find((s) => s.key === 'portrait');
@@ -284,14 +360,14 @@
     }).filter(Boolean);
     const changed = moved.filter((m) => m.from !== m.to);
     $('cityReloc').innerHTML = `${same ? '<p class="bal-note">Это место рождения: карта та же, что натальная. Выберите другой город, чтобы увидеть, что меняется.</p>' : ''}
-      <table class="nat-table cr-tab"><thead><tr><th></th><th>При рождении</th><th>${esc(c.name)}</th></tr></thead><tbody>${rows}</tbody></table>
+      <table class="nat-table cr-tab"><thead><tr><th></th><th>При рождении</th><th>${esc(c.name)}, точка 0°</th></tr></thead><tbody>${rows}</tbody></table>
       ${ascText ? `<p class="cr-asc"><b>Асцендент здесь.</b> ${esc(ascText)}</p>` : ''}
       <h4 class="nat-h4">${changed.length ? 'Планеты, которые меняют дом' : 'Дома планет'}</h4>
       <div class="soul">${(changed.length ? changed : moved).map((m) => `<div class="soul-row"><span class="tg" style="color:${m.p.color}">${g(m.p.glyph)}</span><div><b>${esc(m.p.ru)}: ${changed.length ? `${RN[m.from]} → ${RN[m.to]} дом` : `${RN[m.to]} дом`}</b><p>${esc(HOUSES()[m.to] ? 'Здесь планета работает в сфере: ' + HOUSES()[m.to] + '.' : '')}</p></div></div>`).join('')}</div>
       <p class="bal-note">Дома: ${esc(sys ? sys.ru : '')}, как в натальной карте. Положения планет в знаках не меняются — меняются дома и углы.</p>`;
   }
   function renderNear() {
-    const c = cityPlace();
+    const c = homePt();
     const near = ACG.linesNear(app.chart, c.lat, c.lon, 800, (id) => IDS.includes(id));
     const power = (km) => (km <= 150 ? ['сильно', 'hi'] : km <= 400 ? ['заметно', 'mid'] : ['слабо', 'lo']);
     $('cityNear').innerHTML = near.length ? near.map((x) => {
@@ -338,7 +414,7 @@
     rays = computeRays();
     $('cityTitle').textContent = `${c.name}${c.country ? ', ' + c.country : ''}${opts().place ? '' : ' · город рождения'}`;
     const h = homePt();
-    $('citySub').textContent = `${opts().home ? 'Дом — ваша точка' : 'Дом — центр города'}: ${num(h.lat, 4)}°, ${num(h.lon, 4)}° · лучи — направления планет в момент вашего рождения, как их видно из этой точки`;
+    $('citySub').textContent = `Точка отсчёта (0°) — ${opts().home ? (opts().homeName || 'ваша точка') : 'центр города'}: ${num(h.lat, 5)}°, ${num(h.lon, 5)}° · лучи — направления планет в момент вашего рождения, как их видно из этой точки; шкала вокруг неё — азимут от 0° (север) до 360°`;
     syncControls();
     if (ensureMap()) {
       if (recenter) map.setView([h.lat, h.lon], Math.max(map.getZoom(), 12));
@@ -357,13 +433,13 @@
       : 'Пунктир — продолжение каждого луча за домом в обратную сторону (значок показывает, какой планеты): тема та же, но слабее.';
   }
   function update() { refresh(false); }
-  function setPlace(p, home) { const o = opts(); o.place = p; o.home = home || null; hlId = null; app.save(); refresh(true); }
+  function setPlace(p, home, name) { const o = opts(); o.place = p; o.home = home || null; o.homeName = home ? name || null : null; hlId = null; app.save(); refresh(true); }
 
   function init(a) {
     app = a; opts();
     app.makePlaceSearch($('cityPlace'), $('citySuggest'), () => opts().place, (p) => setPlace(p, null));
     $('cityBirth').addEventListener('click', () => setPlace(null, null));
-    $('cityCenter').addEventListener('click', () => { opts().home = null; app.save(); refresh(true); });
+    $('cityCenter').addEventListener('click', () => { opts().home = null; opts().homeName = null; app.save(); refresh(true); });
     $('cityHere').addEventListener('click', () => {
       if (!navigator.geolocation) { $('cityHereNote').textContent = 'Браузер не умеет определять место.'; return; }
       $('cityHereNote').textContent = 'Определяем место…';
@@ -371,9 +447,12 @@
         const lat = pos.coords.latitude, lon = pos.coords.longitude, near = app.nearestCity(lat, lon);
         const p = near && near.km < 60 ? { name: near.city.ru, country: near.city.c, lat: near.city.lat, lon: near.city.lon, tz: near.city.tz } : { name: `${num(lat, 2)}°, ${num(lon, 2)}°`, country: '', lat, lon, tz: near ? near.city.tz : 'UTC' };
         $('cityHereNote').textContent = '';
-        setPlace(p, { lat: +lat.toFixed(5), lon: +lon.toFixed(5) });
+        setPlace(p, { lat: +lat.toFixed(6), lon: +lon.toFixed(6) }, 'ваше местоположение');
       }, () => { $('cityHereNote').textContent = 'Не удалось определить место: разрешите доступ к геопозиции или выберите город.'; }, { timeout: 10000, maximumAge: 600000 });
     });
+    $('cityAddrGo').addEventListener('click', findAddress);
+    $('cityAddr').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); findAddress(); } });
+    $('cityMap').addEventListener('click', (e) => { const b = e.target.closest('.cm-sethome'); if (b) { e.stopPropagation(); setHome(+b.dataset.lat, +b.dataset.lon, false, 'точка на карте'); } });
     $('cityLayers').addEventListener('click', (e) => { const b = e.target.closest('button[data-k]'); if (!b) return; const o = opts(); o[b.dataset.k] = !o[b.dataset.k]; app.save(); syncControls(); drawMap(); });
     const rowPick = (e) => { const li = e.target.closest('li[data-id]'); if (li) pick(li.dataset.id); };
     $('cityRays').addEventListener('click', rowPick);
