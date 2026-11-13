@@ -682,6 +682,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .rd-tabs { margin: 0 0 14px; flex-wrap: wrap; }
 .rd-tabs button { font-size: 13px; padding: 6px 13px; }
 .rd-jump { margin-left: auto; }
+.rd-pdf:disabled { opacity: .6; cursor: progress; }
 @media (max-width: 599.98px) { .rd-jump { margin-left: 0; } .rd-tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .rd-tabs button { flex: none; } }
 .rd { column-gap: 36px; }
 @media (min-width: 1100px) { .rd { column-count: 2; } }
@@ -1876,6 +1877,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <button type="button" data-s="comp">Композит</button>
         </div>
         <button type="button" class="pill rd-jump" id="natReadJump" hidden>Расшифровка ↓</button>
+        <button type="button" class="pill rd-pdf" id="natPdf" hidden title="Круг, таблицы и вся расшифровка одним файлом">Скачать PDF</button>
       </div>
       <div class="sol-ctl for-solar">
         <div class="field sol-year"><label for="solYear">Год соляра</label><input class="inp" type="number" id="solYear" min="1800" max="2100" inputmode="numeric"></div>
@@ -2271,7 +2273,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/horary.js?v=20261107qa"></script>
 <script src="js/interpret.js?v=20261113syn"></script>
 <script src="js/celebs.js?v=20261104u"></script>
-<script src="js/natal-view.js?v=20261113syn"></script>
+<script src="js/pdf-export.js?v=20261113"></script>
+<script src="js/natal-view.js?v=20261113pdf"></script>
 <script src="js/cycles.js?v=20261107qa"></script>
 <script src="js/tools-view.js?v=20261113"></script>
 <script src="js/city-view.js?v=20261104cs"></script>
