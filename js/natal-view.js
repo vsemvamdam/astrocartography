@@ -726,15 +726,17 @@
         <p>${esc(it.text)}</p></div></div>`;
     const list = secs.filter((sec) => sec.items.length);
     const block = (sec, head) => `<section class="rd-sec">${head ? `<h4 class="nat-h4">${esc(sec.title)}</h4>` : ''}${sec.note ? `<p class="bal-note">${esc(sec.note)}</p>` : ''}<div class="soul">${sec.items.map(row).join('')}</div></section>`;
-    // the lunar return: the main points in two columns, then the important points and the houses one by one, as tabs
-    if (o.mode === 'lunar' && I.lunarHouses) {
+    // solar and lunar returns: the main points in two columns, then the key points and the houses one by one, as tabs
+    const housesFn = o.mode === 'lunar' ? I.lunarHouses : o.mode === 'solar' ? I.solarHouses : null;
+    if (housesFn) {
+      const tabKey = o.mode === 'lunar' ? 'lunTab' : 'solTab';
       const tabs = [['main', 'Главное'], ['points', 'Важные точки'], ['houses', 'Планеты в домах']];
-      const cur = tabs.some((t) => t[0] === o.lunTab) ? o.lunTab : 'main';
+      const cur = tabs.some((t) => t[0] === o[tabKey]) ? o[tabKey] : 'main';
       $('natReadTabs').hidden = false;
       $('natReadTabs').innerHTML = tabs.map(([k, t]) => `<button type="button" data-k="${k}" aria-pressed="${k === cur}">${t}</button>`).join('');
-      $('natReadTabs').onclick = (e) => { const b = e.target.closest('button[data-k]'); if (b) { opts().lunTab = b.dataset.k; app.save(); renderReading(); } };
+      $('natReadTabs').onclick = (e) => { const b = e.target.closest('button[data-k]'); if (b) { opts()[tabKey] = b.dataset.k; app.save(); renderReading(); } };
       $('natRead').classList.toggle('rd-one', cur !== 'main');
-      $('natRead').innerHTML = cur === 'main' ? list.filter((sec) => sec.title !== 'Планеты в домах лунара').map((sec) => block(sec, true)).join('') : lunarInfo2(I.lunarHouses(natal, natBase), cur);
+      $('natRead').innerHTML = cur === 'main' ? list.map((sec) => block(sec, true)).join('') : lunarInfo2(housesFn(natal, natBase), cur);
       return;
     }
     $('natRead').classList.remove('rd-one');
@@ -767,7 +769,7 @@
     const planet = (p) => { const [col, gl] = glyphOf(p.id); return `<div class="lh-p"><div class="lh-ph"><span class="tg" style="color:${col}">${g(gl)}</span><b>${esc(p.ru)}</b>${badge(p.score)}<span class="muted lh-sg">в ${window.INTERP.SIGN_IN[p.sign]}${p.retro ? ', ретроградный' : ''}</span></div>
         ${p.label ? `<p class="lh-inf">Влияние планеты: ${p.label}${p.why.length ? ` · ${esc(p.why.join(', '))}` : ''}</p>` : ''}${p.key ? `<p class="lh-key">${esc(p.key)}</p>` : ''}<p>${esc(p.text)}</p>
         <p class="lh-inf">${esc(p.power)} ${esc(p.natText)}</p></div>`; };
-    return `<section class="rd-sec lun-houses"><p class="bal-note">Каждый дом лунара — сфера жизни на этот месяц; по Дарагану угловые дома (I, IV, VII, X) проявляются сильнее всего, падающие (III, VI, IX, XII) — слабее. Строка «в натальной карте» показывает, где дела месяца дадут последствия. Цифра у планеты — её сила от −3 до +3: природа планеты, знак (обитель, экзальтация, изгнание, падение), ретроградность и точные аспекты к Венере, Юпитеру, Марсу и Сатурну (до 5°). Дома Плацидуса.</p>
+    return `<section class="rd-sec lun-houses"><p class="bal-note">Каждый дом ${lh.gen} — сфера жизни ${lh.kind === 'solar' ? 'на этот год' : 'на этот месяц'}; по Дарагану угловые дома (I, IV, VII, X) проявляются сильнее всего, падающие (III, VI, IX, XII) — слабее. Строка «в натальной карте» показывает, где дела ${lh.kind === 'solar' ? 'года' : 'месяца'} дадут последствия. Цифра у планеты — её сила от −3 до +3: природа планеты, знак (обитель, экзальтация, изгнание, падение), ретроградность и точные аспекты к Венере, Юпитеру, Марсу и Сатурну (до 5°). Дома: ${lh.sys}.</p>
       ${lh.houses.map((x) => `<div class="lh-row"><div class="lh-side"><span class="lh-c h${x.h}">${RN[x.h]} дом</span><small>${esc(x.topic)}<br><span class="muted">${x.power}</span></small></div><div class="lh-body">
         <div class="lh-cusp">Куспид ${RN[x.h]} дома в <b>${window.INTERP.SIGN_IN[x.cusp.sign]}</b>. ${esc(x.cusp.text)}<span class="lh-proj">${esc(x.proj.text)}</span></div>
         ${x.planets.length ? x.planets.map(planet).join('') : `<p class="lh-empty">${esc(x.empty || 'Планет здесь нет.')}</p>`}
