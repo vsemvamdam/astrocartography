@@ -1465,13 +1465,15 @@
     $('cityView').hidden = v !== 'city';
     $('sportView').hidden = v !== 'sport';
     $('homeView').hidden = v !== 'home';
+    // the city map lives inside the Map section: its tab stays lit for both
+    const tabView = v === 'city' ? 'map' : v;
     document.querySelectorAll('.tab').forEach((t) => {
-      if (t.dataset.view === v) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+      if (t.dataset.view === tabView) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
     });
     if (v !== 'map' && $('app').classList.contains('map-only')) $('expand').click();
     if (v === 'natal') NatalView.update();
     else if (v === 'tools') ToolsView.update();
-    else if (v === 'city') { if (window.CityView) CityView.update(); }
+    else if (v === 'city') { if (window.CityView) CityView.update(); window.scrollTo(0, 0); }
     else if (v === 'sport') { if (window.SportView) SportView.update(); }
     else if (v === 'home') { if (window.HomeView) HomeView.update(); window.scrollTo(0, 0); }
     else requestAnimationFrame(() => { resize(); if (!view.ready) return; measureHead(); requestDraw(); });

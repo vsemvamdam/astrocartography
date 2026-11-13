@@ -114,7 +114,7 @@ button { cursor: pointer; touch-action: manipulation; }
   position: absolute; z-index: 2; pointer-events: none;
   top: calc(12px + var(--inset-top, 0px));
   left: max(16px, env(safe-area-inset-left, 0px));
-  right: max(72px, calc(env(safe-area-inset-right, 0px) + 56px));
+  right: max(200px, calc(env(safe-area-inset-right, 0px) + 190px));
   display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px;
   text-shadow: 0 1px 8px rgba(4, 9, 18, .9), 0 0 2px rgba(4, 9, 18, .9);
 }
@@ -146,6 +146,12 @@ button { cursor: pointer; touch-action: manipulation; }
 .tab:hover { color: var(--fg); }
 .tab[aria-current="page"] { background: var(--brass); color: var(--brass-ink); }
 .tab .s { display: none; }
+/* the Map section: the world map and the city map */
+.subnav { display: inline-flex; align-self: flex-start; gap: 2px; padding: 3px; border-radius: 999px; background: var(--panel); border: 1px solid var(--rule); }
+.subnav a { padding: 6px 14px; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: 13.5px; font-weight: 500; white-space: nowrap; }
+.subnav a:hover { color: var(--fg); }
+.subnav a[aria-current="page"] { background: rgba(217,181,110,.16); color: var(--brass); }
+.map-sub { position: absolute; z-index: 3; top: calc(10px + var(--inset-top, 0px)); right: max(12px, calc(env(safe-area-inset-right, 0px) + 8px)); background: rgba(10, 19, 34, .9); border-color: #2A3B58; }
 .acc-btn { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 7px; min-width: 51px; min-height: 38px; padding: 6px 13px 6px 11px; border-radius: 999px; border: 1px solid var(--rule); background: var(--panel); color: var(--fg); font-size: 14px; font-weight: 500; max-width: 220px; }
 .acc-btn:hover { border-color: var(--brass); }
 .acc-btn svg { flex: none; }
@@ -159,7 +165,7 @@ button { cursor: pointer; touch-action: manipulation; }
   .tb-brand { grid-area: 1 / 1; justify-self: start; }
   .tb-brand img { width: 128px; }
   .tabs { grid-area: 2 / 1 / 3 / -1; }
-  .tab { flex: 1; }
+  .tab { flex: 1 1 auto; }
   .acc-btn { grid-area: 1 / 2; min-width: 40px; padding: 6px 10px; }
   .acc-btn .acc-t { display: none; }
 }
@@ -1818,8 +1824,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <nav class="tabs" aria-label="Разделы">
       <a class="tab" href="#map" data-view="map"><span class="l">Карта мира</span><span class="s">Карта</span></a>
       <a class="tab" href="#natal" data-view="natal"><span class="l">Натальная карта</span><span class="s">Натал</span></a>
-      <a class="tab" href="#city" data-view="city">Город</a>
-      <a class="tab" href="#tools" data-view="tools"><span class="l">Инструменты</span><span class="s">Инстр.</span></a>
+      <a class="tab" href="#tools" data-view="tools">Инструменты</a>
       <a class="tab" href="#sport" data-view="sport">Спорт</a>
     </nav>
     <button type="button" class="acc-btn" id="accBtn" hidden aria-haspopup="dialog">
@@ -1834,6 +1839,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <canvas id="map" tabindex="0" aria-label="Карта астрокартографии. Перетаскивайте, чтобы двигать, сводите пальцы или крутите колесо, чтобы приблизить. Нажмите на точку, чтобы увидеть ближайшие линии."></canvas>
 
     <div class="map-shade" aria-hidden="true"></div>
+    <nav class="subnav map-sub" aria-label="Карта: мир или город"><a href="#map" aria-current="page">Карта мира</a><a href="#city">Город</a></nav>
     <div class="map-head" aria-hidden="true">
       <span class="mh-title"><img src="assets/astrosky-logo.svg?v=20261113" width="106" height="28" alt=""></span>
       <span class="mh-sep">|</span>
@@ -2026,6 +2032,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
   <section class="natal city" id="cityView" hidden aria-labelledby="cityH">
     <div class="natal-inner">
+      <nav class="subnav" aria-label="Карта: мир или город"><a href="#map">Карта мира</a><a href="#city" aria-current="page">Город</a></nav>
       <div class="city-ctl">
         <div class="field city-where"><label for="cityPlace">Город, где вы живёте или куда собираетесь</label>
           <div class="place-box"><input class="inp" type="text" id="cityPlace" placeholder="Введите город, например Москва" spellcheck="false" autocapitalize="words"><ul class="suggest" id="citySuggest" role="listbox" hidden></ul></div>
@@ -2309,6 +2316,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/firebase-config.js?v=20261104u"></script>
 <script src="js/account.js?v=20261107qa"></script>
 <script src="js/home-view.js?v=20261113brand"></script>
-<script src="js/app.js?v=20261107qa"></script>
+<script src="js/app.js?v=20261113nav2"></script>
 </body>
 </html>
