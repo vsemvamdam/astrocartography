@@ -25,7 +25,6 @@
     { id: 'voc', ru: 'Луна без курса', kind: 'date' },
     { id: 'lunar', ru: 'Лунные дни', kind: 'date' },
     { id: 'eph', ru: 'Эфемериды', kind: 'date' },
-    { id: 'dign', ru: 'Достоинства и альмутен', kind: 'natal' },
     { id: 'disp', ru: 'Диспозиторы', kind: 'natal' },
     { id: 'lots', ru: 'Арабские жребии', kind: 'natal' },
     { id: 'stars', ru: 'Неподвижные звёзды', kind: 'natal' },
@@ -147,20 +146,6 @@
     }).join('')}</tr>`).join('');
     return `<p class="muted">${MONTHS_FULL[m - 1]} ${y}: положения на 0:00 по Гринвичу (UTC), тропический зодиак, ${app.state.nodeMode === 'mean' ? 'средний' : 'истинный'} узел.</p>
       <div class="nat-scroll"><table class="nat-table eph-table"><thead><tr><th>День</th>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
-  }
-
-  function renderDign() {
-    const nat = natal(), r = F.dignityTable(nat);
-    const rows = r.rows.map((x) => `<tr><td>${bodyName(x.id)}</td><td class="ps">${zpos(x.p.lon)}</td>
-      <td>${x.items.map(([k, v]) => `<span class="tag ${v > 0 ? 'good' : 'bad'}">${k} ${v > 0 ? '+' : ''}${v}</span>`).join(' ')}</td>
-      <td class="pos ${x.total < 0 ? 'neg-t' : 'pos-t'}">${x.total > 0 ? '+' : ''}${x.total}</td></tr>`).join('');
-    const al = r.almuten;
-    return `<p class="muted">Баллы по Лилли: обитель +5, экзальтация +4, триплицитет +3, термы +2, фас +1; изгнание −5, падение −4, перегрин (нет ни одного достоинства) −5. Египетские термы, триплицитеты Дорофея, халдейские фасы. ${nat.isDay ? 'Карта дневная.' : 'Карта ночная.'}</p>
-      <div class="nat-scroll"><table class="nat-table"><thead><tr><th>Планета</th><th>Положение</th><th>Достоинства</th><th>Сумма</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <h4>Альмутен карты</h4>
-      <div class="tool-lead"><div class="big-glyph" style="color:${BODY[al[0][0]].color}">${g(BODY[al[0][0]].glyph)}</div><div><b>${BODY[al[0][0]].ru}: ${al[0][1]} ${plural(al[0][1], 'балл', 'балла', 'баллов')}</b>
-        <p class="muted">Планета с наибольшей властью над Солнцем, Луной, Асцендентом, MC и жребием Фортуны. Следом: ${al.slice(1, 3).map(([id, v]) => `${BODY[id].ru} ${v}`).join(', ')}.</p></div></div>
-      <div class="nat-scroll"><table class="nat-table"><thead><tr><th>Точка</th><th>Положение</th><th>Альмутен точки</th></tr></thead><tbody>${r.perPoint.map((p) => `<tr><td>${esc(p.ru)}</td><td class="ps">${zpos(p.lon)}</td><td>${bodyName(p.almuten)} <span class="muted">${p.points}</span></td></tr>`).join('')}</tbody></table></div>`;
   }
 
   function renderDisp() {
@@ -768,7 +753,7 @@
     }
   }
 
-  const RENDER = { bio: renderBio, hours: renderHours, voc: renderVoc, lunar: renderLunar, eph: renderEph, dign: renderDign, disp: renderDisp, lots: renderLots, stars: renderStars, deg30: renderDeg30, prof: renderProf, transits: renderTransits, cycles: renderCycles, num: renderNum };
+  const RENDER = { bio: renderBio, hours: renderHours, voc: renderVoc, lunar: renderLunar, eph: renderEph, disp: renderDisp, lots: renderLots, stars: renderStars, deg30: renderDeg30, prof: renderProf, transits: renderTransits, cycles: renderCycles, num: renderNum };
 
   /* ------------------------------- controls ------------------------------- */
   // biorhythms: show the reading of one critical day (from a date chip or a row of the table)
