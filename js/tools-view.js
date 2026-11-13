@@ -26,14 +26,14 @@
     { id: 'voc', ru: 'Луна без курса', kind: 'date' },
     { id: 'lunar', ru: 'Лунные дни', kind: 'date' },
     { id: 'eph', ru: 'Эфемериды', kind: 'date' },
-    { id: 'disp', ru: 'Диспозиторы', kind: 'natal' },
-    { id: 'lots', ru: 'Арабские жребии', kind: 'natal' },
+    { id: 'bio', ru: 'Биоритмы', kind: 'bio' },
+    { id: 'num', ru: 'Нумерология', kind: 'birth' },
     { id: 'deg30', ru: 'Тридцатиградусник', kind: 'natal' },
     { id: 'prof', ru: 'Профекции', kind: 'natal' },
     { id: 'transits', ru: 'Календарь транзитов', kind: 'natal' },
     { id: 'cycles', ru: 'Циклы жизни', kind: 'natal' },
-    { id: 'num', ru: 'Нумерология', kind: 'birth' },
-    { id: 'bio', ru: 'Биоритмы', kind: 'bio' },
+    { id: 'lots', ru: 'Арабские жребии', kind: 'natal' },
+    { id: 'disp', ru: 'Диспозиторы', kind: 'natal' },
   ];
   const C = window.CYCLES;
   const SIGN_ACC = ['Овна', 'Тельца', 'Близнецы', 'Рака', 'Льва', 'Деву', 'Весы', 'Скорпиона', 'Стрельца', 'Козерога', 'Водолея', 'Рыбы'];
