@@ -901,7 +901,7 @@
   }
 
   /* --------------------------------- PDF --------------------------------- */
-  // the chart on screen and its whole reading (every tab) as a model for AstroPDF
+  // the chart on screen and its whole reading (every tab) as a model for AstroPDF: the wheel and the reading in words, no tables
   function readingNow() {
     const o = opts(), I = window.INTERP;
     if (!I) return null;
@@ -913,30 +913,10 @@
     if (o.mode === 'synastry' && natB) return { secs: I.composite(natal), kind: 'Композит' };
     return null;
   }
-  const plain = (s) => String(s || '').replace(/\uFE0E/g, '');
-  const posText = (lon) => { const ps = pos(lon); return `${ps.deg}°${pad(ps.min)}′${pad(ps.sec)}″ ${ps.glyph} ${ps.name}`; };
   const glyphOf = (id) => { const b = BODY[String(id).replace(/^B:/, '')]; return b ? { glyph: b.glyph, color: b.color } : id === 'Lilith' ? { glyph: '⚸', color: '#B9A7D8' } : id === 'Fortune' ? { glyph: '⊗', color: '#B08A3E' } : null; };
   function pdfModel() {
     const rd = readingNow();
     if (!rd) return null;
-    const visiblePts = natal.points.filter((p) => visible(p.id));
-    const tables = [{
-      title: outer ? 'Ваши планеты' : 'Планеты и точки', cols: ['', 'Планета', 'Положение', 'Дом'], widths: [0.07, 0.33, 0.45, 0.15],
-      rows: visiblePts.map((p) => [{ text: isTxt(p.glyph) ? p.glyph : p.glyph, color: p.color, bold: true }, `${p.ru}${p.retro ? ' (R)' : ''}`, posText(p.lon), RN[p.house]]),
-    }];
-    if (outer) tables.push({
-      title: `Планеты: ${partnerName()}`, cols: ['', 'Планета', 'Положение', 'Свой дом', 'В ваших домах'], widths: [0.07, 0.27, 0.38, 0.13, 0.15],
-      rows: outer.map((p) => [{ text: p.glyph, color: p.color, bold: true }, `${p.ru}${p.retro ? ' (R)' : ''}`, posText(p.lon), RN[p.house], RN[N.houseOf(p.lon, natal.cusps)]]),
-    });
-    tables.push({
-      title: 'Дома', cols: ['Дом', 'Куспид', 'Управитель'], widths: [0.16, 0.5, 0.34],
-      rows: Array.from({ length: 12 }, (_, i) => i + 1).map((h) => [`${RN[h]}${h === 1 ? ' ASC' : h === 4 ? ' IC' : h === 7 ? ' DSC' : h === 10 ? ' MC' : ''}`, posText(natal.cusps[h]), N.RULERS[Math.floor(n360(natal.cusps[h]) / 30)].map((id) => BODY[id].ru).join(', ')]),
-    });
-    const aspList = (outer ? cross : natal.aspects.filter((x) => visible(x.A.id) || x.A.angle).filter((x) => visible(x.B.id) || x.B.angle)).filter((x) => x.asp.major || opts().minor).slice(0, 45);
-    if (aspList.length) tables.push({
-      title: outer ? 'Аспекты между картами' : 'Аспекты', cols: ['Аспект', 'Орб', ''], widths: [0.66, 0.16, 0.18],
-      rows: aspList.map((x) => [`${plain(x.A.ru)} ${x.asp.glyph} ${x.asp.ru.toLowerCase()} ${outer ? `${plain(x.B.ru)} (${partnerName()})` : plain(x.B.ru)}`, orbText(x.orb), x.applying == null ? '' : x.applying ? 'сходящийся' : 'расходящийся']),
-    });
     const item = (it) => {
       const g0 = it.asp ? { glyph: it.asp.glyph, color: it.asp.kind === 'soft' ? '#2E9E7A' : it.asp.kind === 'hard' ? '#D9483B' : '#8A7A55' } : (it.id === 'ASC' || it.id === 'MC') ? { glyph: it.id, color: '#B08A3E' } : glyphOf(it.mark != null ? it.mark : it.id);
       return { glyph: g0 && typeof it.mark !== 'number' ? g0.glyph : '', color: g0 ? g0.color : null, head: it.head, text: it.text, tone: it.tone === 'soft' || it.tone === 'hard' ? it.tone : (it.asp ? it.asp.kind : undefined) };
@@ -957,7 +937,7 @@
       sections.push({ title: `Дома ${lh.gen}`, note: `Каждый дом — сфера жизни; строка «в натальной карте» показывает, где дела дадут последствия. Угловые дома (I, IV, VII, X) проявляются сильнее всего. Дома: ${lh.sys}.`, items: hs });
     }
     const title = $('natTitle').textContent, sub = $('natSub').textContent;
-    return { kicker: rd.kind, title, subtitle: sub, wheel: $('wheel'), tables, sections, filename: `AstroSky — ${title.toLowerCase().includes(rd.kind.toLowerCase().split(' ')[0]) ? '' : rd.kind + ' — '}${title}.pdf`.replace(/\s+/g, ' ') };
+    return { kicker: rd.kind, title, subtitle: sub, wheel: $('wheel'), tables: [], sections, filename: `AstroSky — ${title.toLowerCase().includes(rd.kind.toLowerCase().split(' ')[0]) ? '' : rd.kind + ' — '}${title}.pdf`.replace(/\s+/g, ' ') };
   }
   async function downloadPdf() {
     const b = $('natPdf');
