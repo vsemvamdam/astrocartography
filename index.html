@@ -6,9 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="AstroSky — астрокартография онлайн. Линии MC, IC, ASC и DSC всех планет на карте мира, аспектные линии, параны, транзиты и прогрессии.">
 <meta property="og:title" content="AstroSky — астрокартография">
+<meta property="og:description" content="Натальная карта и расшифровка, линии планет на карте мира, соляры, лунары и совместимость.">
+<meta property="og:image" content="https://vsemvamdam.github.io/astrocartography/assets/astrosky-og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#070C16">
-<link rel="icon" type="image/png" sizes="180x180" href="assets/astrosky-icon.png">
-<link rel="apple-touch-icon" href="assets/astrosky-icon.png">
+<link rel="icon" href="assets/favicon.ico?v=20261113" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=20261113">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png?v=20261113">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20261113">
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 body { margin: 0; }
@@ -411,8 +418,9 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 /* the start page */
 .home-inner { max-width: 1180px; gap: 28px; }
 .hm-hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 32px; align-items: center; padding: 18px 0 8px; }
-.hm-kick { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--brass); }
-.hm-title { margin: 10px 0 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(48px, 7vw, 84px); line-height: 1; letter-spacing: .02em; color: #F1EBDF; }
+.hm-banner { margin: 0; border-radius: 18px; overflow: hidden; border: 1px solid var(--rule); background: #070C16; }
+.hm-banner img { display: block; width: 100%; height: auto; aspect-ratio: 2.2 / 1; object-fit: cover; object-position: 50% 40%; }
+.hm-h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(30px, 4vw, 44px); line-height: 1.12; letter-spacing: .02em; color: #F1EBDF; text-wrap: balance; }
 .hm-lead { margin: 16px 0 0; max-width: 56ch; font-size: 16px; line-height: 1.6; color: var(--muted); }
 .hm-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
 .hm-btn { display: inline-flex; align-items: center; min-height: 46px; padding: 0 20px; border-radius: 999px; border: 1px solid #24344F; color: var(--fg); text-decoration: none; font-size: 14.5px; font-weight: 500; }
@@ -455,6 +463,8 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .hm-foot { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--faint); max-width: 90ch; }
 @media (max-width: 759.98px) {
   .hm-hero { grid-template-columns: 1fr; gap: 20px; padding-top: 6px; }
+  .hm-banner { border-radius: 14px; }
+  .hm-banner img { aspect-ratio: 3 / 2; }
   .hm-wheel { max-width: 300px; }
   .hm-lead { font-size: 15px; }
   .hm-cta .hm-btn { flex: 1 1 auto; justify-content: center; }
@@ -1803,7 +1813,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <header class="topbar">
   <div class="tb-inner">
     <a class="tb-brand" href="#home" aria-label="AstroSky — на главную">
-      <img src="assets/astrosky-logo.svg" width="144" height="38" alt="AstroSky">
+      <img src="assets/astrosky-logo.svg?v=20261113" width="144" height="38" alt="AstroSky">
     </a>
     <nav class="tabs" aria-label="Разделы">
       <a class="tab" href="#map" data-view="map"><span class="l">Карта мира</span><span class="s">Карта</span></a>
@@ -1825,7 +1835,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
     <div class="map-shade" aria-hidden="true"></div>
     <div class="map-head" aria-hidden="true">
-      <span class="mh-title"><img src="assets/astrosky-logo.svg" width="106" height="28" alt=""></span>
+      <span class="mh-title"><img src="assets/astrosky-logo.svg?v=20261113" width="106" height="28" alt=""></span>
       <span class="mh-sep">|</span>
       <span class="mh-date" id="mhDate">—</span>
       <span class="mh-meta" id="mhMeta"></span>
@@ -2298,7 +2308,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/sport-view.js?v=20261107qa"></script>
 <script src="js/firebase-config.js?v=20261104u"></script>
 <script src="js/account.js?v=20261107qa"></script>
-<script src="js/home-view.js?v=20261105home"></script>
+<script src="js/home-view.js?v=20261113brand"></script>
 <script src="js/app.js?v=20261107qa"></script>
 </body>
 </html>
