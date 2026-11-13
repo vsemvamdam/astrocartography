@@ -30,7 +30,8 @@ body { margin: 0; }
    and below it on phones. One deliberate dark look: navy sea, steel land, brass. */
 :root {
   --ink: #070C16;
-  --panel: #0A1322;
+  --panel: rgba(10,19,34,.84);
+  --panel-solid: #0A1322;
   --raise: #111C30;
   --rule: #1B2940;
   --fg: #E6ECF4;
@@ -69,6 +70,36 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--ink); }
+
+/* ------------------- the sky behind everything (js/sky.js) ------------------- */
+.sky {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
+  background:
+    radial-gradient(110% 60% at 50% 112%, rgba(160,104,128,.26), transparent 62%),
+    radial-gradient(55% 45% at 88% 6%, rgba(92,78,150,.16), transparent 72%),
+    radial-gradient(45% 40% at 8% 18%, rgba(70,62,120,.12), transparent 72%),
+    linear-gradient(180deg, #070C16 0%, #0B0F20 52%, #141026 100%);
+}
+.sky canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* a soft veil over the middle, where the text is, so the clouds stay at the edges and never fight with it */
+.sky::after { content: ""; position: absolute; inset: 0; background: radial-gradient(48% 58% at 50% 52%, rgba(7,12,22,.5), rgba(7,12,22,.22) 65%, transparent 100%); }
+@media (max-width: 899.98px) { .sky::after { background: linear-gradient(180deg, transparent 0%, rgba(7,12,22,.2) 40%, rgba(7,12,22,.42) 78%, rgba(7,12,22,.2) 100%); } }
+.sky-cloud { position: absolute; bottom: -7vh; will-change: transform; transition: transform .8s cubic-bezier(.2,.7,.2,1); }
+.sky-cloud.l { left: -6vw; width: min(50vw, 760px); }
+.sky-cloud.r { right: -6vw; width: min(46vw, 700px); }
+.sky-cloud img { display: block; width: 100%; height: auto; opacity: .5; animation: sky-drift-l 46s ease-in-out infinite alternate; }
+.sky-cloud.r img { opacity: .46; animation-name: sky-drift-r; animation-duration: 39s; }
+@keyframes sky-drift-l { from { transform: translate3d(-4%, 1%, 0) scale(1); } to { transform: translate3d(5%, -2%, 0) scale(1.04); } }
+@keyframes sky-drift-r { from { transform: translate3d(4%, -1%, 0) scale(1.03); } to { transform: translate3d(-5%, 2%, 0) scale(1); } }
+@media (max-width: 899.98px) {
+  .sky-cloud { bottom: -4vh; }
+  .sky-cloud.l { left: -34vw; width: 96vw; }
+  .sky-cloud.r { right: -36vw; width: 92vw; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sky-cloud { transition: none; }
+  .sky-cloud img { animation: none; }
+}
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; touch-action: manipulation; }
 :focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
@@ -91,7 +122,8 @@ button { cursor: pointer; touch-action: manipulation; }
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 20px 40px;
   display: flex; flex-direction: column; gap: 28px;
-  background: var(--panel);
+  background: rgba(10,19,34,.72);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1); backdrop-filter: blur(14px) saturate(1.1);
 }
 .panel > * { min-width: 0; }
 
@@ -133,7 +165,7 @@ button { cursor: pointer; touch-action: manipulation; }
 .app:not(.map-only) .mh-title, .app:not(.map-only) .mh-sep { display: none; }
 
 /* ------------------------------- top bar -------------------------------- */
-.topbar { flex: none; position: relative; z-index: 5; background: var(--ink); border-bottom: 1px solid var(--rule); }
+.topbar { flex: none; position: relative; z-index: 5; background: rgba(7,12,22,.74); -webkit-backdrop-filter: blur(14px) saturate(1.15); backdrop-filter: blur(14px) saturate(1.15); border-bottom: 1px solid rgba(27,41,64,.8); }
 .tb-inner {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -412,7 +444,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .lc-actions { display: flex; gap: 16px; flex-wrap: wrap; }
 
 /* ------------------------------ natal view ------------------------------ */
-.natal { background: var(--ink); }
+.natal { background: transparent; }
 .natal-inner {
   box-sizing: border-box; max-width: 1320px; margin: 0 auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -557,7 +589,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .bal-c { font-family: var(--f-mono); text-align: right; }
 .bal-g { font-family: var(--f-glyph); font-size: 17px; letter-spacing: 3px; }
 .bal-note { margin: 0; font-size: 12.5px; color: var(--muted); }
-#wheel .w-ring-out { fill: var(--panel); stroke: #2A3B58; stroke-width: 1.5; }
+#wheel .w-ring-out { fill: var(--panel-solid); stroke: #2A3B58; stroke-width: 1.5; }
 #wheel .w-inner { fill: var(--ink); }
 #wheel .w-ring { fill: none; stroke: #2A3B58; stroke-width: 1.2; }
 #wheel .w-ring-soft { fill: none; stroke: #22314A; stroke-width: 1; }
@@ -1123,7 +1155,7 @@ button.psy-c:hover { background: rgba(216,164,166,.07); }
 .psy-mini .psy-d { font-size: 15px; }
 
 /* ------------------------------ account dialog ----------------------------- */
-.acc-dlg { width: min(440px, calc(100% - 24px)); max-height: calc(100% - 24px); padding: 0; border-radius: 16px; border: 1px solid #2A3B58; background: var(--panel); color: var(--fg); box-shadow: 0 24px 60px rgba(0,0,0,.55); }
+.acc-dlg { width: min(440px, calc(100% - 24px)); max-height: calc(100% - 24px); padding: 0; border-radius: 16px; border: 1px solid #2A3B58; background: var(--panel-solid); color: var(--fg); box-shadow: 0 24px 60px rgba(0,0,0,.55); }
 .acc-dlg::backdrop { background: rgba(3, 7, 14, .72); }
 .acc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 10px 12px 18px; border-bottom: 1px solid var(--rule); }
 .acc-head h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 22px; letter-spacing: .04em; }
@@ -1816,6 +1848,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
 </style>
 </head>
 <body>
+<div class="sky" id="sky" aria-hidden="true">
+  <canvas id="skyStars"></canvas>
+  <div class="sky-cloud l"><img src="assets/sky-clouds-left.webp" alt="" decoding="async"></div>
+  <div class="sky-cloud r"><img src="assets/sky-clouds-right.webp" alt="" decoding="async"></div>
+</div>
 <header class="topbar">
   <div class="tb-inner">
     <a class="tb-brand" href="#home" aria-label="AstroSky — на главную">
@@ -2293,6 +2330,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   </aside>
 </div>
 
+<script src="js/sky.js?v=20261113sky"></script>
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 <script src="js/data.js?v=20261104u"></script>
 <script src="js/country-labels.js?v=20261104u"></script>
