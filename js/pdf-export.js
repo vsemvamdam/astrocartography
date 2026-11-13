@@ -15,7 +15,7 @@
     const L = (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255;
     return L > 0.5 ? c.map((v) => Math.round(v * 0.5 / L)) : c;
   };
-  const INK = [24, 30, 44], MUTED = [112, 120, 136], BRASS = [150, 110, 36], RULE = [222, 216, 202], ZEBRA = [247, 244, 237];
+  const INK = [24, 30, 44], MUTED = [112, 120, 136], BRASS = [158, 96, 106], RULE = [222, 216, 202], ZEBRA = [247, 244, 237];
   const GOOD = [46, 158, 122], BAD = [217, 72, 59], NEUTRAL = [190, 180, 160];
 
   let libP = null;

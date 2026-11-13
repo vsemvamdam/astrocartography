@@ -252,7 +252,7 @@
     const arc = (a0, a1, f) => { const out = []; for (let a = a0; a <= a1 + 1e-9; a += 1) out.push(at(a, f)); return out; };
     for (let a = 0; a < 360; a += 10) {
       const major = a % 30 === 0, card = a % 90 === 0;
-      LL.polyline([at(a, 0.06), at(a, 1)], { color: card ? '#D9B56E' : '#9FB3D1', weight: card ? 1.4 : major ? 1 : 0.6, opacity: card ? 0.7 : major ? 0.42 : 0.22, interactive: false }).addTo(dialLayer);
+      LL.polyline([at(a, 0.06), at(a, 1)], { color: card ? '#D8A4A6' : '#9FB3D1', weight: card ? 1.4 : major ? 1 : 0.6, opacity: card ? 0.7 : major ? 0.42 : 0.22, interactive: false }).addTo(dialLayer);
     }
     LL.polyline(arc(0, 360, 1), { color: '#9FB3D1', weight: 1, opacity: 0.45, interactive: false }).addTo(dialLayer);
     LL.polyline(arc(0, 360, 0.5), { color: '#9FB3D1', weight: 0.6, opacity: 0.2, dashArray: '2 6', interactive: false }).addTo(dialLayer);
