@@ -95,24 +95,43 @@
   const f1 = (v) => v.toFixed(1);
   const line = (a, b, cls, extra) => `<line x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}" class="${cls}"${extra || ''}/>`;
 
-  // spread glyphs so they don't overlap, keeping order around the circle
-  function spread(points, minSep) {
-    const list = points.map((p) => ({ p, a: n360(p.lon) })).sort((x, y) => x.a - y.a);
-    const n = list.length;
-    if (n < 2) return list.map((x) => ({ p: x.p, d: x.a }));
-    const d = list.map((x) => x.a);
-    for (let it = 0; it < 200; it++) {
-      let moved = false;
-      for (let i = 0; i < n; i++) {
-        const j = (i + 1) % n;
-        let gap = d[j] - d[i];
-        if (j === 0) gap += 360;
-        if (gap < minSep) { const push = (minSep - gap) / 2 + 0.01; d[i] -= push; d[j] += push; moved = true; }
+  // Spread glyphs so they don't overlap. A glyph never leaves its house: the cusp lines cross the glyph
+  // ring, and a glyph pushed over a cusp reads as a planet in the next house (Neptune at 2°35′ Aries in
+  // the IX house was drawn past an MC at 4°33′). Each glyph gets a slot of minSep degrees inside its
+  // house — narrower when the house is crowded, and then the labels shrink: the degrees (kl) need about
+  // 0.9·minSep at full size, the planet's glyph (kg) about 0.7·minSep, so glyphs stay large longest.
+  // Slots keep the planets' order and sit as close to the real longitudes as possible: isotonic
+  // regression of a_i − i·s (pool adjacent violators), clamped to the house.
+  const K_MIN = 0.55;
+  function spread(points, minSep, cusps) {
+    const out = [];
+    for (let h = 1; h <= 12; h++) {
+      const lo = cusps[h], width = n360(cusps[h === 12 ? 1 : h + 1] - lo);
+      const list = points.filter((p) => N.houseOf(p.lon, cusps) === h)
+        .map((p) => ({ p, a: lo + n360(p.lon - lo) })).sort((x, y) => x.a - y.a);
+      const n = list.length;
+      if (!n) continue;
+      const s = Math.min(minSep, width / n);
+      const kg = Math.max(K_MIN, Math.min(1, s / (0.7 * minSep))), kl = Math.max(K_MIN, Math.min(1, s / (0.9 * minSep)));
+      const from = lo + s / 2, to = lo + width - s / 2 - (n - 1) * s;
+      const blocks = [];
+      list.forEach((x, i) => {
+        blocks.push({ v: x.a - i * s, w: 1 });
+        while (blocks.length > 1 && blocks[blocks.length - 2].v > blocks[blocks.length - 1].v) {
+          const b = blocks.pop(), a = blocks[blocks.length - 1];
+          a.v = (a.v * a.w + b.v * b.w) / (a.w + b.w); a.w += b.w;
+        }
+      });
+      let i = 0;
+      for (const b of blocks) {
+        const e = Math.min(to, Math.max(from, b.v));
+        for (let j = 0; j < b.w; j++, i++) out.push({ p: list[i].p, d: e + i * s, kg, kl });
       }
-      if (!moved) break;
     }
-    return list.map((x, i) => ({ p: x.p, d: d[i] }));
+    return out;
   }
+  // shrink a label around its own anchor point
+  const shrink = (pt, k) => (k < 0.999 ? ` transform="matrix(${k.toFixed(3)} 0 0 ${k.toFixed(3)} ${f1(pt[0] * (1 - k))} ${f1(pt[1] * (1 - k))})"` : '');
   const related = (id, other) => {
     const list = outer ? cross : natal.aspects;
     return list.some((x) => (x.A.id === id && x.B.id === other) || (x.B.id === id && x.A.id === other));
@@ -161,45 +180,192 @@
       const dim = hl && x.A.id !== hl && x.B.id !== hl;
       const k = x.asp.kind;
       const w = Math.max(0.8, 3 * (1 - x.orb / x.maxOrb)) + (k === 'minor' ? 0 : 0.6);
-      asp.push(line(xy(x.A.lon, L.hin), xy(x.B.lon, L.hin), `w-asp w-asp-${k}${dim ? ' dim' : ''}`, ` stroke-width="${w.toFixed(2)}"`));
+      asp.push(line(xy(x.A.lon, L.hin), xy(x.B.lon, L.hin), `w-asp w-asp-${k}${dim ? ' dim' : ''}`, ` stroke-width="${w.toFixed(2)}" style="--sw:${w.toFixed(2)}px"`));
     }
     o.push(`<g>${asp.join('')}</g>`);
     // inner planets (the main chart)
     const pts = natal.points.filter((p) => visible(p.id));
-    for (const { p, d } of spread(pts, outer ? 9 : 8)) {
+    for (const { p, d, kg, kl } of spread(pts, outer ? 9 : 8, natal.cusps)) {
       const dim = hl && hl !== p.id && !related(hl, p.id);
       const ps = pos(p.lon);
       const t1 = outer ? xy(p.lon, L.sep) : xy(p.lon, R_ZIN), t2 = outer ? xy(p.lon, L.sep - 12) : xy(p.lon, R_ZIN - 16);
-      const gp = xy(d, L.glyph), dp = xy(d, L.deg), cp = xy(d, L.glyph + 24);
+      const gp = xy(d, L.glyph), dp = xy(d, L.deg), cp = xy(d, L.glyph + 24 * kg), mp = L.min ? xy(d, L.min) : null;
       o.push(`<g class="w-pt${dim ? ' dim' : ''}${hl === p.id ? ' on' : ''}" data-id="${p.id}" tabindex="0" role="button" aria-label="${esc(p.ru)} ${ps.text} ${ps.name}, дом ${RN[p.house]}">
         ${line(t1, t2, 'w-ptick', ` stroke="${p.color}"`)}${line(t2, cp, 'w-conn', ` stroke="${p.color}"`)}
-        <circle cx="${f1(gp[0])}" cy="${f1(gp[1])}" r="26" class="w-hit"/>
-        <text x="${f1(gp[0])}" y="${f1(gp[1])}" class="w-planet${isTxt(p.glyph) ? ' txt' : ''}" style="fill:${p.color}">${isTxt(p.glyph) ? p.glyph : g(p.glyph)}</text>
-        ${L.min ? `<text x="${f1(dp[0])}" y="${f1(dp[1])}" class="w-deg">${ps.deg}°</text>
-        <text x="${f1(xy(d, L.min)[0])}" y="${f1(xy(d, L.min)[1])}" class="w-min">${pad(ps.min)}′${p.retro ? '<tspan class="w-rx">R</tspan>' : ''}</text>`
-        : `<text x="${f1(dp[0])}" y="${f1(dp[1])}" class="w-deg w-deg-s">${ps.deg}°${pad(ps.min)}${p.retro ? '<tspan class="w-rx">R</tspan>' : ''}</text>`}
+        <circle cx="${f1(gp[0])}" cy="${f1(gp[1])}" r="${f1(26 * kg)}" class="w-hit"/>
+        <text x="${f1(gp[0])}" y="${f1(gp[1])}" class="w-planet${isTxt(p.glyph) ? ' txt' : ''}" style="fill:${p.color}"${shrink(gp, kg)}>${isTxt(p.glyph) ? p.glyph : g(p.glyph)}</text>
+        ${L.min ? `<text x="${f1(dp[0])}" y="${f1(dp[1])}" class="w-deg"${shrink(dp, kl)}>${ps.deg}°</text>
+        <text x="${f1(mp[0])}" y="${f1(mp[1])}" class="w-min"${shrink(mp, kl)}>${pad(ps.min)}′${p.retro ? '<tspan class="w-rx">R</tspan>' : ''}</text>`
+        : `<text x="${f1(dp[0])}" y="${f1(dp[1])}" class="w-deg w-deg-s"${shrink(dp, kl)}>${ps.deg}°${pad(ps.min)}${p.retro ? '<tspan class="w-rx">R</tspan>' : ''}</text>`}
       </g>`);
       const e = xy(p.lon, L.hin);
       o.push(`<circle cx="${f1(e[0])}" cy="${f1(e[1])}" r="3.2" fill="${p.color}" class="w-dot${dim ? ' dim' : ''}"/>`);
     }
     // outer ring: partner's planets
     if (outer) {
-      for (const { p, d } of spread(outer, 8.5)) {
+      // the partner's planets stay inside the house of your chart they fall into (the cusp lines cross this ring too)
+      for (const { p, d, kg, kl } of spread(outer, 8.5, natal.cusps)) {
         const key = p.id;
         const dim = hl && hl !== key && !related(hl, key);
         const ps = pos(p.lon);
         const gp = xy(d, L.oglyph), dp = xy(d, L.odeg);
-        o.push(`<g class="w-pt w-outer${dim ? ' dim' : ''}${hl === key ? ' on' : ''}" data-id="${key}" tabindex="0" role="button" aria-label="${esc(partnerName())}: ${esc(p.ru)} ${ps.text} ${ps.name}">
+        o.push(`<g class="w-pt w-outer${dim ? ' dim' : ''}${hl === key ? ' on' : ''}" data-id="${key}" tabindex="0" role="button" aria-label="${esc(partnerName())}: ${esc(p.ru)} ${ps.text} ${ps.name}, в вашем ${RN[N.houseOf(p.lon, natal.cusps)]} доме">
           ${line(xy(p.lon, R_ZIN), xy(p.lon, R_ZIN - 10), 'w-ptick', ` stroke="${p.color}"`)}
-          <circle cx="${f1(gp[0])}" cy="${f1(gp[1])}" r="22" class="w-hit"/>
-          <text x="${f1(gp[0])}" y="${f1(gp[1])}" class="w-planet w-planet-o${isTxt(p.glyph) ? ' txt' : ''}" style="fill:${p.color}">${isTxt(p.glyph) ? p.glyph : g(p.glyph)}</text>
-          <text x="${f1(dp[0])}" y="${f1(dp[1])}" class="w-deg w-deg-s">${ps.deg}°${pad(ps.min)}${p.retro ? '<tspan class="w-rx">R</tspan>' : ''}</text>
+          <circle cx="${f1(gp[0])}" cy="${f1(gp[1])}" r="${f1(22 * kg)}" class="w-hit"/>
+          <text x="${f1(gp[0])}" y="${f1(gp[1])}" class="w-planet w-planet-o${isTxt(p.glyph) ? ' txt' : ''}" style="fill:${p.color}"${shrink(gp, kg)}>${isTxt(p.glyph) ? p.glyph : g(p.glyph)}</text>
+          <text x="${f1(dp[0])}" y="${f1(dp[1])}" class="w-deg w-deg-s"${shrink(dp, kl)}>${ps.deg}°${pad(ps.min)}${p.retro ? '<tspan class="w-rx">R</tspan>' : ''}</text>
         </g>`);
         const e = xy(p.lon, L.hin);
         o.push(`<circle cx="${f1(e[0])}" cy="${f1(e[1])}" r="3.4" fill="none" stroke="${p.color}" stroke-width="1.6" class="w-dot${dim ? ' dim' : ''}"/>`);
       }
     }
     $('wheel').innerHTML = o.join('');
+  }
+
+  /* --------------------------------- zoom --------------------------------- */
+  // The wheel zooms by narrowing its viewBox: the + and − buttons, a pinch (two fingers; a trackpad
+  // pinch reaches the page as Ctrl + wheel, in Safari as gesture events), Ctrl/⌘ + wheel, a double
+  // click and the + − 0 keys. A zoomed wheel is dragged with the mouse or a finger; a plain wheel still
+  // scrolls the page. The zoom survives redraws: renderWheel only replaces the wheel's contents.
+  const VB0 = -62, VBS = 1124, Z_MAX = 6, Z_STEP = 1.6;
+  const zm = { k: 1, cx: VB0 + VBS / 2, cy: VB0 + VBS / 2 };
+  let zAnim = 0;
+  function zClamp(k, cx, cy) {
+    const half = VBS / k / 2, lo = VB0 + half, hi = VB0 + VBS - half;
+    return [Math.min(hi, Math.max(lo, cx)), Math.min(hi, Math.max(lo, cy))];
+  }
+  function zApply() {
+    const svg = $('wheel'), w = VBS / zm.k;
+    [zm.cx, zm.cy] = zClamp(zm.k, zm.cx, zm.cy);
+    svg.setAttribute('viewBox', `${(zm.cx - w / 2).toFixed(2)} ${(zm.cy - w / 2).toFixed(2)} ${w.toFixed(2)} ${w.toFixed(2)}`);
+    svg.style.setProperty('--zs', (1 / Math.sqrt(zm.k)).toFixed(3));   // aspect lines thicken slower than the zoom
+    const on = zm.k > 1.001;
+    svg.classList.toggle('zoomed', on);
+    $('wzOut').disabled = !on;
+    $('wzFit').disabled = !on;
+    $('wzIn').disabled = zm.k >= Z_MAX - 0.001;
+    $('wzVal').textContent = `${Math.round(zm.k * 100)}%`;
+  }
+  // the zoom k·f that keeps the chart point (px, py) at the same place on screen
+  function zTarget(f, px, py) {
+    let k = Math.min(Z_MAX, Math.max(1, zm.k * f));
+    if (k < 1.01) k = 1;
+    const r = zm.k / k;
+    return [k, px + (zm.cx - px) * r, py + (zm.cy - py) * r];
+  }
+  function zSet(k, cx, cy) { cancelAnimationFrame(zAnim); zm.k = k; zm.cx = cx; zm.cy = cy; zApply(); }
+  // smooth zoom; with an anchor the anchor point stays put all the way
+  function zAnimate(k1, cx1, cy1, anchor) {
+    cancelAnimationFrame(zAnim);
+    const k0 = zm.k, x0 = zm.cx, y0 = zm.cy, t0 = performance.now();
+    const T = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 220;
+    const step = (t) => {
+      const u = T ? Math.min(1, (t - t0) / T) : 1, e = 1 - Math.pow(1 - u, 3);
+      zm.k = k0 * Math.pow(k1 / k0, e);
+      if (anchor) { const r = k0 / zm.k; zm.cx = anchor[0] + (x0 - anchor[0]) * r; zm.cy = anchor[1] + (y0 - anchor[1]) * r; }
+      else { zm.cx = x0 + (cx1 - x0) * e; zm.cy = y0 + (cy1 - y0) * e; }
+      zApply();
+      if (u < 1) zAnim = requestAnimationFrame(step);
+    };
+    zAnim = requestAnimationFrame(step);
+  }
+  const zBy = (f) => { const [k, x, y] = zTarget(f, zm.cx, zm.cy); zAnimate(k, x, y, null); };
+  const zFit = () => zAnimate(1, VB0 + VBS / 2, VB0 + VBS / 2, null);
+  // a point on screen in chart units (the wheel is square, so the viewBox maps without letterboxing)
+  function zPoint(clientX, clientY) {
+    const r = $('wheel').getBoundingClientRect(), w = VBS / zm.k;
+    if (!isFinite(clientX) || !r.width) return [zm.cx, zm.cy];
+    return [zm.cx - w / 2 + (clientX - r.left) / r.width * w, zm.cy - w / 2 + (clientY - r.top) / r.height * w];
+  }
+  function initZoom() {
+    const svg = $('wheel'), ptrs = new Map();
+    let drag = null, swallow = false, g0 = null;
+    const mid = (a) => [a.reduce((s, p) => s + p[0], 0) / a.length, a.reduce((s, p) => s + p[1], 0) / a.length];
+    const span = (a) => Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]);
+    $('wzIn').addEventListener('click', () => zBy(Z_STEP));
+    $('wzOut').addEventListener('click', () => zBy(1 / Z_STEP));
+    $('wzFit').addEventListener('click', zFit);
+    svg.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      swallow = false;
+      ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+      if (ptrs.size === 1) drag = { x: e.clientX, y: e.clientY, moved: false };
+    });
+    svg.addEventListener('pointermove', (e) => {
+      if (!drag || !ptrs.has(e.pointerId)) return;
+      const before = [...ptrs.values()];
+      ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+      const after = [...ptrs.values()], m0 = mid(before), m1 = mid(after), pinch = after.length > 1;
+      if (!drag.moved) {
+        // a drag starts after a few pixels, so a tap on a planet stays a tap; an unzoomed wheel has nothing to drag
+        if (!pinch && (zm.k <= 1.001 || Math.hypot(m1[0] - drag.x, m1[1] - drag.y) < 6)) return;
+        drag.moved = true;
+        svg.classList.add('dragging');
+      }
+      if (!svg.hasPointerCapture(e.pointerId)) { try { svg.setPointerCapture(e.pointerId); } catch (err) { /* already released */ } }
+      cancelAnimationFrame(zAnim);
+      const unit = VBS / zm.k / svg.getBoundingClientRect().width;
+      zm.cx -= (m1[0] - m0[0]) * unit;
+      zm.cy -= (m1[1] - m0[1]) * unit;
+      if (pinch && before.length > 1 && span(before) > 0) {
+        const p = zPoint(m1[0], m1[1]), [k, x, y] = zTarget(span(after) / span(before), p[0], p[1]);
+        zm.k = k; zm.cx = x; zm.cy = y;
+      }
+      zApply();
+    });
+    // a double click or double tap off the planets zooms in there (with Shift: out). Counted here rather
+    // than with dblclick: a click redraws the wheel, and the browser does not pair clicks on replaced nodes.
+    let lastTap = null;
+    const end = (e) => {
+      if (!ptrs.delete(e.pointerId)) return;
+      const tap = e.type === 'pointerup' && drag && !drag.moved && !ptrs.size;
+      if (drag && drag.moved && e.type === 'pointerup') swallow = true;
+      if (!ptrs.size) { drag = null; svg.classList.remove('dragging'); }
+      if (!tap) { lastTap = null; return; }
+      const now = performance.now(), onPlanet = !!(e.target.closest && e.target.closest('[data-id]'));
+      if (lastTap && !onPlanet && now - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) {
+        lastTap = null;
+        const p = zPoint(e.clientX, e.clientY), [k, x, y] = zTarget(e.shiftKey ? 1 / 2 : 2, p[0], p[1]);
+        zAnimate(k, x, y, p);
+      } else lastTap = onPlanet ? null : { t: now, x: e.clientX, y: e.clientY };
+    };
+    svg.addEventListener('pointerup', end);
+    svg.addEventListener('pointercancel', end);
+    // the click that ends a drag must not pick or drop a planet
+    svg.addEventListener('click', (e) => { if (swallow) { swallow = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+    svg.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+      const p = zPoint(e.clientX, e.clientY), [k, x, y] = zTarget(Math.exp(-Math.max(-60, Math.min(60, dy)) * 0.01), p[0], p[1]);
+      zSet(k, x, y);
+    }, { passive: false });
+    // two fingers, or one finger on a zoomed wheel, move the wheel and not the page
+    svg.addEventListener('touchmove', (e) => { if (e.touches.length > 1 || zm.k > 1.001) e.preventDefault(); }, { passive: false });
+    // Safari: trackpad pinch on a Mac (on an iPhone the pointer events above already do it)
+    svg.addEventListener('gesturestart', (e) => { e.preventDefault(); g0 = zm.k; });
+    svg.addEventListener('gesturechange', (e) => {
+      e.preventDefault();
+      if (g0 == null || ptrs.size > 1) return;
+      const p = zPoint(e.clientX, e.clientY), [k, x, y] = zTarget(g0 * e.scale / zm.k, p[0], p[1]);
+      zSet(k, x, y);
+    });
+    svg.addEventListener('gestureend', (e) => { e.preventDefault(); g0 = null; });
+    svg.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const step = VBS / zm.k * 0.12;
+      if (e.key === '+' || e.key === '=') zBy(Z_STEP);
+      else if (e.key === '-' || e.key === '_') zBy(1 / Z_STEP);
+      else if (e.key === '0') zFit();
+      else if (zm.k > 1.001 && /^Arrow/.test(e.key)) {
+        zAnimate(zm.k, zm.cx + (e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0), zm.cy + (e.key === 'ArrowDown' ? step : e.key === 'ArrowUp' ? -step : 0), null);
+      } else return;
+      e.preventDefault();
+    });
+    // print the whole wheel
+    window.addEventListener('beforeprint', () => svg.setAttribute('viewBox', `${VB0} ${VB0} ${VBS} ${VBS}`));
+    window.addEventListener('afterprint', zApply);
+    zApply();
   }
 
   /* -------------------------------- tables -------------------------------- */
@@ -783,6 +949,7 @@
     document.body.dataset.natmode = q.mode;
   }
   function initControls() {
+    initZoom();   // before the wheel's click handler: a drag's closing click is swallowed first
     const o = opts();
     const sel = $('natHouse');
     sel.innerHTML = N.HOUSE_SYSTEMS.map((s) => `<option value="${s.id}">${s.ru}</option>`).join('');
@@ -806,7 +973,7 @@
     app.makePlaceSearch($('solPlace'), $('solSuggest'), () => solarOpts().place, (p) => { solarOpts().place = p; changed(); });
     $('solHome').addEventListener('click', () => { solarOpts().place = null; changed(); syncSolarControls(); });
     // highlight a point's aspects from the wheel or the tables
-    const pick = (id) => { hl = hl === id ? null : id; renderWheel(); renderPlanets(); renderAspects(); };
+    const pick = (id) => { const next = hl === id ? null : id; if (next === hl) return; hl = next; renderWheel(); renderPlanets(); renderAspects(); };
     $('wheel').addEventListener('click', (e) => { const el = e.target.closest('[data-id]'); pick(el ? el.dataset.id : null); });
     $('wheel').addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.dataset.id) { e.preventDefault(); pick(e.target.dataset.id); } });
     for (const id of ['natPlanets', 'natPartner']) $(id).addEventListener('click', (e) => { const tr = e.target.closest('tr[data-id]'); if (tr) pick(tr.dataset.id); });

@@ -473,7 +473,15 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .nat-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; container-type: inline-size; }
 @container (max-width: 600px) { .nat-table .sgn { display: none; } }
 .wheel-box { margin: 0; min-width: 0; }
-#wheel { display: block; width: 100%; max-width: 780px; height: auto; aspect-ratio: 1 / 1; margin: 0 auto; -webkit-user-select: none; user-select: none; }
+#wheel { display: block; width: 100%; max-width: 780px; height: auto; aspect-ratio: 1 / 1; margin: 0 auto; -webkit-user-select: none; user-select: none; touch-action: pan-y; -webkit-touch-callout: none; }
+#wheel.zoomed { touch-action: none; cursor: grab; }
+#wheel.zoomed.dragging, #wheel.zoomed.dragging .w-pt { cursor: grabbing; }
+/* zoom bar under the wheel */
+.wz { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; }
+.wz .pill { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 40px; min-height: 40px; padding: 0 12px; cursor: pointer; }
+.wz .pill svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.wz .pill:disabled { opacity: .38; cursor: default; color: var(--muted); border-color: #24344F; }
+.wz-v { min-width: 50px; text-align: center; font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .wheel-box figcaption { margin-top: 6px; text-align: center; font-size: 12.5px; color: var(--faint); }
 .nat-card { min-width: 0; padding: 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--rule); }
 .nat-card h3 { margin: 0 0 10px; display: flex; justify-content: space-between; gap: 12px; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); }
@@ -544,7 +552,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 #wheel .w-axis { stroke: var(--brass); stroke-width: 2.2; }
 #wheel .w-hnum { font-family: var(--f-mono); font-size: 21px; fill: var(--muted); text-anchor: middle; dominant-baseline: central; }
 #wheel .w-axlab { font-family: var(--f-mono); font-size: 25px; font-weight: 500; fill: var(--brass); text-anchor: middle; dominant-baseline: central; }
-#wheel .w-asp { stroke-linecap: round; }
+#wheel .w-asp { stroke-linecap: round; stroke-width: calc(var(--sw, 1.5px) * var(--zs, 1)); }
 #wheel .w-asp-hard { stroke: var(--asp-hard); }
 #wheel .w-asp-soft { stroke: var(--asp-soft); }
 #wheel .w-asp-minor { stroke: var(--asp-minor); stroke-dasharray: 7 6; }
@@ -1941,7 +1949,13 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div class="natal-grid top">
         <figure class="wheel-box">
           <svg id="wheel" viewBox="-62 -62 1124 1124" role="group" aria-label="Колесо натальной карты"></svg>
-          <figcaption>Нажмите на планету в круге или в таблице, чтобы выделить её аспекты.</figcaption>
+          <div class="wz" role="group" aria-label="Масштаб круга">
+            <button type="button" class="pill" id="wzOut" aria-label="Отдалить" title="Отдалить (−)" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10"/></svg></button>
+            <span class="wz-v" id="wzVal" aria-live="polite">100%</span>
+            <button type="button" class="pill" id="wzIn" aria-label="Приблизить" title="Приблизить (+)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10M8 3v10"/></svg></button>
+            <button type="button" class="pill" id="wzFit" title="Показать весь круг (0)" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>Весь круг</button>
+          </div>
+          <figcaption>Нажмите на планету в круге или в таблице, чтобы выделить её аспекты. Приближайте кнопками, щипком, Ctrl + колесом мыши или двойным щелчком; приближенный круг можно перетаскивать.</figcaption>
         </figure>
         <div class="nat-side">
           <section class="nat-card"><h3>Планеты и точки</h3><div class="nat-scroll"><table class="nat-table" id="natPlanets"></table></div></section>
@@ -2251,7 +2265,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/horary.js?v=20261107qa"></script>
 <script src="js/interpret.js?v=20261105lun"></script>
 <script src="js/celebs.js?v=20261104u"></script>
-<script src="js/natal-view.js?v=20261107qa"></script>
+<script src="js/natal-view.js?v=20261113zoom"></script>
 <script src="js/cycles.js?v=20261107qa"></script>
 <script src="js/tools-view.js?v=20261107qa"></script>
 <script src="js/city-view.js?v=20261104cs"></script>
