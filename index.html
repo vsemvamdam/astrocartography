@@ -16,6 +16,34 @@
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=20261113">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png?v=20261113">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20261113">
+<script>
+/* Telegram Mini App. Telegram opens the site with its launch parameters in the hash (#tgWebAppData=…):
+   only then (and on reloads inside Telegram) its SDK and js/telegram.js load, before the router reads the hash.
+   A chart sent from Telegram to the browser for a PDF comes as #s=<state>&v=<section>: the state goes to
+   localStorage, the hash back to the section. The fragment never reaches the server. */
+(function () {
+  var h = location.hash, inTg = /tgWebApp/.test(h) || /[?&]tg=1/.test(location.search);
+  try { if (inTg) sessionStorage.setItem('astrosky.tg', '1'); else inTg = sessionStorage.getItem('astrosky.tg') === '1'; } catch (e) { /* no storage */ }
+  if (inTg) document.write('<script src="js/vendor/telegram-web-app.js?v=8.0"><\/script><script src="js/telegram.js?v=20261117"><\/script>');
+  var m = /^#s=([A-Za-z0-9_-]+)(?:&v=([a-z]+))?/.exec(h);
+  if (!m) return;
+  try {
+    var json = decodeURIComponent(escape(atob(m[1].replace(/-/g, '+').replace(/_/g, '/'))));
+    if (JSON.parse(json).date) { localStorage.setItem('acg.v1', json); sessionStorage.setItem('astrosky.pdfHint', '1'); }
+  } catch (e) { /* a broken link: the site opens as usual */ }
+  history.replaceState(null, '', location.pathname + location.search + '#' + (m[2] || 'home'));
+  // point at the PDF button once the chart is drawn
+  addEventListener('load', function () {
+    setTimeout(function () {
+      var b = document.getElementById('natPdf');
+      try { sessionStorage.removeItem('astrosky.pdfHint'); } catch (e) { /* no storage */ }
+      if (!b || b.hidden) return;
+      b.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      b.classList.add('pdf-hint');
+    }, 900);
+  });
+})();
+</script>
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 body { margin: 0; }
@@ -1172,6 +1200,11 @@ button.psy-c:hover { background: rgba(216,164,166,.07); }
 .acc-or { display: flex; align-items: center; gap: 10px; color: var(--faint); font-size: 12px; }
 .acc-or::before, .acc-or::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
 .btn-google { min-height: 46px; font-weight: 500; font-size: 15px; }
+/* Telegram Mini App (js/telegram.js): Google refuses sign-in inside embedded browsers, so only e-mail there */
+.tg .btn-google, .tg .acc-or { display: none; }
+/* the PDF button, when a chart came from Telegram to the browser to be saved */
+@keyframes pdf-hint { 0%, 100% { box-shadow: 0 0 0 0 rgba(216, 164, 166, 0); } 50% { box-shadow: 0 0 0 9px rgba(216, 164, 166, .38); } }
+.pdf-hint { animation: pdf-hint 1.3s ease-in-out 4; }
 .acc-links { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 .acc-who { display: flex; flex-direction: column; gap: 2px; }
 .acc-who b { font-weight: 600; font-size: 15px; word-break: break-all; }
@@ -2344,7 +2377,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/horary.js?v=20261107qa"></script>
 <script src="js/interpret.js?v=20261113syn"></script>
 <script src="js/celebs.js?v=20261104u"></script>
-<script src="js/pdf-export.js?v=20261113rose"></script>
+<script src="js/pdf-export.js?v=20261117tg"></script>
 <script src="js/natal-view.js?v=20261113pdf2"></script>
 <script src="js/cycles.js?v=20261113psy2"></script>
 <script src="js/tools-view.js?v=20261113order"></script>

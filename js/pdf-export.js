@@ -202,7 +202,10 @@
       doc.text(`${i} / ${n}`, W - M, H - 9, { align: 'right' });
       if (i === 1) doc.text(`Создано ${made.toLocaleDateString('ru-RU')}`, W - M, M - 6, { align: 'right' });
     }
-    doc.save(clean(model.filename || 'AstroSky.pdf').replace(/[\\/:*?"<>|]+/g, ' ').trim());
+    const name = clean(model.filename || 'AstroSky.pdf').replace(/[\\/:*?"<>|]+/g, ' ').trim();
+    // inside Telegram files can't be downloaded: js/telegram.js shares the PDF or opens the chart in the browser
+    if (window.TG && window.TG.savePdf) return window.TG.savePdf(doc.output('blob'), name);
+    doc.save(name);
   }
 
   window.AstroPDF = { save, preload: () => lib().catch(() => null) };
