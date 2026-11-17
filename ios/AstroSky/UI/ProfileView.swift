@@ -4,6 +4,7 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject var model: AppModel
     @State private var editing: Editing?
+    private let rowBG = Color.panel.opacity(0.88)
 
     enum Editing: Identifiable {
         case me, partner, person(Person), new
@@ -22,12 +23,14 @@ struct ProfileView: View {
             Section("Вы") {
                 personRow(model.me, empty: "Добавить свои данные") { editing = .me }
             }
+            .listRowBackground(rowBG)
             Section("Партнёр для совместимости") {
                 personRow(model.partner, empty: "Добавить партнёра") { editing = .partner }
                 if model.partner != nil {
                     Button("Убрать партнёра", role: .destructive) { model.partner = nil }
                 }
             }
+            .listRowBackground(rowBG)
             Section {
                 ForEach(model.people) { p in
                     Menu {
@@ -45,7 +48,8 @@ struct ProfileView: View {
             } footer: {
                 Text("Нажмите на человека, чтобы взять его карту как свою или как партнёра.")
             }
-            settings
+            .listRowBackground(rowBG)
+            settings.listRowBackground(rowBG)
             Section("О приложении") {
                 Text("Расчёты — те же, что на сайте AstroSky: эфемериды Astronomy Engine, Хирон и астероиды по таблицам JPL Horizons, история часовых поясов. Положения сверены с программой Сотис.")
                     .font(.footnote).foregroundStyle(Color.muted)
@@ -55,6 +59,7 @@ struct ProfileView: View {
                 Text("Версия \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0")")
                     .font(.footnote).foregroundStyle(Color.faint)
             }
+            .listRowBackground(rowBG)
         }
         .astroScreen()
         .navigationTitle("Профиль")

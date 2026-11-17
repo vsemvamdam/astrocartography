@@ -280,7 +280,7 @@ struct PointRow: View {
                         ForEach(p.dign, id: \.k) { d in
                             Text(d.ru).font(.caption2)
                                 .padding(.horizontal, 6).padding(.vertical, 1)
-                                .foregroundStyle(d.k == "domicile" || d.k == "exalt" ? Color.good : Color.aspHard)
+                                .foregroundStyle(d.k == "dom" || d.k == "exalt" ? Color.good : Color.aspHard)
                                 .background(Color.raise, in: Capsule())
                         }
                     }

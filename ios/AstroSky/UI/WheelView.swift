@@ -67,6 +67,17 @@ struct WheelView: View {
         return out
     }
 
+    /// A planet colour that stays readable on white: light colours are darkened, keeping their hue.
+    static func inkOnPaper(_ hex: String) -> Color {
+        var s = hex; if s.hasPrefix("#") { s.removeFirst() }
+        var v: UInt64 = 0
+        Scanner(string: s).scanHexInt64(&v)
+        var r = Double((v >> 16) & 0xFF) / 255, g = Double((v >> 8) & 0xFF) / 255, b = Double(v & 0xFF) / 255
+        let lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        if lum > 0.55 { let k = 0.55 / lum; r *= k; g *= k; b *= k }
+        return Color(red: r, green: g, blue: b)
+    }
+
     // MARK: drawing
 
     private func draw(_ ctx: GraphicsContext, _ size: CGSize) {
@@ -95,6 +106,7 @@ struct WheelView: View {
         let fg = printMode ? Color(hex: "#1B2433") : Color.fg
         let muted = printMode ? Color(hex: "#5E6D86") : Color.muted
         let brass = printMode ? Color(hex: "#A8696C") : Color.brass
+        func pc(_ hex: String?) -> Color { printMode ? Self.inkOnPaper(hex ?? "#D8A4A6") : Color(hex: hex ?? "#D8A4A6") }
 
         ctx.fill(circle(Self.R_OUT), with: .color(printMode ? .white : Color.panel))
         ctx.stroke(circle(Self.R_OUT), with: .color(ringColor), lineWidth: 1.5 * k)
@@ -161,7 +173,7 @@ struct WheelView: View {
             let p = slot.p
             let dim = highlight != nil && highlight != p.id && !related(highlight!, p.id)
             let op = dim ? 0.25 : 1
-            let col = Color(hex: p.color ?? "#D8A4A6")
+            let col = pc(p.color)
             let ps = Fmt.pos(p.lon)
             let t1 = outer != nil ? xy(p.lon, L.sep) : xy(p.lon, Self.R_ZIN)
             let t2 = outer != nil ? xy(p.lon, L.sep - 12) : xy(p.lon, Self.R_ZIN - 16)
@@ -199,7 +211,7 @@ struct WheelView: View {
                 let key = "B:" + p.id
                 let dim = highlight != nil && highlight != key && !related(highlight!, key)
                 let op = dim ? 0.25 : 1
-                let col = Color(hex: p.color ?? "#D8A4A6")
+                let col = pc(p.color)
                 let ps = Fmt.pos(p.lon)
                 line(xy(p.lon, Self.R_ZIN), xy(p.lon, Self.R_ZIN - 10), col, 2.5, opacity: op)
                 let glyphFont: Font = p.short ? .system(size: 26 * slot.kg * k, weight: .semibold) : .glyph(38 * slot.kg * k)
