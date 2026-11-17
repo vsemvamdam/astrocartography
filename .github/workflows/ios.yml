@@ -1,0 +1,87 @@
+name: iOS app
+
+# Builds the iOS app (ios/) on a macOS runner, runs the engine tests in the simulator and takes screenshots.
+# The screenshots, the PDF from the tests and the build summary go to the ios-ci branch.
+on:
+  push:
+    branches: [ios-app, main]
+    paths: ['ios/**', 'js/**', 'assets/fonts/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tools
+        run: |
+          brew install xcodegen
+          xcodebuild -version
+
+      - name: Generate the Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Pick a simulator
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys, re
+          d = json.load(sys.stdin)["devices"]
+          best = None
+          for rt, devs in d.items():
+              m = re.search(r"iOS-(\d+)-(\d+)", rt)
+              if not m: continue
+              v = (int(m.group(1)), int(m.group(2)))
+              for x in devs:
+                  n = x["name"]
+                  if n.startswith("iPhone") and "Pro" in n and "Max" not in n:
+                      key = (v, n)
+                      if best is None or key > best[0]: best = (key, x["udid"])
+          print(best[1] if best else "")
+          ')
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl list devices available | grep "$UDID"
+
+      - name: Build and test
+        id: test
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project AstroSky.xcodeproj -scheme AstroSky \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
+            -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO \
+            test 2>&1 | tee ../xcodebuild.log | grep -E "error:|warning: .*(deprecated|never|unused)|Test Case|Executed|\*\* (BUILD|TEST)" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" ../xcodebuild.log
+
+      - name: Screenshots
+        if: always()
+        run: |
+          APP=$(find ios/build/Build/Products -name AstroSky.app -maxdepth 3 | head -1)
+          if [ -n "$APP" ]; then bash ios/scripts/screenshots.sh "${{ steps.sim.outputs.udid }}" "$APP" shots; fi
+
+      - name: Publish results to the ios-ci branch
+        if: always()
+        run: |
+          mkdir -p ci && cd ci
+          cp -r ../shots . 2>/dev/null || true
+          {
+            echo "commit ${GITHUB_SHA}"
+            echo "test: ${{ steps.test.outcome }}"
+            echo
+            grep -E "error:|Test Case .*(passed|failed)|Executed|XCTAssert|\*\* (BUILD|TEST)" ../xcodebuild.log | head -300
+          } > summary.txt
+          tail -400 ../xcodebuild.log > log-tail.txt || true
+          git init -q && git checkout -q -b ios-ci
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "iOS CI ${GITHUB_SHA::7}: ${{ steps.test.outcome }}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ios-ci
