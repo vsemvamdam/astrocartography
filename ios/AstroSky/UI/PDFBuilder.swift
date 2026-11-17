@@ -122,7 +122,7 @@ enum PDFBuilder {
                     if y + h > bottom { newPage() }
                     if !glyph.isEmpty {
                         let gs = NSAttributedString(string: glyphText(glyph), attributes: [.font: glyph.count > 2 ? sans(8, bold: true) : glyphFont(12),
-                                                                                         .foregroundColor: UIColor(Color(hex: color ?? "#A8696C"))])
+                                                                                         .foregroundColor: UIColor(WheelView.inkOnPaper(color ?? "#A8696C"))])
                         gs.draw(at: CGPoint(x: x0, y: y))
                     }
                     body.draw(with: CGRect(x: x0 + gw, y: y, width: w, height: h), options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
