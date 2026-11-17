@@ -1,0 +1,13 @@
+commit 8aebd9afe6bdc0f6b6921e8600e1b5b1e14e8779
+test: success
+
+Test Case '-[AstroSkyTests.EngineTests testCities]' passed (0.763 seconds).
+Test Case '-[AstroSkyTests.EngineTests testExtraAsteroids]' passed (0.458 seconds).
+Test Case '-[AstroSkyTests.EngineTests testNatalVoronezhMatchesSite]' passed (0.023 seconds).
+Test Case '-[AstroSkyTests.EngineTests testPDF]' passed (0.954 seconds).
+Test Case '-[AstroSkyTests.EngineTests testSolarLunarSynastry]' passed (0.290 seconds).
+Test Case '-[AstroSkyTests.EngineTests testTimeZones]' passed (0.028 seconds).
+	 Executed 6 tests, with 0 failures (0 unexpected) in 2.515 (2.526) seconds
+	 Executed 6 tests, with 0 failures (0 unexpected) in 2.515 (2.527) seconds
+	 Executed 6 tests, with 0 failures (0 unexpected) in 2.515 (2.531) seconds
+** TEST SUCCEEDED **
