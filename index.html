@@ -723,7 +723,6 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .gtx { font-family: var(--f-body); font-size: .72em; font-weight: 600; letter-spacing: -.02em; }
 .p-glyph.txt { font-family: var(--f-body); font-size: 13px; font-weight: 600; }
 .soul-row .tg.gtx { font-size: 14px; line-height: 1.6; }
-.ast2-h { margin-top: 16px; }
 .soul { display: flex; flex-direction: column; gap: 12px; }
 .soul-row { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; align-items: start; }
 .soul-row .tg { font-family: var(--f-glyph); font-size: 20px; line-height: 1.2; text-align: center; }
@@ -1940,7 +1939,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <button type="button" data-s="comp">Композит</button>
         </div>
         <button type="button" class="pill rd-jump" id="natReadJump" hidden>Расшифровка ↓</button>
-        <button type="button" class="pill rd-pdf" id="natPdf" hidden title="Круг, таблицы и вся расшифровка одним файлом">Скачать PDF</button>
+        <button type="button" class="pill rd-pdf" id="natPdf" hidden title="Круг и вся расшифровка одним файлом; в натальной карте — ещё узлы, Плутон и астероиды">Скачать PDF</button>
       </div>
       <div class="sol-ctl for-solar">
         <div class="field sol-year"><label for="solYear">Год соляра</label><input class="inp" type="number" id="solYear" min="1800" max="2100" inputmode="numeric"></div>
@@ -2059,9 +2058,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <ul class="asp-list" id="natAspList"></ul>
         </section>
         <section class="nat-card" id="natBalanceCard"><h3>Стихии и кресты</h3><div class="bal-wrap" id="natBalance"></div></section>
-        <section class="nat-card" id="natSoulCard"><h3>Узлы и Плутон <span>эволюционная астрология: Форрест, Грин</span></h3><div class="soul" id="natSoul"></div></section>
-        <section class="nat-card" id="natAstCard"><h3>Астероиды <span>богини Деметры Джордж, Эрос, Психея и другие</span></h3><div class="soul" id="natAst"></div>
-          <p class="bal-note">Церера, Паллада, Юнона и Веста — по орбитам JPL, точность около минуты дуги. Включить их в колесо и таблицу — кнопка «Астероиды» в настройках карты.</p></section>
       </div>
     </div>
   </section>
@@ -2344,7 +2340,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/interpret.js?v=20261113syn"></script>
 <script src="js/celebs.js?v=20261104u"></script>
 <script src="js/pdf-export.js?v=20261113rose"></script>
-<script src="js/natal-view.js?v=20261118now"></script>
+<script src="js/natal-view.js?v=20261118pdf"></script>
 <script src="js/cycles.js?v=20261113psy2"></script>
 <script src="js/tools-view.js?v=20261118now"></script>
 <script src="js/city-view.js?v=20261113rose"></script>
@@ -2353,6 +2349,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/firebase-config.js?v=20261104u"></script>
 <script src="js/account.js?v=20261107qa"></script>
 <script src="js/home-view.js?v=20261118now"></script>
-<script src="js/app.js?v=20261118now"></script>
+<script src="js/app.js?v=20261118pdf"></script>
 </body>
 </html>

@@ -645,56 +645,36 @@
     Hygiea: 'Здоровье и очищение: привычки, гигиена тела и ума, склонность к медицине и целительству.',
     Proserpina: 'Глубокая трансформация: умение пройти через кризис, обновиться и выйти на новый уровень, тяга к глубокому анализу.',
   };
-  function renderSoulCards() {
-    const show = opts().mode === 'natal' && !outer;
-    $('natSoulCard').hidden = !show; $('natAstCard').hidden = !show;
-    if (!show) return;
+  // the nodes, Pluto and the asteroids are not on the page: they close the natal chart's PDF
+  function soulSections() {
     const pt = (id) => natal.points.find((p) => p.id === id);
-    const nn = pt('Node'), sn = pt('SNode'), pl = pt('Pluto');
     const sgn = (lon) => Math.floor(n360(lon) / 30);
     const rulerOf = (lon) => N.RULERS[sgn(lon)][N.RULERS[sgn(lon)].length - 1];   // the traditional ruler
     const LOC = ['Овне', 'Тельце', 'Близнецах', 'Раке', 'Льве', 'Деве', 'Весах', 'Скорпионе', 'Стрельце', 'Козероге', 'Водолее', 'Рыбах'];
     const where = (id) => { const p = pt(id); return p ? `в ${LOC[sgn(p.lon)]}, в ${RN[p.house]} доме` : ''; };
-    let h = '';
+    const at = (lon, house) => `${pos(lon).text} ${pos(lon).name}, ${RN[house]} дом`;
+    const nn = pt('Node'), sn = pt('SNode'), pl = pt('Pluto'), soul = [];
     if (nn && sn) {
       const nr = rulerOf(nn.lon), sr = rulerOf(sn.lon);
-      h += `<div class="soul-row"><span class="tg" style="color:${nn.color}">${g('☋')}</span><div><b>Южный узел: ${pos(sn.lon).text} ${esc(pos(sn.lon).name)}, ${RN[sn.house]} дом</b>
-        <p>Что душа уже умеет и куда по привычке тянется: ${esc(HTHEME[sn.house])}. Управитель южного узла ${BODY[sr].ru} (${esc(where(sr))}) показывает, через что прошлый опыт проявляется сейчас.</p></div></div>
-        <div class="soul-row"><span class="tg" style="color:${nn.color}">${g('☊')}</span><div><b>Северный узел: ${pos(nn.lon).text} ${esc(pos(nn.lon).name)}, ${RN[nn.house]} дом</b>
-        <p>Путь роста: ${esc(NN_SIGN[sgn(nn.lon)])}. Сфера жизни, где это происходит: ${esc(HTHEME[nn.house])}. Управитель ${BODY[nr].ru} (${esc(where(nr))}) — помощник на этом пути.</p></div></div>`;
+      soul.push({ glyph: '☋', color: nn.color, head: `Южный узел: ${at(sn.lon, sn.house)}`, text: `Что душа уже умеет и куда по привычке тянется: ${HTHEME[sn.house]}. Управитель южного узла ${BODY[sr].ru} (${where(sr)}) показывает, через что прошлый опыт проявляется сейчас.` });
+      soul.push({ glyph: '☊', color: nn.color, head: `Северный узел: ${at(nn.lon, nn.house)}`, text: `Путь роста: ${NN_SIGN[sgn(nn.lon)]}. Сфера жизни, где это происходит: ${HTHEME[nn.house]}. Управитель ${BODY[nr].ru} (${where(nr)}) — помощник на этом пути.` });
     }
     if (pl) {
-      const ppp = n360(pl.lon + 180), ph = N.houseOf(ppp, natal.cusps), pp = pos(ppp);
-      h += `<div class="soul-row"><span class="tg" style="color:${pl.color}">${g('♇')}</span><div><b>Плутон: ${pos(pl.lon).text} ${esc(pos(pl.lon).name)}, ${RN[pl.house]} дом</b>
-        <p>Самая глубокая привязанность души: ${esc(HTHEME[pl.house])}. Здесь сильнее всего страх потери и желание всё контролировать.</p></div></div>
-        <div class="soul-row"><span class="tg" style="color:${pl.color}">${g('☍')}</span><div><b>Точка полярности Плутона: ${pp.text} ${esc(pp.name)}, ${RN[ph]} дом</b>
-        <p>Эволюционная задача по Джеффри Вольфу Грину — двигаться к противоположному: ${esc(HTHEME[ph])}.</p></div></div>`;
+      const ppp = n360(pl.lon + 180), ph = N.houseOf(ppp, natal.cusps);
+      soul.push({ glyph: '♇', color: pl.color, head: `Плутон: ${at(pl.lon, pl.house)}`, text: `Самая глубокая привязанность души: ${HTHEME[pl.house]}. Здесь сильнее всего страх потери и желание всё контролировать.` });
+      soul.push({ glyph: '☍', color: pl.color, head: `Точка полярности Плутона: ${at(ppp, ph)}`, text: `Эволюционная задача по Джеффри Вольфу Грину — двигаться к противоположному: ${HTHEME[ph]}.` });
     }
-    $('natSoul').innerHTML = h;
     const INSTR = { Sun: 'Солнцем', Moon: 'Луной', Mercury: 'Меркурием', Venus: 'Венерой', Mars: 'Марсом', Jupiter: 'Юпитером', Saturn: 'Сатурном' };
     const near = [...natal.points.filter((p) => ['Sun', 'Moon', 'Venus', 'Mars', 'Mercury', 'Jupiter', 'Saturn'].includes(p.id)), ...natal.angles];
     const asp = (a, b) => { const d = Math.abs(n180(a - b)); for (const [x, nm] of [[0, 'соединение'], [180, 'оппозиция'], [90, 'квадрат'], [120, 'трин']]) if (Math.abs(d - x) <= 2) return nm; return null; };
-    const rows = ASTEROIDS.map((id) => {
-      const p = pt(id);
-      if (!p) return '';
+    const ast = [...ASTEROIDS, ...ASTEROIDS2].map(pt).filter(Boolean).map((p) => {
       const links = near.map((q) => { const a = asp(p.lon, q.lon); return a ? `${a} с ${q.angle ? q.glyph : INSTR[q.id]}` : null; }).filter(Boolean);
-      return `<div class="soul-row"><span class="tg" style="color:${p.color}">${g(p.glyph)}</span><div><b>${esc(p.ru)}: ${pos(p.lon).text} ${esc(pos(p.lon).name)}, ${RN[p.house]} дом${p.retro ? ' <span class="rx">R</span>' : ''}</b>
-        <p>${esc(AST_TEXT[id])} Сфера: ${esc(HTHEME[p.house])}.${links.length ? ` Контакты до 2°: ${esc(links.join(', '))}.` : ''}</p></div></div>`;
-    }).join('');
-    const have2 = ASTEROIDS2.some((id) => pt(id));
-    const rows2 = have2 ? ASTEROIDS2.map((id) => {
-      const p = pt(id);
-      if (!p) return '';
-      const links = near.map((q) => { const a = asp(p.lon, q.lon); return a ? `${a} с ${q.angle ? q.glyph : INSTR[q.id]}` : null; }).filter(Boolean);
-      return `<div class="soul-row"><span class="tg gtx" style="color:${p.color}">${p.glyph}</span><div><b>${esc(p.ru)}: ${pos(p.lon).text} ${esc(pos(p.lon).name)}, ${RN[p.house]} дом${p.retro ? ' <span class="rx">R</span>' : ''}</b>
-        <p>${esc(AST_TEXT[id])} Сфера: ${esc(HTHEME[p.house])}.${links.length ? ` Контакты до 2°: ${esc(links.join(', '))}.` : ''}</p></div></div>`;
-    }).join('') : '';
-    $('natAst').innerHTML = (rows || '<p class="muted">Астероиды считаются для 1800–2100 годов.</p>')
-      + `<h4 class="nat-h4 ast2-h">Эрос, Психея, Амор, Гигея, Прозерпина</h4>`
-      + (have2 ? rows2 + '<p class="bal-note">Прозерпина здесь — астероид № 26, а не гипотетическая заплутоновая планета, которую используют в школе Глобы.</p>'
-        : '<p class="muted">Таблицы этих астероидов загружаются отдельно (около 0,5 МБ). <button type="button" class="link-btn" id="natAst2Load">Загрузить и показать</button></p>');
-    const ld = $('natAst2Load');
-    if (ld) ld.onclick = () => { opts().asteroids2 = true; app.save(); ld.disabled = true; ld.textContent = 'Загружаем…'; if (app.needExtraAsteroids()) app.recompute(); };
+      return { glyph: p.glyph, color: p.color, head: `${p.ru}: ${at(p.lon, p.house)}${p.retro ? ', ретроградный' : ''}`, text: `${AST_TEXT[p.id]} Сфера: ${HTHEME[p.house]}.${links.length ? ` Контакты до 2°: ${links.join(', ')}.` : ''}` };
+    });
+    return [
+      { title: 'Узлы и Плутон', note: 'Эволюционная астрология: Форрест, Грин.', items: soul },
+      { title: 'Астероиды', note: `Богини Деметры Джордж, Эрос, Психея и другие. Церера, Паллада, Юнона и Веста — по орбитам JPL, точность около минуты дуги.${pt('Proserpina') ? ' Прозерпина здесь — астероид № 26, а не гипотетическая заплутоновая планета, которую используют в школе Глобы.' : ''}`, items: ast },
+    ];
   }
 
   /* --------------- readings: solar return, synastry, composite --------------- */
@@ -936,6 +916,7 @@
       }
       sections.push({ title: `Дома ${lh.gen}`, note: `Каждый дом — сфера жизни; строка «в натальной карте» показывает, где дела дадут последствия. Угловые дома (I, IV, VII, X) проявляются сильнее всего. Дома: ${lh.sys}.`, items: hs });
     }
+    if (opts().mode === 'natal' && !outer) sections.push(...soulSections());
     const title = $('natTitle').textContent, sub = $('natSub').textContent;
     return { kicker: rd.kind, title, subtitle: sub, wheel: $('wheel'), tables: [], sections, filename: `AstroSky — ${title.toLowerCase().includes(rd.kind.toLowerCase().split(' ')[0]) ? '' : rd.kind + ' — '}${title}.pdf`.replace(/\s+/g, ' ') };
   }
@@ -945,6 +926,7 @@
     const label = b.textContent;
     b.disabled = true; b.textContent = 'Готовим PDF…';
     try {
+      if (opts().mode === 'natal' && !outer) await app.extraAsteroidsReady();   // without them the file still has the four main asteroids
       const m = pdfModel();
       if (m) await window.AstroPDF.save(m);
     } catch (e) {
@@ -1111,7 +1093,7 @@
     }
     if (hl && !natal.points.some((p) => p.id === hl) && !(outer && outer.some((p) => p.id === hl))) hl = null;
     $('natBalanceCard').hidden = !!outer || o.mode === 'horary';
-    renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard(); renderLunarCard(); renderStarsCtl(); renderStarCard(); renderLikeCard(); renderHoraryCard(); renderSoulCards(); renderReading();
+    renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard(); renderLunarCard(); renderStarsCtl(); renderStarCard(); renderLikeCard(); renderHoraryCard(); renderReading();
   }
 
   window.NatalView = {

@@ -1398,17 +1398,20 @@
      one of them on, on the map or in the natal chart; the charts are recomputed once they arrive */
   const EXTRA_AST = ACG.BODIES.filter((b) => b.minorAst).map((b) => b.id);
   let extraAst = window.ACG_ASTEROIDS && window.ACG_ASTEROIDS.data && window.ACG_ASTEROIDS.data.Eros ? 'ready' : null;
+  const extraWaiting = [];
+  const extraSettled = (ok) => extraWaiting.splice(0).forEach((done) => done(ok));
   function needExtraAsteroids() {
     if (extraAst) return extraAst === 'ready';
     extraAst = 'loading';
     const core = document.querySelector('script[src*="acg-core.js"]'), v = core && core.src.split('?')[1];
     const sc = document.createElement('script');
     sc.src = `js/asteroids-extra-data.js${v ? '?' + v : ''}`;
-    sc.onload = () => { extraAst = 'ready'; recompute(); };
-    sc.onerror = () => { extraAst = null; showStatus('Не загрузились таблицы дополнительных астероидов. Проверьте интернет.'); };
+    sc.onload = () => { extraAst = 'ready'; recompute(); extraSettled(true); };
+    sc.onerror = () => { extraAst = null; showStatus('Не загрузились таблицы дополнительных астероидов. Проверьте интернет.'); extraSettled(false); };
     document.head.appendChild(sc);
     return false;
   }
+  const extraAsteroidsReady = () => (needExtraAsteroids() ? Promise.resolve(true) : new Promise((done) => extraWaiting.push(done)));
   const wantsExtra = () => EXTRA_AST.some((id) => state.bodies[id] === true) || !!(state.natal && state.natal.asteroids2);
 
   function recompute() {
@@ -1480,6 +1483,7 @@
     get partnerConv() { return partnerConv; },
     recompute: () => recompute(),
     needExtraAsteroids: () => needExtraAsteroids(),
+    extraAsteroidsReady,
     cities: CITIES,
     placeLabel, makePlaceSearch, nearestCity, focusCity, setPartner, loadChart, fmtOffset,
     current: () => ({ date: state.date, time: state.time, place: state.place, manualOffset: state.manualOffset }),
