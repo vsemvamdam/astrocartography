@@ -92,18 +92,20 @@
     const ensure = (h) => { if (y + h > BOTTOM) newPage(); };
     const lines = (text, size, style, width) => { font(size, style); return doc.splitTextToSize(clean(text), width); };
     // a block of wrapped lines; y is the top of the first line
-    const write = (ls, size, style, color, x, lh) => {
+    const write = (ls, size, style, color, x, lh, align) => {
       const step = size * PT * (lh || 1.42);
-      for (const ln of ls) { ensure(step); font(size, style, color); doc.text(ln, x, y + size * PT * 0.9); y += step; }
+      for (const ln of ls) { ensure(step); font(size, style, color); doc.text(ln, x, y + size * PT * 0.9, { align: align || 'left' }); y += step; }
     };
 
     /* ------------------------------- title ------------------------------- */
     font(8.5, 'bold', BRASS);
-    doc.text(clean(`ASTROSKY · ${model.kicker || ''}`.toUpperCase()), M, y + 3, { charSpace: 0.6 });
+    const kicker = clean(`ASTROSKY · ${model.kicker || ''}`.toUpperCase());
+    const kickerW = doc.getTextWidth(kicker) + 0.6 * (kicker.length - 1);   // the letter spacing is not counted by jsPDF
+    doc.text(kicker, (W - kickerW) / 2, y + 3, { charSpace: 0.6 });
     y += 7;
-    write(lines(model.title, 19, 'bold', CW), 19, 'bold', INK, M, 1.25);
+    write(lines(model.title, 19, 'bold', CW), 19, 'bold', INK, W / 2, 1.25, 'center');
     y += 1;
-    if (model.subtitle) write(lines(model.subtitle, 8.8, 'normal', CW), 8.8, 'normal', MUTED, M, 1.45);
+    if (model.subtitle) write(lines(model.subtitle, 8.8, 'normal', CW), 8.8, 'normal', MUTED, W / 2, 1.45, 'center');
     y += 3;
     doc.setDrawColor(...RULE); doc.setLineWidth(0.3); doc.line(M, y, W - M, y);
     y += 5;
