@@ -41,6 +41,7 @@ body { margin: 0; }
   --brass-ink: #2A1419;
   --press: #F5BEC7;   /* pressed and selected buttons: Pantone 13-2006 TCX Almond Blossom */
   --press-rgb: 245, 190, 199;
+  --heading: #E25098;   /* section headings: raspberry pink */
   --ocean: #0B1D31;
   --void: #07111F;
   --land: #34537A;
@@ -307,7 +308,7 @@ body[data-natmode="horary"] .for-natal { display: none !important; }
 
 /* ------------------------------- panel --------------------------------- */
 .sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
-.sec-h h2 { margin: 0; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); }
+.sec-h h2 { margin: 0; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--heading); }
 .sec-h .aside { font-size: 12px; color: var(--muted); }
 
 .example {
@@ -436,7 +437,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .info-body { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; }
 .info-glyph { font-family: var(--f-glyph); font-size: 24px; line-height: 1.1; color: var(--c); flex: none; letter-spacing: 2px; }
 .info-place b { color: var(--c); font-weight: 600; }
-.ig-h { margin: 12px 14px 2px; font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--brass); }
+.ig-h { margin: 12px 14px 2px; font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--heading); }
 .il-text { grid-column: 2 / 4; margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--fg); }
 .lc { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
 .lc p { margin: 0; font-size: 13.5px; line-height: 1.55; max-width: 60ch; }
@@ -516,7 +517,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
   .hm-card .hm-more { display: none; }
 }
 .natal-head h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 30px; letter-spacing: .04em; line-height: 1.15; text-wrap: balance; }
-.natal-head .nt { margin: 4px 0 0; font-family: var(--f-display); font-size: 19px; letter-spacing: .06em; text-transform: uppercase; color: var(--brass); }
+.natal-head .nt { margin: 4px 0 0; font-family: var(--f-display); font-size: 19px; letter-spacing: .06em; text-transform: uppercase; color: var(--heading); }
 .natal-head .ns { margin: 6px 0 0; font-family: var(--f-mono); font-size: 12px; color: var(--muted); line-height: 1.6; }
 .nat-note { margin: 10px 0 0; padding: 8px 12px; border-radius: var(--r); border: 1px solid rgba(216,164,166,.3); background: rgba(216,164,166,.07); color: #E9D7B2; font-size: 13px; max-width: 70ch; }
 .natal-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); align-items: start; }
@@ -536,7 +537,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .wz-v { min-width: 50px; text-align: center; font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .wheel-box figcaption { margin-top: 6px; text-align: center; font-size: 12.5px; color: var(--faint); }
 .nat-card { min-width: 0; padding: 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--rule); }
-.nat-card h3 { margin: 0 0 10px; display: flex; justify-content: space-between; gap: 12px; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); }
+.nat-card h3 { margin: 0 0 10px; display: flex; justify-content: space-between; gap: 12px; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--heading); }
 .nat-card h3 span { letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--muted); font-size: 12px; }
 .nat-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .nat-table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
@@ -1080,7 +1081,7 @@ details.more[open] summary { margin-bottom: 8px; }
 .tool-out .tool-ctl { margin-bottom: 2px; }
 .tool-out select.inp { min-width: 110px; }
 .tr-table td { vertical-align: top; }
-.tr-table tr.mh td { padding-top: 14px; font-family: var(--f-display); font-size: 15px; letter-spacing: .04em; color: var(--brass); border-bottom-color: rgba(216,164,166,.3); }
+.tr-table tr.mh td { padding-top: 14px; font-family: var(--f-display); font-size: 15px; letter-spacing: .04em; color: var(--heading); border-bottom-color: rgba(216,164,166,.3); }
 .tr-h { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; }
 .tr-h .tag { margin-left: 4px; }
 .tr-m { margin-top: 3px; font-size: 12.5px; line-height: 1.45; color: var(--muted); max-width: 60ch; }
@@ -1179,7 +1180,7 @@ button.psy-c:hover { background: rgba(var(--press-rgb), .07); }
 .acc-who { display: flex; flex-direction: column; gap: 2px; }
 .acc-who b { font-weight: 600; font-size: 15px; word-break: break-all; }
 .acc-who small { color: var(--muted); font-size: 12.5px; }
-.acc-sec h3 { margin: 4px 0 8px; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); }
+.acc-sec h3 { margin: 4px 0 8px; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--heading); }
 .acc-body form.acc-save { flex-direction: row; gap: 8px; }
 .acc-save .inp { flex: 1; min-width: 0; }
 .acc-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
@@ -1206,7 +1207,7 @@ button.psy-c:hover { background: rgba(var(--press-rgb), .07); }
 .sp-msg { padding: 16px; border-radius: 14px; border: 1px solid var(--rule); background: var(--panel); display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .sp-msg p { margin: 0; }
 .sp-msg a { color: var(--brass); }
-.sp-day { margin: 18px 0 8px; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); }
+.sp-day { margin: 18px 0 8px; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--heading); }
 .sp-day:first-child { margin-top: 0; }
 .sp-src { margin-top: 14px; }
 .sp-rows { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
@@ -2344,7 +2345,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/horary.js?v=20261107qa"></script>
 <script src="js/interpret.js?v=20261113syn"></script>
 <script src="js/celebs.js?v=20261104u"></script>
-<script src="js/pdf-export.js?v=20261118center"></script>
+<script src="js/pdf-export.js?v=20261118rasp2"></script>
 <script src="js/natal-view.js?v=20261118pdf"></script>
 <script src="js/cycles.js?v=20261113psy2"></script>
 <script src="js/tools-view.js?v=20261118now"></script>

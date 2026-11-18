@@ -15,7 +15,7 @@
     const L = (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255;
     return L > 0.5 ? c.map((v) => Math.round(v * 0.5 / L)) : c;
   };
-  const INK = [24, 30, 44], MUTED = [112, 120, 136], BRASS = [158, 96, 106], RULE = [222, 216, 202], ZEBRA = [247, 244, 237];
+  const INK = [24, 30, 44], MUTED = [112, 120, 136], BRASS = [196, 42, 108], RULE = [222, 216, 202], ZEBRA = [247, 244, 237];
   const GOOD = [46, 158, 122], BAD = [217, 72, 59], NEUTRAL = [190, 180, 160];
 
   let libP = null;
@@ -155,9 +155,18 @@
     }
 
     /* ------------------------------ reading ------------------------------ */
+    const gapAfter = (it) => (it.house ? 3.3 : 4.8);
+    const itemHeight = (it) => {
+      const width = CW - (it.indent ? 7 : 0) - 4.2;
+      const head = it.head ? lines(`${it.glyph ? it.glyph + '  ' : ''}${it.head}`, it.house ? 11 : 10.2, 'bold', width).length * 10.2 * PT * 1.35 : 0;
+      const text = it.text ? lines(it.text, 9.6, 'normal', width).length * 9.6 * PT * 1.45 : 0;
+      return head + text + gapAfter(it);
+    };
     for (const sec of model.sections || []) {
       if (!sec.items || !sec.items.length) continue;
-      ensure(30);
+      // a heading never stays alone at the bottom of a page: it goes over together with its first item
+      const titleH = lines(sec.title, 13.5, 'bold', CW).length * 13.5 * PT * 1.3 + (sec.note ? lines(sec.note, 8.5, 'normal', CW).length * 8.5 * PT * 1.4 + 0.5 : 0);
+      ensure(3 + titleH + 2.5 + Math.min(itemHeight(sec.items[0]), 60));
       y += 3;
       write(lines(sec.title, 13.5, 'bold', CW), 13.5, 'bold', BRASS, M, 1.3);
       if (sec.note) { y += 0.5; write(lines(sec.note, 8.5, 'normal', CW), 8.5, 'normal', MUTED, M, 1.4); }
@@ -167,8 +176,8 @@
         const headTxt = `${it.glyph ? it.glyph + '  ' : ''}${it.head || ''}`;
         const hl = it.head ? lines(headTxt, it.house ? 11 : 10.2, 'bold', width) : [];
         const tl = it.text ? lines(it.text, 9.6, 'normal', width) : [];
-        const hH = hl.length * 10.2 * PT * 1.35, tH = tl.length * 9.6 * PT * 1.45, total = hH + tH + 3.2;
-        ensure(Math.min(total, 60));
+        const gap = gapAfter(it);
+        ensure(Math.min(itemHeight(it), 60));
         const page0 = doc.getNumberOfPages(), top = y, bar = it.tone === 'soft' ? GOOD : it.tone === 'hard' ? BAD : it.house ? BRASS : NEUTRAL;
         // the head: the glyph in its colour, then the head in ink
         if (hl.length) {
@@ -189,7 +198,7 @@
         if (doc.getNumberOfPages() === page0 && y > top) {
           doc.setFillColor(...bar); doc.rect(M + (it.indent ? 7 : 0), top + 0.6, 1.1, y - top - 0.6, 'F');
         }
-        y += it.house ? 2.2 : 3.2;
+        y += gap;
       }
       y += 2;
     }
