@@ -10,6 +10,7 @@
   const VS = '︎', g = (s) => s + VS;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  const WEEKDAYS = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
   const BODY = () => Object.fromEntries(ACG.BODIES.map((b) => [b.id, b]));
   const SKY = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
   const SIGN_IN = ['Овне', 'Тельце', 'Близнецах', 'Раке', 'Льве', 'Деве', 'Весах', 'Скорпионе', 'Стрельце', 'Козероге', 'Водолее', 'Рыбах'];
@@ -17,7 +18,8 @@
   const EL = ['#F0805E', '#9CC77A', '#E6CB72', '#62A9EF'];
   const PHASES = ['новолуние', 'растущий серп', 'первая четверть', 'растущая Луна', 'полнолуние', 'убывающая Луна', 'последняя четверть', 'убывающий серп'];
   const PL_GEN = { Mercury: 'Меркурий', Venus: 'Венера', Mars: 'Марс', Jupiter: 'Юпитер', Saturn: 'Сатурн', Uranus: 'Уран', Neptune: 'Нептун', Pluto: 'Плутон' };
-  let app = null;
+  let app = null, shownMinute = 0;
+  const minuteNow = () => Math.floor(Date.now() / 60000);
 
   const CARDS = [
     ['natal:natal', '☉', 'Натальная карта', 'Характер, планеты в знаках и домах, аспекты и подробная расшифровка карты.'],
@@ -71,6 +73,7 @@
 
   function render() {
     const st = app.state, now = Date.now(), d = new Date(now), B = BODY();
+    shownMinute = minuteNow();
     const sky = skyNow(now), P = (id) => sky.find((x) => x.id === id);
     const sun = P('Sun'), moon = P('Moon'), el = n360(moon.lon - sun.lon);
     const phase = PHASES[Math.floor(n360(el + 22.5) / 45) % 8], illum = Math.round((1 - Math.cos(el * Math.PI / 180)) / 2 * 100);
@@ -103,6 +106,10 @@
         </div>
         <figure class="hm-sky">${wheel(sky)}<figcaption>Небо сейчас · ${d.getDate()} ${MONTHS_GEN[d.getMonth()]}, ${pad(d.getHours())}:${pad(d.getMinutes())}</figcaption></figure>
       </div>
+      <div class="hm-now">
+        <h2 class="hm-h">Сейчас на небе</h2>
+        <p class="hm-when"><i aria-hidden="true"></i><time datetime="${d.toISOString()}">${WEEKDAYS[d.getDay()]}, ${d.getDate()} ${MONTHS_GEN[d.getMonth()]} · ${pad(d.getHours())}:${pad(d.getMinutes())}</time></p>
+      </div>
       <div class="hm-tiles">${tiles}</div>
       <h2 class="hm-h">Разделы</h2>
       <div class="hm-grid">${CARDS.map(([go, ic, t, txt]) => `<a class="hm-card" href="#${go.split(':')[0]}" data-go="${go}"><span class="hm-ic">${g(ic)}</span><b>${t}</b><span>${txt}</span><span class="hm-more">Открыть →</span></a>`).join('')}</div>
@@ -129,9 +136,17 @@
     if (view === 'edit') setTimeout(() => { const i = $('bDate'); if (i) { i.scrollIntoView({ behavior: 'smooth', block: 'center' }); i.focus({ preventScroll: true }); } }, 120);
   }
 
+  // "now" has to stay true on a page left open: redrawn when the minute changes or the tab comes back
+  function refreshIfStale() {
+    if ($('homeView').hidden || document.hidden || $('homeOut').contains(document.activeElement) || minuteNow() === shownMinute) return;
+    window.HomeView.update();
+  }
+
   window.HomeView = {
     init(a) {
       app = a;
+      setInterval(refreshIfStale, 10000);
+      document.addEventListener('visibilitychange', refreshIfStale);
       $('homeOut').addEventListener('click', (e) => { const a2 = e.target.closest('[data-go]'); if (!a2) return; e.preventDefault(); go(a2.dataset.go); });
     },
     update() {

@@ -482,6 +482,11 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .hm-wheel .hs-pl { font-family: var(--f-glyph); font-size: 17px; text-anchor: middle; }
 .hm-wheel .hs-r { font-family: var(--f-body); font-size: 8px; font-weight: 700; fill: var(--danger); }
 .hm-wheel .hs-mid { font-family: var(--f-glyph); font-size: 20px; text-anchor: middle; fill: var(--brass); }
+.hm-now { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin: 8px 0 -14px; }
+.hm-now .hm-h { margin: 0; }
+.hm-when { margin: 0; display: inline-flex; align-items: center; gap: 9px; font-size: 14px; color: var(--press); font-variant-numeric: tabular-nums; }
+.hm-when i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--press); animation: hm-live 2.4s ease-out infinite; }
+@keyframes hm-live { from { box-shadow: 0 0 0 0 rgba(var(--press-rgb), .55); } 70%, to { box-shadow: 0 0 0 7px rgba(var(--press-rgb), 0); } }
 .hm-tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 44vw), 1fr)); }
 .hm-tile { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 14px; background: var(--raise); }
 .hm-tk { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
@@ -2348,7 +2353,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/sport-view.js?v=20261107qa"></script>
 <script src="js/firebase-config.js?v=20261104u"></script>
 <script src="js/account.js?v=20261107qa"></script>
-<script src="js/home-view.js?v=20261118now"></script>
+<script src="js/home-view.js?v=20261118live"></script>
 <script src="js/app.js?v=20261118pdf"></script>
 </body>
 </html>
