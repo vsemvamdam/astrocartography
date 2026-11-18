@@ -81,9 +81,9 @@
       const nat = N.computeNatal(app.chart, st.place.lat, st.place.lon, { house: 'P' }), sg = (s) => ACG.SIGNS[s][1];
       const ps = (id) => nat.points.find((p) => p.id === id);
       const [y, m, dd] = st.date.split('-').map(Number);
-      me = `<div class="hm-me"><span class="muted">Ваша карта</span> <b>${dd} ${MONTHS_GEN[m - 1]} ${y}, ${esc(st.time)}, ${esc(st.place.name || '')}</b>
+      me = `<div class="hm-me"><span class="muted">${st.example ? 'Сейчас' : 'Ваша карта'}</span> <b>${dd} ${MONTHS_GEN[m - 1]} ${y}, ${esc(st.time)}, ${esc(st.place.name || '')}</b>
         <span class="hm-big3"><span><i style="color:${B.Sun.color}">${g(B.Sun.glyph)}</i> ${sg(ps('Sun').sign)}</span><span><i style="color:${B.Moon.color}">${g(B.Moon.glyph)}</i> ${sg(ps('Moon').sign)}</span><span><i class="hm-asc">ASC</i> ${sg(Math.floor(n360(nat.asc) / 30))}</span></span>
-        <a href="#natal" data-go="edit" class="hm-link">Изменить данные рождения</a></div>`;
+        <a href="#natal" data-go="edit" class="hm-link">${st.example ? 'Ввести свои данные рождения' : 'Изменить данные рождения'}</a></div>`;
     }
     const tb = Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(...st.date.split('-').map((v, i) => (i === 1 ? +v - 1 : +v)))) / 86400000);
     const cyc = [['Физ.', 23, '#F2A541'], ['Эмоц.', 28, '#4FB3BF'], ['Интел.', 33, '#A88BEB']];
@@ -91,7 +91,7 @@
       `<div class="hm-tile"><span class="hm-tk">Луна</span><b><i style="color:${B.Moon.color}">${g(B.Moon.glyph)}</i> ${inSign(Math.floor(moon.lon / 30))}</b><span class="muted">${phase}, освещена на ${illum}%</span><a href="#tools" data-go="tools:lunar" class="hm-link">Лунные дни →</a></div>`,
       `<div class="hm-tile"><span class="hm-tk">Солнце</span><b><i style="color:${B.Sun.color}">${g(B.Sun.glyph)}</i> ${inSign(Math.floor(sun.lon / 30))}</b><span class="muted">${Math.floor(sun.lon % 30)}° знака</span><a href="#tools" data-go="tools:hours" class="hm-link">Управители дня и часа →</a></div>`,
       `<div class="hm-tile"><span class="hm-tk">Ретроградные</span><b>${retro.length ? retro.map((x) => `<i style="color:${B[x.id].color}" title="${PL_GEN[x.id]}">${g(B[x.id].glyph)}</i>`).join(' ') : 'нет'}</b><span class="muted">${retro.length ? retro.map((x) => PL_GEN[x.id]).join(', ') : 'все планеты идут прямо'}</span><a href="#tools" data-go="tools:eph" class="hm-link">Эфемериды →</a></div>`,
-      tb >= 0 ? `<div class="hm-tile"><span class="hm-tk">Ваши биоритмы сегодня</span><b class="hm-bio">${cyc.map(([ru, per, col]) => { const t = tb % per, crit = Math.ceil(t / (per / 2) - 1e-9) * (per / 2) < t + 1 - 1e-9; return `<span style="color:${col}"${crit ? ' class="crit"' : ''}>${ru} ${pct(bio(tb, per))}</span>`; }).join('')}</b><span class="muted">по дате рождения из карты</span><a href="#tools" data-go="tools:bio" class="hm-link">Биоритмы →</a></div>` : '',
+      tb >= 0 && !st.example ? `<div class="hm-tile"><span class="hm-tk">Ваши биоритмы сегодня</span><b class="hm-bio">${cyc.map(([ru, per, col]) => { const t = tb % per, crit = Math.ceil(t / (per / 2) - 1e-9) * (per / 2) < t + 1 - 1e-9; return `<span style="color:${col}"${crit ? ' class="crit"' : ''}>${ru} ${pct(bio(tb, per))}</span>`; }).join('')}</b><span class="muted">по дате рождения из карты</span><a href="#tools" data-go="tools:bio" class="hm-link">Биоритмы →</a></div>` : '',
     ].join('');
     $('homeOut').innerHTML = `
       <div class="hm-hero">

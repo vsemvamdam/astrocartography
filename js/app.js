@@ -119,9 +119,27 @@
 
   /* -------------------------------- state --------------------------------- */
   const STORE = 'acg.v1';
+  // until the visitor enters their own data the site shows the moment of this visit,
+  // at the biggest city of their time zone (Moscow when it cannot be told)
+  function liveMoment() {
+    const now = Date.now(), own = -new Date(now).getTimezoneOffset();
+    let tz = '';
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* no Intl */ }
+    const namesake = tz.split('/').pop();
+    let city = CITIES.find((c) => c.tz === tz && (c.en || '').replace(/ /g, '_') === namesake) || CITIES.find((c) => c.tz === tz);
+    if (!city) {
+      const same = new Set(D.tzs.filter((z) => ACG.tzOffsetMin(z, now) === own));
+      city = CITIES.find((c) => same.has(c.tz)) || CITIES.find((c) => c.en === 'Moscow');
+    }
+    const t = new Date(now + ACG.tzOffsetMin(city.tz, now) * 60000);
+    return {
+      date: `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`,
+      time: `${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}`,
+      place: { name: city.ru, country: city.c, lat: city.lat, lon: city.lon, tz: city.tz },
+    };
+  }
   const EXAMPLE = {
-    date: '1996-12-27', time: '14:20',
-    place: { name: 'Иркутск', country: 'Россия', lat: 52.32, lon: 104.25, tz: 'Asia/Irkutsk' },
+    ...liveMoment(),
     manualOffset: null, example: true,
     bodies: { Node: false, Chiron: false }, angles: { MC: true, IC: true, ASC: true, DSC: true }, nodeMode: 'true',
     showNatal: true,
@@ -131,6 +149,10 @@
     best: { on: false, goal: 'love', country: '', size: 'big', who: 'me' },
     partner: null, partnerLines: false,
   };
+  // the family biorhythms start from an automatic "me" entry: it must not keep a date nobody entered
+  function dropAutoFamily(st, date) {
+    if (st.tools && Array.isArray(st.tools.bioFamily)) st.tools.bioFamily = st.tools.bioFamily.filter((p) => p.birth !== date);
+  }
   function loadState() {
     const base = JSON.parse(JSON.stringify(EXAMPLE));
     try {
@@ -147,6 +169,12 @@
         st.best = Object.assign({}, EXAMPLE.best, s.best);
         if (st.showNatal == null) st.showNatal = true;
         st.nodeMode = 'true';                 // the site shows only the true node, as Sotis does
+        // nothing entered yet (including the old 1996 sample): back to the moment of this visit
+        st.example = s.example === true || (s.example == null && s.date === '1996-12-27' && s.time === '14:20');
+        if (st.example) {
+          Object.assign(st, { date: EXAMPLE.date, time: EXAMPLE.time, place: JSON.parse(JSON.stringify(EXAMPLE.place)), manualOffset: null });
+          dropAutoFamily(st, s.date);
+        }
         return st;
       }
     } catch (e) { /* storage unavailable */ }
@@ -1020,8 +1048,10 @@
     const o = document.createElement('option'); o.value = m; o.textContent = fmtOffset(m); $('manualOffset').appendChild(o);
   });
 
-  function userEdited() { if (state.example) { state.example = false; $('exampleNote').hidden = true; } }
+  const liveDate = state.date;
+  function userEdited() { if (state.example) { state.example = false; dropAutoFamily(state, liveDate); $('exampleNote').hidden = true; } }
   $('exampleNote').hidden = !state.example;
+  $('exampleWhen').textContent = `${isoToRu(state.date)}, ${state.time}, ${state.place.name}`;
 
   let recomputeTimer = 0;
   const schedule = () => { clearTimeout(recomputeTimer); recomputeTimer = setTimeout(recompute, 120); };
