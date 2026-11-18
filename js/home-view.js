@@ -94,7 +94,6 @@
       tb >= 0 ? `<div class="hm-tile"><span class="hm-tk">Ваши биоритмы сегодня</span><b class="hm-bio">${cyc.map(([ru, per, col]) => { const t = tb % per, crit = Math.ceil(t / (per / 2) - 1e-9) * (per / 2) < t + 1 - 1e-9; return `<span style="color:${col}"${crit ? ' class="crit"' : ''}>${ru} ${pct(bio(tb, per))}</span>`; }).join('')}</b><span class="muted">по дате рождения из карты</span><a href="#tools" data-go="tools:bio" class="hm-link">Биоритмы →</a></div>` : '',
     ].join('');
     $('homeOut').innerHTML = `
-      <figure class="hm-banner"><img src="assets/astrosky-banner-1536.jpg" srcset="assets/astrosky-banner-960.jpg 960w, assets/astrosky-banner-1536.jpg 1536w" sizes="(min-width: 1244px) 1180px, 100vw" width="1536" height="1024" alt="AstroSky — астрология, гармония, развитие" fetchpriority="high"></figure>
       <div class="hm-hero">
         <div class="hm-copy">
           <h1 class="hm-h1" id="homeH">Астрология по вашей карте</h1>
