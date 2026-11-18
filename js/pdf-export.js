@@ -166,8 +166,8 @@
       if (!sec.items || !sec.items.length) continue;
       // a heading never stays alone at the bottom of a page: it goes over together with its first item
       const titleH = lines(sec.title, 13.5, 'bold', CW).length * 13.5 * PT * 1.3 + (sec.note ? lines(sec.note, 8.5, 'normal', CW).length * 8.5 * PT * 1.4 + 0.5 : 0);
-      ensure(3 + titleH + 2.5 + Math.min(itemHeight(sec.items[0]), 60));
-      y += 3;
+      ensure(4.5 + titleH + 2.5 + Math.min(itemHeight(sec.items[0]), 60));
+      y += 4.5;
       write(lines(sec.title, 13.5, 'bold', CW), 13.5, 'bold', BRASS, M, 1.3);
       if (sec.note) { y += 0.5; write(lines(sec.note, 8.5, 'normal', CW), 8.5, 'normal', MUTED, M, 1.4); }
       y += 2.5;
@@ -200,7 +200,7 @@
         }
         y += gap;
       }
-      y += 2;
+      y += 3;
     }
 
     /* ------------------------------- footer ------------------------------ */
