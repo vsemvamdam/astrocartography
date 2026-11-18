@@ -3,7 +3,7 @@
    SVG wheel and tables. Reads the shared app state via the object passed to init(). */
 (function () {
   'use strict';
-  const ACG = window.ACG, N = window.NATAL, F = window.FEAT, H = window.HORARY, CL = window.CELEBS;
+  const ACG = window.ACG, N = window.NATAL, F = window.FEAT, H = window.HORARY, CL = window.CELEBS, K = window.CHILD;
   const $ = (id) => document.getElementById(id);
   const VS = '︎';
   const g = (s) => s + VS;
@@ -24,6 +24,8 @@
   const isTxt = (gl) => /^[А-ЯЁ][а-яё]$/.test(gl || '');
 
   let natal = null;     // the chart drawn as the main wheel (natal, solar or composite)
+  let childInfo = null; // the child's chart in the "Ребёнок" mode
+  let childFormFor = null;   // whose data the form was last opened or folded for
   let outer = null;     // partner's points in the outer ring (synastry)
   let cross = [];       // synastry aspects
   let hl = null, app = null, solarInfo = null, lunarInfo = null, starInfo = null, likes = null, natB = null, natBase = null, horInfo = null, horCache = null;
@@ -684,6 +686,7 @@
     try {
       if (I && o.mode === 'natal') { secs = I.natal(natal); title = 'Расшифровка натальной карты'; sub = 'характер, планеты в знаках и домах, аспекты'; }
       else if (I && o.mode === 'stars' && starInfo) { secs = I.natal(natal); title = `Расшифровка карты: ${starInfo.c.ru}`; sub = 'тексты обращены к владельцу карты — читайте их как его портрет'; }
+      else if (I && K && o.mode === 'child' && childInfo) { secs = K.read(natal, childInfo.ctx); title = `Гороскоп ребёнка${childInfo.ctx.name ? `: ${childInfo.ctx.name}` : ''}`; sub = 'написано для родителей'; }
       else if (I && o.mode === 'solar' && solarInfo) { secs = I.solar(natal, natBase); title = `Расшифровка соляра ${solarInfo.year}`; sub = 'на год от дня рождения до дня рождения'; }
       else if (I && o.mode === 'lunar' && lunarInfo) { secs = I.lunar(natal, natBase); title = 'Расшифровка лунара'; sub = `на месяц: ${localTime(lunarInfo.utc, lunarInfo.place.tz).text.replace(/, \d\d:\d\d$/, '')} — ${localTime(lunarInfo.next, lunarInfo.place.tz).text.replace(/, \d\d:\d\d$/, '')}`; }
       else if (I && o.mode === 'synastry' && natB && outer) { secs = I.synastry(natBase, natB, cross, partnerName()); title = 'Расшифровка синастрии'; sub = `вы и ${partnerName()}`; }
@@ -722,11 +725,12 @@
     }
     $('natRead').classList.remove('rd-one');
     // the natal reading is long, so it is split into tabs; the others fit on one screen in two columns
-    if (o.mode === 'natal' || o.mode === 'stars') {
-      const tab = list.find((sec) => sec.key === o.readTab) || list[0];
+    if (o.mode === 'natal' || o.mode === 'stars' || o.mode === 'child') {
+      const tabKey = o.mode === 'child' ? 'childTab' : 'readTab';
+      const tab = list.find((sec) => sec.key === o[tabKey]) || list[0];
       $('natReadTabs').hidden = false;
       $('natReadTabs').innerHTML = list.map((sec) => `<button type="button" data-k="${sec.key}" aria-pressed="${sec === tab}">${esc(sec.title)}</button>`).join('');
-      $('natReadTabs').onclick = (e) => { const b = e.target.closest('button[data-k]'); if (b) { opts().readTab = b.dataset.k; app.save(); renderReading(); } };
+      $('natReadTabs').onclick = (e) => { const b = e.target.closest('button[data-k]'); if (b) { opts()[tabKey] = b.dataset.k; app.save(); renderReading(); } };
       $('natRead').innerHTML = block(tab, false);
     } else {
       $('natReadTabs').hidden = true;
@@ -887,6 +891,7 @@
     if (!I) return null;
     if (o.mode === 'natal') return { secs: I.natal(natal), kind: 'Натальная карта' };
     if (o.mode === 'stars' && starInfo) return { secs: I.natal(natal), kind: 'Карта звезды' };
+    if (o.mode === 'child' && childInfo) return { secs: K.read(natal, childInfo.ctx), kind: 'Гороскоп ребёнка' };
     if (o.mode === 'solar' && solarInfo) return { secs: I.solar(natal, natBase), houses: I.solarHouses(natal, natBase), kind: `Соляр ${solarInfo.year}` };
     if (o.mode === 'lunar' && lunarInfo) return { secs: I.lunar(natal, natBase), houses: I.lunarHouses(natal, natBase), kind: 'Лунар' };
     if (o.mode === 'synastry' && natB && outer) return { secs: I.synastry(natBase, natB, cross, partnerName()), kind: 'Синастрия' };
@@ -946,7 +951,14 @@
     const [y, m, d] = st.date.split('-').map(Number);
     const birth = `${d} ${MONTHS[m - 1]} ${y} · ${st.time} · ${st.place.name}`;
     let title = birth, sub = '';
-    if (mode === 'horary' && horInfo) {
+    if (mode === 'child') {
+      title = 'Введите дату и место рождения';
+      if (childInfo) {
+        const { k, conv } = childInfo, [cy, cm, cd] = k.date.split('-').map(Number), u = new Date(conv.utc), age = K.ageText(k.date);
+        title = `${k.name.trim() ? `${k.name.trim()} · ` : ''}${cd} ${MONTHS[cm - 1]} ${cy} · ${k.time || 'время неизвестно'} · ${k.place.name}`;
+        sub = [k.sex === 'f' ? 'девочка' : k.sex === 'm' ? 'мальчик' : '', age, fmtLat(k.place.lat), fmtLon(k.place.lon), k.time ? `UTC ${pad(u.getUTCHours())}:${pad(u.getUTCMinutes())} (${offText(conv.offset)})` : '', k.time ? `дома: ${sys.ru}` : ''].filter(Boolean).join(' · ');
+      }
+    } else if (mode === 'horary' && horInfo) {
       const P = horInfo.place, lt = localTime(horInfo.utc, P.tz);
       title = horOpts().q ? `«${horOpts().q}»` : 'Хорарная карта';
       sub = `${lt.text} (${offText(lt.off)}) · ${P.name} · ${fmtLat(P.lat)} · ${fmtLon(P.lon)} · дома: Региомонтан`;
@@ -970,10 +982,10 @@
       const P = st.place, conv = app.conv, u = new Date(conv.utc);
       sub = `${fmtLat(P.lat)} · ${fmtLon(P.lon)} · UTC ${pad(u.getUTCHours())}:${pad(u.getUTCMinutes())} (${offText(conv.offset)}) · дома: ${sys.ru}`;
     }
-    $('natH').textContent = mode === 'solar' ? 'Соляр' : mode === 'lunar' ? 'Лунар' : mode === 'stars' ? 'Звёзды' : mode === 'synastry' ? 'Совместимость' : mode === 'horary' ? 'Хорар' : 'Натальная карта';
+    $('natH').textContent = mode === 'child' ? 'Гороскоп ребёнка' : mode === 'solar' ? 'Соляр' : mode === 'lunar' ? 'Лунар' : mode === 'stars' ? 'Звёзды' : mode === 'synastry' ? 'Совместимость' : mode === 'horary' ? 'Хорар' : 'Натальная карта';
     $('natTitle').textContent = title;
     $('natSub').textContent = sub;
-    const note = mode === 'synastry' && !natB ? 'Добавьте данные партнёра в панели слева (на телефоне — ниже), чтобы увидеть синастрию и композит.'
+    const note = mode === 'child' && (!childInfo || !childInfo.k.time) ? (childInfo ? 'Время рождения не указано: круг построен на 12:00, поэтому дома и Асцендент условные, а положение Луны примерное. В расшифровке они не используются.' : '') : mode === 'synastry' && !natB ? 'Добавьте данные партнёра в панели слева (на телефоне — ниже), чтобы увидеть синастрию и композит.'
       : mode === 'stars' && !starInfo ? (CL && CL.failed() ? 'Не удалось загрузить карты звёзд. Проверьте интернет и обновите страницу.' : 'Загружаем карты звёзд…') : mode === 'horary' ? '' : mode === 'natal' && st.example ? 'Это карта текущего момента. Введите свои дату, время и город в панели слева (на телефоне — ниже), чтобы увидеть свою натальную карту.' : natal.note;
     $('natNote').textContent = note || '';
     $('natNote').hidden = !note;
@@ -1019,6 +1031,7 @@
     if (H) initHoraryControls();
     initLunarControls();
     if (CL) initStarControls();
+    if (K) initChildControls();
     // solar return controls
     syncSolarControls();
     $('solYear').addEventListener('change', (e) => { const v = parseInt(e.target.value, 10); solarOpts().year = v >= 1800 && v <= 2100 ? v : null; changed(); syncSolarControls(); });
@@ -1033,6 +1046,65 @@
   function changed() { app.save(); update(); }
   document.addEventListener('click', (e) => { if (e.target.closest('#natReadJump')) $('natReadCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 
+  /* ---------------------------- the child's horoscope ---------------------- */
+  function childChart(natOpts, parent) {
+    const k = K.current(app.state);
+    if (!K.isReady(k)) return null;
+    const [y, m, d] = k.date.split('-').map(Number), [hh, mi] = (k.time || '12:00').split(':').map(Number);
+    let conv;
+    try { conv = ACG.localToUtc(y, m, d, hh, mi, k.place.tz || 'UTC', null, k.place.lon); } catch (e) { conv = ACG.localToUtc(y, m, d, hh, mi, 'UTC', 0); }
+    const chart = ACG.computeChart(conv.utc, { node: app.state.nodeMode });
+    chart.bodies.forEach((b) => { if (b.id === 'Node') b.retro = b.speed < 0.005; });
+    const nat = N.computeNatal(chart, k.place.lat, k.place.lon, natOpts);
+    return { k, conv, nat, ctx: { name: k.name.trim(), sex: k.sex, noTime: !k.time, birth: conv.utc, parent: app.state.example ? null : parent } };
+  }
+  function renderChild() {
+    const on = opts().mode === 'child';
+    $('natChildCard').hidden = !on;
+    $('natChildHero').hidden = !on || !childInfo;
+    if (!on) return;
+    const S = K.store(app.state), k = K.current(app.state), focused = document.activeElement;
+    $('chKids').innerHTML = S.list.map((x) => `<button type="button" data-id="${esc(x.id)}" aria-pressed="${x.id === S.cur}">${esc(x.name.trim() || (x.date ? x.date.split('-').reverse().join('.') : 'Новый ребёнок'))}</button>`).join('')
+      + (K.isReady(k) ? '<button type="button" data-add="1">+ Ещё ребёнок</button>' : '');
+    for (const [id, v] of [['chName', k.name], ['chDate', k.date], ['chTime', k.time]]) if (focused !== $(id)) $(id).value = v;
+    if (focused !== $('chPlace')) $('chPlace').value = k.place ? app.placeLabel(k.place) : '';
+    $('chSex').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.s === k.sex)));
+    $('chDel').hidden = !(S.list.length > 1 || k.date || k.name);
+    // a finished child's data folds away so the chart comes first; an unfinished one stays open
+    $('chForm').classList.toggle('must', !K.isReady(k));
+    if (!K.isReady(k)) $('chForm').open = true;
+    else if (childFormFor !== k.id) $('chForm').open = false;
+    childFormFor = k.id;
+    $('chIntro').hidden = !!childInfo;
+    $('chMsg').textContent = k.date && !K.isReady(k) ? (k.place ? 'Проверьте дату: она не может быть в будущем.' : 'Выберите место рождения из списка.') : '';
+    if (!childInfo) return;
+    const s = K.summary(natal, childInfo.ctx), SG = ACG.SIGNS, age = K.ageText(k.date);
+    const tile = (gl, color, label, value, note) => `<div class="ch-tile"><span class="ch-g" style="color:${color}">${gl}</span><small>${label}</small><b>${value}</b><i>${note}</i></div>`;
+    const max = Math.max(...s.elements, 1), span = s.periods[s.periods.length - 1].to, pos = Math.min(100, Math.max(0, s.age / span * 100));
+    $('natChildHero').innerHTML = `<div class="ch-who"><b>${esc(childInfo.ctx.name || 'Ребёнок')}</b><span>${[k.sex === 'f' ? 'девочка' : k.sex === 'm' ? 'мальчик' : '', age].filter(Boolean).join(' · ')}</span></div>
+      <div class="ch-tiles">${tile(g(SG[s.sun][0]), BODY.Sun.color, 'Солнце', SG[s.sun][1], 'характер')}${tile(g(SG[s.moon][0]), BODY.Moon.color, 'Луна', SG[s.moon][1] + (s.moonOther != null ? ` или ${SG[s.moonOther][1]}` : ''), 'чувства')}${s.asc != null ? tile(g(SG[s.asc][0]), 'var(--press)', 'Асцендент', SG[s.asc][1], 'первое впечатление') : ''}${tile('●', EL_COLOR[s.elMax], 'Темперамент', s.temper, 'по стихиям')}</div>
+      <div class="ch-els">${s.elements.map((v, i) => `<div class="ch-el"><span>${s.elNames[i]}</span><b>${v}</b><i><u style="width:${v / max * 100}%;background:${EL_COLOR[i]}"></u></i></div>`).join('')}</div>
+      <div class="ch-line" role="img" aria-label="Периоды детства">${s.periods.map((a) => `<div class="${a === s.period ? 'on' : ''}" style="flex:${a.to - a.from}"><b>${a.id === 'Moon' ? 'Луна' : a.id === 'Mercury' ? 'Меркурий' : 'Венера'}</b><span>${a.from}–${a.to}</span></div>`).join('')}${s.age <= span ? `<em style="left:${pos}%"></em>` : ''}</div>`;
+  }
+  function initChildControls() {
+    let timer = 0;
+    const later = () => { app.save(); clearTimeout(timer); timer = setTimeout(update, 160); };
+    const cur = () => K.current(app.state);
+    $('chDate').max = K.today();
+    $('chName').addEventListener('input', (e) => { cur().name = e.target.value; later(); });
+    $('chDate').addEventListener('input', (e) => { cur().date = e.target.value; later(); });
+    $('chTime').addEventListener('input', (e) => { cur().time = e.target.value.slice(0, 5); later(); });
+    $('chSex').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const k = cur(); k.sex = k.sex === b.dataset.s ? '' : b.dataset.s; changed(); });
+    app.makePlaceSearch($('chPlace'), $('chSuggest'), () => cur().place, (p) => { cur().place = p; changed(); });
+    $('chKids').addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      const S = K.store(app.state);
+      if (b.dataset.add) { const k = K.blank(cur().place); S.list.push(k); S.cur = k.id; } else S.cur = b.dataset.id;
+      changed();
+    });
+    $('chDel').addEventListener('click', () => { const S = K.store(app.state); S.list = S.list.filter((k) => k.id !== S.cur); S.cur = null; changed(); });
+  }
+
   /* -------------------------------- update -------------------------------- */
   function defaultSolarYear() {
     const now = new Date(), [, m, d] = app.state.date.split('-').map(Number);
@@ -1043,7 +1115,7 @@
     if (!app || !app.chart || $('natalView').hidden) return;
     const o = opts(), P = app.state.place;
     const natOpts = { house: o.house, minor: o.minor, points: visible, anglesAspects: o.angles };
-    outer = null; cross = []; solarInfo = null; lunarInfo = null; starInfo = null; natB = null; horInfo = null; likes = null;
+    outer = null; cross = []; solarInfo = null; lunarInfo = null; starInfo = null; natB = null; horInfo = null; likes = null; childInfo = null;
     // the lunar return is read by Konstantin Daragan's method in Placidus houses, the natal chart too
     if (o.mode === 'lunar') natOpts.house = 'P';
     const natA = N.computeNatal(app.chart, P.lat, P.lon, natOpts);
@@ -1056,6 +1128,9 @@
     if (o.mode === 'horary' && H) {
       horInfo = horaryChart();
       natal = horInfo.nat;
+    } else if (o.mode === 'child' && K) {
+      childInfo = childChart(natOpts, natA);
+      if (childInfo) natal = childInfo.nat;
     } else if (o.mode === 'solar') {
       const so = solarOpts(), year = so.year || defaultSolarYear(), place = so.place || P;
       const sunLon = app.chart.bodies.find((b) => b.id === 'Sun').elon;
@@ -1093,6 +1168,8 @@
     }
     if (hl && !natal.points.some((p) => p.id === hl) && !(outer && outer.some((p) => p.id === hl))) hl = null;
     $('natBalanceCard').hidden = !!outer || o.mode === 'horary';
+    $('natalView').classList.toggle('child-empty', o.mode === 'child' && !childInfo);
+    if (K) renderChild();
     renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard(); renderLunarCard(); renderStarsCtl(); renderStarCard(); renderLikeCard(); renderHoraryCard(); renderReading();
   }
 

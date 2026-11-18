@@ -520,6 +520,43 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .natal-head .nt { margin: 4px 0 0; font-family: var(--f-display); font-size: 19px; letter-spacing: .06em; text-transform: uppercase; color: var(--heading); }
 .natal-head .ns { margin: 6px 0 0; font-family: var(--f-mono); font-size: 12px; color: var(--muted); line-height: 1.6; }
 .nat-note { margin: 10px 0 0; padding: 8px 12px; border-radius: var(--r); border: 1px solid rgba(216,164,166,.3); background: rgba(216,164,166,.07); color: #E9D7B2; font-size: 13px; max-width: 70ch; }
+body[data-view="natal"][data-natmode="child"] section[aria-labelledby="hBirth"] { display: none; }
+#natalView.child-empty .natal-grid { display: none; }
+.child-kids { margin-bottom: 12px; }
+.child-kids:empty { display: none; }
+.child-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.child-form .ch-place, .child-form .ch-wide { grid-column: 1 / -1; }
+.child-details > summary { display: inline-flex; align-items: center; list-style: none; cursor: pointer; }
+.child-details > summary::-webkit-details-marker { display: none; }
+.child-details[open] > summary { margin-bottom: 12px; }
+.child-details.must > summary, .child-details[open] .ch-more, .child-details:not([open]) .ch-less { display: none; }
+.child-form .seg button { min-height: 44px; padding-inline: 14px; }
+@media (min-width: 900px) { .child-form { grid-template-columns: 1.15fr 1fr 1fr .8fr; } .child-form .ch-wide { grid-column: auto; } }
+.ch-hint { margin-top: 10px; }
+.ch-hint span { color: var(--danger); }
+#chDel { margin-top: 10px; }
+.child-intro { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--rule); font-size: 13.5px; color: var(--muted); }
+.child-intro li::before { content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 9px 2px 0; border-radius: 50%; background: var(--press); }
+.child-hero { display: grid; gap: 16px; }
+.ch-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.ch-who b { font-family: var(--f-display); font-size: 26px; font-weight: 400; letter-spacing: .02em; }
+.ch-who span { color: var(--muted); font-size: 14px; }
+.ch-tiles { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(150px, 42vw), 1fr)); }
+.ch-tile { display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 8px; padding: 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--raise); }
+.ch-g { grid-row: 1 / span 3; font-family: var(--f-glyph); font-size: 22px; line-height: 1.2; }
+.ch-tile small { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+.ch-tile b { font-size: 15.5px; font-weight: 600; }
+.ch-tile i { font-style: normal; font-size: 12.5px; color: var(--muted); }
+.ch-els { display: grid; gap: 8px 16px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+.ch-el { display: grid; grid-template-columns: 1fr auto; gap: 4px; font-size: 13px; color: var(--muted); }
+.ch-el b { color: var(--fg); font-family: var(--f-mono); font-weight: 500; }
+.ch-el i { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--rule); overflow: hidden; }
+.ch-el u { display: block; height: 100%; border-radius: 2px; }
+.ch-line { position: relative; display: flex; gap: 3px; padding-top: 9px; }
+.ch-line div { min-width: 0; padding-top: 7px; border-top: 3px solid var(--rule); display: flex; flex-wrap: wrap; gap: 0 6px; font-size: 12px; color: var(--faint); }
+.ch-line div b { font-weight: 500; }
+.ch-line div.on { border-top-color: var(--press); color: var(--fg); }
+.ch-line em { position: absolute; top: 3px; width: 11px; height: 11px; margin-left: -5px; border-radius: 50%; background: var(--press); box-shadow: 0 0 0 3px var(--ink); }
 .natal-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); align-items: start; }
 @media (min-width: 1360px) { .natal-grid.top { grid-template-columns: minmax(0, 1.05fr) minmax(400px, 1fr); } .natal-grid.top .wheel-box { position: sticky; top: 12px; } }
 @media (min-width: 1100px) { .natal-grid.bottom { grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); } }
@@ -1937,6 +1974,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <button type="button" data-m="solar">Соляр</button>
           <button type="button" data-m="lunar">Лунар</button>
           <button type="button" data-m="synastry">Совместимость</button>
+          <button type="button" data-m="child">Ребёнок</button>
           <button type="button" data-m="horary">Хорар</button>
           <button type="button" data-m="stars">Звёзды</button>
         </div>
@@ -2003,6 +2041,24 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <p class="ns" id="natSub"></p>
         <p class="nat-note" id="natNote" hidden></p>
       </header>
+      <section class="nat-card child-card" id="natChildCard" hidden>
+        <h3>Данные ребёнка <span>хранятся только в этом браузере</span></h3>
+        <div class="seg child-kids" id="chKids" role="group" aria-label="Дети"></div>
+        <details class="child-details" id="chForm" open>
+        <summary class="pill"><span class="ch-more">Изменить данные</span><span class="ch-less">Свернуть</span></summary>
+        <div class="child-form">
+          <div class="field ch-wide"><label for="chName">Имя</label><input class="inp" type="text" id="chName" maxlength="40" autocomplete="off" autocapitalize="words" placeholder="Необязательно"></div>
+          <div class="field ch-wide"><span class="lbl">Пол</span><div class="seg" id="chSex" role="group" aria-label="Пол"><button type="button" data-s="f">Девочка</button><button type="button" data-s="m">Мальчик</button></div></div>
+          <div class="field"><label for="chDate">Дата рождения</label><input class="inp" type="date" id="chDate" min="1800-01-01"></div>
+          <div class="field"><label for="chTime">Время рождения</label><input class="inp" type="time" id="chTime"></div>
+          <div class="field ch-place"><label for="chPlace">Место рождения</label><div class="place-box"><input class="inp" type="text" id="chPlace" spellcheck="false" autocapitalize="words" autocomplete="off"><ul class="suggest" id="chSuggest" role="listbox" hidden></ul></div></div>
+        </div>
+        <p class="bal-note ch-hint">Время неизвестно? Оставьте поле пустым: дома и Асцендент не будут учитываться. <span id="chMsg" role="status"></span></p>
+        <button type="button" class="pill" id="chDel" hidden>Удалить этого ребёнка</button>
+        </details>
+        <ul class="child-intro" id="chIntro"><li>Характер и темперамент</li><li>Чувства и что успокаивает</li><li>Как учится и общается</li><li>Родители и дом</li><li>Таланты, игра и спорт</li><li>Страхи и поддержка</li><li>Будущий путь</li><li>Возрасты и рубежи</li></ul>
+      </section>
+      <section class="nat-card child-hero" id="natChildHero" hidden></section>
       <section class="nat-card hor-card" id="natHoraryCard" hidden>
         <h3>Суждение по Фроули <span>подсказка для разбора, не приговор</span></h3>
         <div id="horVerdict"></div>
@@ -2346,7 +2402,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/interpret.js?v=20261118plain"></script>
 <script src="js/celebs.js?v=20261104u"></script>
 <script src="js/pdf-export.js?v=20261118gap"></script>
-<script src="js/natal-view.js?v=20261118plain"></script>
+<script src="js/child.js?v=20261118b"></script>
+<script src="js/natal-view.js?v=20261118child2"></script>
 <script src="js/cycles.js?v=20261113psy2"></script>
 <script src="js/tools-view.js?v=20261118now"></script>
 <script src="js/city-view.js?v=20261113rose"></script>
@@ -2354,7 +2411,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/sport-view.js?v=20261107qa"></script>
 <script src="js/firebase-config.js?v=20261104u"></script>
 <script src="js/account.js?v=20261107qa"></script>
-<script src="js/home-view.js?v=20261118live"></script>
+<script src="js/home-view.js?v=20261118child"></script>
 <script src="js/app.js?v=20261118pdf"></script>
 </body>
 </html>
