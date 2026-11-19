@@ -135,15 +135,16 @@
     tileLayer.on('tileload', () => { tileOk = true; $('cityMapNote').textContent = ''; });
     tileLayer.on('tileerror', () => { if (!tileOk && ++tileErr >= 4) setTiles(i + 1); });
   }
-  function loadLeaflet(cb) {
+  function loadLeaflet(cb, onErr) {
     if (window.L && window.L.map) { cb(); return; }
-    if (loadLeaflet.busy) { loadLeaflet.busy.push(cb); return; }
-    loadLeaflet.busy = [cb];
+    const fail = onErr || (() => { $('cityMapNote').textContent = 'Не загрузилась библиотека карты. Проверьте интернет и обновите страницу.'; });
+    if (loadLeaflet.busy) { loadLeaflet.busy.push([cb, fail]); return; }
+    loadLeaflet.busy = [[cb, fail]];
     const core = document.querySelector('script[src*="acg-core.js"]'), v = core && core.src.split('?')[1];
     const sc = document.createElement('script');
     sc.src = `js/vendor/leaflet.js${v ? '?' + v : ''}`;
-    sc.onload = () => { const w = loadLeaflet.busy; loadLeaflet.busy = null; w.forEach((f) => f()); };
-    sc.onerror = () => { loadLeaflet.busy = null; $('cityMapNote').textContent = 'Не загрузилась библиотека карты. Проверьте интернет и обновите страницу.'; };
+    sc.onload = () => { const w = loadLeaflet.busy; loadLeaflet.busy = null; w.forEach(([f]) => f()); };
+    sc.onerror = () => { const w = loadLeaflet.busy; loadLeaflet.busy = null; sc.remove(); w.forEach(([, e]) => e()); };
     document.head.appendChild(sc);
   }
   function ensureMap() {
@@ -460,6 +461,122 @@
     $('cityToWorld').addEventListener('click', () => { const c = cityPlace(); app.focusCity({ ru: c.name, c: c.country || '', lat: c.lat, lon: c.lon }); });
   }
 
+  /* ------------------------ pick a point on a street map ------------------------ */
+  // "Указать на карте" next to the birthplace: a street map in a dialog with a pin fixed in the middle.
+  // The world map is too coarse for a maternity hospital or a street, and it is hidden in the other
+  // sections, so the button opens this dialog everywhere. The map moves under the pin; a tap moves the
+  // map to the tapped spot; the search goes to Nominatim, first around the map and then anywhere.
+  let pk = null;
+  const PK_HINT = 'Двигайте и приближайте карту, пока метка не встанет на нужное здание.';
+  const dms = (v) => {
+    const a = Math.abs(v);
+    let d = Math.floor(a), m = Math.floor((a - d) * 60), s = Math.round(((a - d) * 60 - m) * 60);
+    if (s === 60) { s = 0; m++; }
+    if (m === 60) { m = 0; d++; }
+    return `${d}°${String(m).padStart(2, '0')}′${String(s).padStart(2, '0')}″`;
+  };
+  function pickerCoords() {
+    const c = pk.map.getCenter(), lon = n180(c.lng);
+    $('pkCoords').textContent = `${dms(c.lat)} ${c.lat >= 0 ? 'с.ш.' : 'ю.ш.'} · ${dms(lon)} ${lon >= 0 ? 'в.д.' : 'з.д.'}`;
+  }
+  function pickerTiles(i) {
+    if (pk.tiles) { pk.map.removeLayer(pk.tiles); pk.tiles = null; }
+    if (i >= TILES.length) { $('pkNote').textContent = 'Карта с улицами не загрузилась. Проверьте интернет или впишите координаты в поля «Широта» и «Долгота».'; return; }
+    let ok = false, err = 0;
+    pk.tiles = LL.tileLayer(TILES[i].url, TILES[i].o).addTo(pk.map);
+    pk.tiles.on('tileload', () => { ok = true; });
+    pk.tiles.on('tileerror', () => { if (!ok && ++err >= 4) pickerTiles(i + 1); });
+  }
+  async function pickerSearch() {
+    const q = $('pkQ').value.trim(), box = $('pkSug'), note = $('pkNote');
+    box.hidden = true; box.innerHTML = '';
+    if (!q || !pk.map) return;
+    const go = (lat, lon) => { box.hidden = true; note.textContent = PK_HINT; pk.map.setView([lat, lon], 17); };
+    const m = /^\s*(-?\d{1,2}(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:[.,]\d+)?)\s*$/.exec(q);
+    if (m) {
+      const lat = parseFloat(m[1].replace(',', '.')), lon = parseFloat(m[2].replace(',', '.'));
+      if (Math.abs(lat) <= 85 && Math.abs(lon) <= 180) { go(lat, lon); return; }
+    }
+    note.textContent = 'Ищем…';
+    const c = pk.map.getCenter(), cl = n180(c.lng);
+    const ask = async (bounded) => {
+      const u = new URL('https://nominatim.openstreetmap.org/search');
+      u.search = new URLSearchParams({ q, format: 'jsonv2', limit: '6', 'accept-language': 'ru', addressdetails: '0', ...(bounded ? { viewbox: `${cl - 0.7},${c.lat + 0.45},${cl + 0.7},${c.lat - 0.45}`, bounded: '1' } : {}) }).toString();
+      const r = await fetch(u.toString(), { headers: { Accept: 'application/json' } });
+      if (!r.ok) throw new Error(String(r.status));
+      return r.json();
+    };
+    try {
+      let res = await ask(true);
+      if (!res.length) res = await ask(false);
+      if (!res.length) { note.textContent = 'Ничего не нашли. Уточните адрес или найдите место на карте вручную.'; return; }
+      if (res.length === 1) { go(+res[0].lat, +res[0].lon); return; }
+      note.textContent = 'Выберите вариант из списка.';
+      box.innerHTML = res.map((x, i) => `<li role="option" tabindex="0" data-i="${i}">${esc(x.display_name.split(',').slice(0, 4).join(','))}</li>`).join('');
+      box.hidden = false;
+      const choose = (e) => { const li = e.target.closest('li[data-i]'); if (li) go(+res[+li.dataset.i].lat, +res[+li.dataset.i].lon); };
+      box.onclick = choose;
+      box.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(e); } };
+    } catch (e) {
+      note.textContent = 'Поиск сейчас недоступен. Найдите место на карте вручную.';
+    }
+  }
+  function pickerDialog() {
+    if (pk) return pk;
+    const d = document.createElement('dialog');
+    d.className = 'acc-dlg pk-dlg';
+    d.setAttribute('aria-labelledby', 'pkTitle');
+    d.innerHTML = `<div class="acc-head"><h2 id="pkTitle">Место рождения на карте</h2><button type="button" class="icon-btn" data-act="close" aria-label="Закрыть"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 5l10 10M15 5L5 15"/></svg></button></div>
+      <div class="pk-body">
+        <form class="pk-search" id="pkForm" role="search">
+          <div class="place-box"><input class="inp" id="pkQ" type="text" enterkeyhint="search" placeholder="Адрес, название или координаты" autocomplete="off" spellcheck="false" aria-label="Поиск места"><ul class="suggest" id="pkSug" role="listbox" hidden></ul></div>
+          <button type="submit" class="btn-line">Найти</button>
+        </form>
+        <div class="pk-map"><div id="pkMap"></div><svg class="pk-pin" viewBox="0 0 28 38" aria-hidden="true"><path d="M14 37C14 37 26 23.5 26 13.5A12 12 0 0 0 2 13.5C2 23.5 14 37 14 37Z" fill="currentColor" stroke="#0B1322" stroke-width="1.5"/><circle cx="14" cy="13.5" r="4.5" fill="#0B1322"/></svg></div>
+        <p class="pk-note" id="pkNote" role="status"></p>
+        <div class="pk-foot"><span class="pk-coords" id="pkCoords"></span><button type="button" class="btn-main" id="pkOk">Выбрать это место</button></div>
+      </div>`;
+    document.body.appendChild(d);
+    pk = { d, map: null, tiles: null, onPick: null, start: null };
+    // a drag that ends over the backdrop must not close the dialog: only a press and release outside it do
+    let downOut = false;
+    d.addEventListener('pointerdown', (e) => { downOut = e.target === d; });
+    d.addEventListener('click', (e) => {
+      if (e.target === d && downOut) { d.close(); return; }
+      if (e.target.closest('[data-act="close"]')) d.close();
+    });
+    $('pkForm').addEventListener('submit', (e) => { e.preventDefault(); pickerSearch(); });
+    $('pkOk').addEventListener('click', () => {
+      if (!pk.map) return;
+      const c = pk.map.getCenter();
+      d.close();
+      if (pk.onPick) pk.onPick(+c.lat.toFixed(6), +n180(c.lng).toFixed(6));
+    });
+    return pk;
+  }
+  function pickPoint(start, onPick) {
+    pickerDialog();
+    pk.onPick = onPick;
+    pk.start = start;
+    $('pkQ').value = ''; $('pkSug').hidden = true; $('pkNote').textContent = PK_HINT;
+    if (typeof pk.d.showModal === 'function') pk.d.showModal(); else pk.d.setAttribute('open', '');
+    const show = () => {
+      LL = window.L;
+      const s = pk.start, at = [s.lat, s.lon], z = s.zoom || 13;
+      if (!pk.map) {
+        pk.map = LL.map('pkMap', { zoomControl: false, attributionControl: true }).setView(at, z);
+        LL.control.zoom({ position: 'bottomright', zoomInTitle: 'Приблизить', zoomOutTitle: 'Отдалить' }).addTo(pk.map);
+        pk.map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
+        pickerTiles(0);
+        pk.map.on('move', pickerCoords);
+        pk.map.on('click', (e) => pk.map.panTo(e.latlng));
+      }
+      // the dialog has just been laid out: let Leaflet measure it, then centre on the current place
+      requestAnimationFrame(() => { pk.map.invalidateSize(); pk.map.setView(at, z, { animate: false }); pickerCoords(); });
+    };
+    loadLeaflet(show, () => { $('pkNote').textContent = 'Не загрузилась библиотека карты. Проверьте интернет и попробуйте ещё раз.'; });
+  }
+
   // exposed for tests: the geometry has to agree with the ephemeris
-  window.CityView = { init, update, _horizon: horizon, _natalSegment: natalSegment };
+  window.CityView = { init, update, pickPoint, _horizon: horizon, _natalSegment: natalSegment };
 })();

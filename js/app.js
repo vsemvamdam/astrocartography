@@ -1032,7 +1032,12 @@
     setPlace({ name, country: near && near.km < 25 ? near.city.c : '', lat, lon: ACG.norm180(lon), tz: near ? near.city.tz : 'UTC' });
     setPicking(false);
   }
-  $('pickOnMap').addEventListener('click', () => setPicking(!picking));
+  // a street map in a dialog (js/city-view.js), precise to the building and working in every section;
+  // the world-map tap stays as a fallback if that script is missing
+  $('pickOnMap').addEventListener('click', () => {
+    if (window.CityView && CityView.pickPoint) CityView.pickPoint({ lat: state.place.lat, lon: ACG.norm180(state.place.lon), zoom: 13 }, pickAt);
+    else setPicking(!picking);
+  });
   $('pickCancel').addEventListener('click', () => setPicking(false));
 
   /* --------------------------------- form --------------------------------- */

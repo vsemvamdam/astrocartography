@@ -1261,6 +1261,20 @@ button.psy-c:hover { background: rgba(var(--press-rgb), .07); }
 .acc-list .link-btn.del { color: var(--danger); }
 .acc-empty { color: var(--muted); font-size: 13px; padding: 10px 2px; }
 
+/* ---------------- birthplace on a street map (js/city-view.js, pickPoint) ---------------- */
+.pk-dlg { width: min(760px, calc(100% - 24px)); }
+.pk-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.pk-search { display: flex; gap: 8px; }
+.pk-search .place-box { flex: 1; min-width: 0; }
+.pk-search .btn-line { flex: none; min-height: 46px; }
+.pk-map { position: relative; isolation: isolate; height: min(56vh, 480px); min-height: 240px; border-radius: var(--r); overflow: hidden; border: 1px solid var(--rule); background: #0B1322; }
+#pkMap { position: absolute; inset: 0; background: #0B1322; }
+.pk-pin { position: absolute; left: 50%; top: 50%; width: 28px; height: 38px; transform: translate(-50%, -100%); z-index: 700; pointer-events: none; color: var(--brass); filter: drop-shadow(0 2px 3px rgba(0,0,0,.55)); }
+.pk-note { margin: 0; min-height: 1.45em; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+.pk-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; }
+.pk-coords { font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.pk-foot .btn-main { padding: 0 20px; }
+
 /* ---------------------------------- sport --------------------------------- */
 .sp-leagues button { font-size: 13.5px; }
 .sp-leagues .s { display: none; }
@@ -2439,12 +2453,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <script src="js/natal-view.js?v=20261118child2"></script>
 <script src="js/cycles.js?v=20261113psy2"></script>
 <script src="js/tools-view.js?v=20261118now"></script>
-<script src="js/city-view.js?v=20261113rose"></script>
+<script src="js/city-view.js?v=20261119pick"></script>
 <script src="js/sport.js?v=20261107qa"></script>
 <script src="js/sport-view.js?v=20261107qa"></script>
 <script src="js/firebase-config.js?v=20261104u"></script>
 <script src="js/account.js?v=20261107qa"></script>
 <script src="js/home-view.js?v=20261118child"></script>
-<script src="js/app.js?v=20261118pdf"></script>
+<script src="js/app.js?v=20261119pick"></script>
 </body>
 </html>
