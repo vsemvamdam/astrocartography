@@ -6,8 +6,8 @@
    shows the right one when the address changes. After editing run `node tools/build_pages.js`. */
 (function (g) {
   'use strict';
-  const MAIL = 'germaneb0@gmail.com';
-  const OPERATOR = 'Бурлаков Герман Евгеньевич';
+  const MAIL = 'arnitonov@gmail.com';
+  const OPERATOR = 'Кравц Анастасия Сергеевна';
   const EDITION = '20 ноября 2026 г.';
 
   const SECTIONS = {
@@ -232,7 +232,7 @@
 <p>Метрика включается, только если вы нажали «Разрешить» в окне о cookies. Нажимая «Разрешить», вы даёте согласие оператору — ${OPERATOR}, ${mail} — на обработку этих данных с помощью Яндекс Метрики в целях сбора статистики посещений, включая их передачу ООО «Яндекс». Согласие действует до его отзыва.</p>
 <h2>Как изменить выбор</h2>
 <p class="cookie-choice">Изменить решение можно в любой момент: <button type="button" class="link-btn" data-act="cookies-reset">открыть окно о cookies</button>.</p>
-<p>Ещё можно удалить cookies и данные сайта в настройках браузера. Подробнее об обработке данных — в <a href="/politika-konfidencialnosti/">политике конфиденциальности</a>.</p>`,
+<p>Удалить cookies и данные сайта можно и в настройках браузера. Подробнее об обработке данных — в <a href="/politika-konfidencialnosti/">политике конфиденциальности</a>.</p>`,
   };
 
   const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
