@@ -22,6 +22,7 @@
     'auth/network-request-failed': 'Нет связи с сервером. Проверьте интернет.',
     'auth/operation-not-allowed': 'Вход по почте выключен в настройках Firebase (Authentication → Sign-in method → Email/Password).',
     'auth/requires-recent-login': 'Для этого нужно заново ввести текущий пароль.',
+    'auth/user-mismatch': 'Выберите тот же аккаунт Google, с которым вы вошли на сайт.',
     'auth/user-disabled': 'Этот аккаунт отключён.',
     'auth/unauthorized-domain': 'Этот сайт не добавлен в Firebase (Authentication → Settings → Authorized domains).',
     'auth/popup-blocked': 'Браузер не дал открыть окно входа Google. Разрешите всплывающие окна для сайта и нажмите ещё раз.',
@@ -77,7 +78,7 @@
         renderCharts(); renderPartnerPicker();
       }, (e) => { note = { t: errText(e) }; if (screen === 'profile') render(); });
       if (screen !== 'profile') { screen = 'profile'; if (dlg && dlg.open) note = note && note.keep ? note : null; }
-    } else if (screen === 'profile') screen = 'login';
+    } else if (screen === 'profile' || screen === 'delete') screen = 'login';
     renderButton(); renderPartnerPicker();
     if (dlg && dlg.open) render();
   }
@@ -167,6 +168,17 @@
         </form>
         <div class="acc-links"><button type="button" class="link-btn" data-act="login">Вернуться ко входу</button></div>
       </div>`;
+    } else if (screen === 'delete' && user) {
+      const n = charts.length;
+      h = head('Удаление аккаунта') + `<div class="acc-body">${noteHtml()}
+        <p>Аккаунт ${esc(user.email)} и ${n ? `все сохранённые карты (${n})` : 'все сохранённые карты'} удалятся навсегда, восстановить их будет нельзя. Данные, которые вы вводили на сайте без аккаунта, останутся только в этом браузере.</p>
+        ${hasPassword() ? `<form data-form="delete" novalidate>
+          ${field('accDelPass', 'Пароль для подтверждения', 'password', 'autocomplete="current-password" required')}
+          <button type="submit" class="btn-main danger"${busy ? ' disabled' : ''}>${busy ? 'Удаляем…' : 'Удалить аккаунт навсегда'}</button>
+        </form>` : `<p class="muted">Чтобы подтвердить удаление, войдите ещё раз через Google.</p>
+          <button type="button" class="btn-main danger" data-act="deleteGoogle"${busy ? ' disabled' : ''}>${busy ? 'Удаляем…' : 'Подтвердить через Google и удалить'}</button>`}
+        <div class="acc-links"><button type="button" class="link-btn" data-act="profile">Отмена</button></div>
+      </div>`;
     } else if (screen === 'password') {
       h = head('Смена пароля') + `<div class="acc-body">${noteHtml()}
         <form data-form="password" novalidate>
@@ -192,6 +204,7 @@
           ${partnerReady ? `<button type="button" class="link-btn" data-act="savePartner" style="margin-top:6px">Сохранить и карту партнёра${p.name ? ` (${esc(p.name)})` : ''}</button>` : ''}
         </section>
         <section class="acc-sec"><h3>Мои карты</h3><ul class="acc-list" id="accCharts"></ul></section>
+        <div class="acc-links acc-del-link"><button type="button" class="link-btn danger" data-act="delete">Удалить аккаунт</button></div>
         <div class="acc-links">${hasPassword() ? '<button type="button" class="link-btn" data-act="password">Сменить пароль</button>' : `<span class="muted">${viaGoogle() ? 'Вход через Google' : ''}</span>`}<button type="button" class="link-btn" data-act="logout">Выйти</button></div>
       </div>`;
     }
@@ -229,11 +242,45 @@
       render();
     }
   }
+  // Deleting the account: Firebase asks for a fresh sign-in (the password, or Google again), then every saved chart and
+  // the account itself are deleted. Charts first: if anything fails, the account stays and the person can try again.
+  async function deleteAccount(password) {
+    if (!user || busy) return;
+    try {
+      if (password != null) await user.reauthenticateWithCredential(fb.auth.EmailAuthProvider.credential(user.email, password));
+      else {
+        const provider = new fb.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        await user.reauthenticateWithPopup(provider);
+      }
+      busy = true; note = null; render();
+      if (unsub) { unsub(); unsub = null; }
+      const snap = await chartsRef().get();
+      for (let i = 0; i < snap.docs.length; i += 400) {   // a batch takes up to 500 writes
+        const batch = db.batch();
+        snap.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      }
+      await db.collection('users').doc(user.uid).delete();
+      await user.delete();                                  // onAuthStateChanged then clears the session
+      user = null; charts = []; screen = 'login';
+      note = { t: 'Аккаунт и все сохранённые карты удалены.', ok: true };
+      renderButton(); renderPartnerPicker();
+    } catch (e) {
+      if (e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request')) { busy = false; render(); return; }
+      const why = { t: e && /wrong-password|invalid-credential|invalid-login/.test(e.code || '') ? 'Неверный пароль.' : errText(e) };
+      if (user && !unsub) onUser();                         // keep showing the charts that are still there
+      screen = 'delete'; note = why;
+    }
+    busy = false;
+    render();
+  }
   const cleanPlace = (p) => ({ name: p.name || '', country: p.country || '', lat: +p.lat, lon: +p.lon, tz: p.tz || 'UTC' });
   async function act(a, id) {
     if (a === 'close') { dlg.close(); return; }
-    if (['login', 'register', 'reset', 'password', 'profile'].includes(a)) { screen = a; note = null; render(); return; }
+    if (['login', 'register', 'reset', 'password', 'profile', 'delete'].includes(a)) { screen = a; note = null; render(); return; }
     if (a === 'google') { await googleSignIn(); return; }
+    if (a === 'deleteGoogle') { await deleteAccount(null); return; }   // the Google window must open within the tap
     try {
       await boot();
       const c = charts.find((x) => x.id === id);
@@ -268,6 +315,7 @@
     }
     if ((kind === 'login' || kind === 'register' || kind === 'reset') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(keep.email)) return fail('Проверьте адрес почты.');
     if (kind === 'save' && !v('accSaveName')) return fail('Дайте карте название.');
+    if (kind === 'delete' && !raw('accDelPass')) return fail('Введите пароль, чтобы подтвердить удаление.');
     busy = true;
     render(); refill(keep);
     try {
@@ -290,6 +338,10 @@
         await user.reauthenticateWithCredential(cred);
         await user.updatePassword(raw('accPass'));
         screen = 'profile'; note = { t: 'Пароль изменён.', ok: true };
+      } else if (kind === 'delete') {
+        busy = false;
+        await deleteAccount(raw('accDelPass'));
+        return;
       } else if (kind === 'save') {
         const cur = app.current();
         await chartsRef().add({ name: v('accSaveName').slice(0, 60), date: cur.date, time: cur.time, place: cleanPlace(cur.place), manualOffset: cur.manualOffset == null ? null : cur.manualOffset, createdAt: fb.firestore.FieldValue.serverTimestamp() });
