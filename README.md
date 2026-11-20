@@ -37,8 +37,7 @@
 У каждого раздела и каждого режима свой адрес, чтобы поисковики находили их по отдельности: `/natalnaya-karta/`, `/solyar/`, `/lunar/`, `/sovmestimost/`, `/goroskop-rebenka/`, `/horar/`, `/zvezdy/`, `/astrokartografiya/`, `/relokaciya/`, страница на каждый инструмент (`/lunnye-dni/`, `/efemeridy/`, `/bioritmy/` …) и `/sport/`. Список с заголовками и описаниями для поиска — `js/routes.js`.
 
 - Переходы по сайту меняют адрес без перезагрузки (`js/app.js`, раздел «addresses»). Старые ссылки вида `#natal` открывают свой раздел и меняются на новый адрес. Открытый как файл сайт работает по-старому, через `#раздел`.
-- Страницы разделов собирает GitHub Pages (Jekyll) из `index.html`: файлы `solyar.html` и другие в корне говорят «возьми index.html и поставь заголовок, описание и `<h1>` этой страницы». Их, `sitemap.xml` и блоки `<!--seo-->` и `<!--home-->` в `index.html` пишет `node tools/build_pages.js` — запускать после правки `js/routes.js`. При каждом пуше проверка (`.github/workflows/pages-check.yml`) сообщает, если что-то устарело.
-- В `index.html` нельзя писать `{{` и `{%`: Jekyll примет их за свои теги и не соберёт страницы разделов.
+- Страница раздела — копия `index.html` в папке раздела (`solyar/index.html` …) со своими заголовком, описанием, каноническим адресом и `<h1>`. Копии, `sitemap.xml` и блоки `<!--seo-->` и `<!--home-->` в `index.html` пишет `node tools/build_pages.js` — запускать после любой правки `index.html` или `js/routes.js`. Если забыть, после пуша это сделает GitHub Actions (`.github/workflows/pages.yml`) отдельным коммитом.
 
 ## Telegram Mini App
 
@@ -84,7 +83,7 @@
 | `js/acg-core.js` | расчёты: эфемериды, линии, аспекты, параны, динамика, часовые пояса |
 | `js/app.js` | карта на canvas, жесты, панель, карточки, переключение разделов и их адреса |
 | `js/routes.js` | адреса разделов и режимов, их заголовки и описания для поиска |
-| `tools/build_pages.js` | страницы разделов для GitHub Pages, `sitemap.xml`, локальный сервер со всеми адресами |
+| `tools/build_pages.js` | страницы разделов (копии `index.html` по папкам), `sitemap.xml`, локальный сервер со всеми адресами |
 | `js/sky.js` | фон сайта: звёздное небо с Млечным Путём, мерцание звёзд и редкие вспышки с лучами; облака из баннера (`assets/sky-clouds-*.webp`) медленно плывут и расходятся при прокрутке. При «уменьшить движение» в системе фон неподвижен |
 | `js/natal.js` | натальная карта: ASC и MC, системы домов, Лилит, Парс Фортуны, аспекты, достоинства |
 | `js/chiron-data.js`, `js/asteroids-data.js`, `js/asteroids-extra-data.js` | таблицы положений Хирона и астероидов, 1800 — конец 2100 (`tools/build_tables.js`; векторы JPL Horizons в `tools/horizons-states.json` и `tools/horizons-grid.json` получает `.github/workflows/horizons.yml`) |

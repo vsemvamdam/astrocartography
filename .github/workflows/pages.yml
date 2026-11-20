@@ -1,0 +1,38 @@
+# Section pages (solyar/index.html …) are copies of index.html with their own title and heading, and must follow every
+# change of index.html or js/routes.js. tools/build_pages.js rewrites them; if a push left them out of date, this
+# commits the rebuilt pages, the sitemap and the home blocks of index.html.
+name: Section pages
+
+on:
+  push:
+    branches: [main]
+    paths: ['index.html', 'js/routes.js', 'tools/build_pages.js', '*/index.html', 'sitemap.xml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: section-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild
+        run: node tools/build_pages.js
+      - name: Commit if anything changed
+        run: |
+          git add -A
+          git diff --cached --quiet && { echo "Section pages up to date."; exit 0; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "Section pages: rebuilt from index.html"
+          for i in 1 2 3; do
+            git push -q origin HEAD:main && exit 0
+            git pull -q --rebase origin main && node tools/build_pages.js && git add -A && { git diff --cached --quiet || git commit -q -m "Section pages: rebuilt from index.html"; }
+          done
+          echo "::error::could not push the rebuilt section pages"; exit 1
