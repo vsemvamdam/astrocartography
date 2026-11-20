@@ -37,7 +37,7 @@
 Как подключить бота (один раз, в Telegram):
 
 1. В [@BotFather](https://t.me/BotFather): `/newbot` — имя `AstroSky`, адрес бота на `bot`, например `AstroSkyAppBot`.
-2. `/mybots` → бот → **Bot Settings → Configure Mini App → Enable Mini App**, адрес `https://vsemvamdam.github.io/astrocartography/?tg=1`. Это «главное» мини-приложение: кнопка «Открыть» в профиле бота и ссылка `https://t.me/<бот>?startapp`.
+2. `/mybots` → бот → **Bot Settings → Configure Mini App → Enable Mini App**, адрес `https://astrosky.pro/?tg=1`. Это «главное» мини-приложение: кнопка «Открыть» в профиле бота и ссылка `https://t.me/<бот>?startapp`.
 3. Там же **Menu Button**: тот же адрес, надпись `Открыть`.
 4. По желанию: `/setdescription` (текст в пустом чате), `/setuserpic` — эмблема `assets/icon-512.png`.
 
