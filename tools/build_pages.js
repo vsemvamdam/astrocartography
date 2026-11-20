@@ -31,6 +31,11 @@ const HOME_LEAD = 'Натальная карта и её расшифровка,
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const dir = (p) => p.path.replace(/^\/|\/$/g, '');
 const isDoc = (p) => p.spec.startsWith('doc:');
+// the page's own section is open in the HTML itself (search engines that don't run scripts skip hidden blocks);
+// js/app.js sets the same when it starts. The map has no section of its own: all stay closed there.
+function onlyView(src, view) {
+  return src.replace(/(<section class="natal[^"]*" id="(\w+)View")( hidden)?/g, (m, head, v) => (v === view ? head : head + ' hidden'));
+}
 
 function seoBlock(p) {
   const url = R.SITE + p.path;
@@ -66,7 +71,7 @@ function indexHtml() {
   src = between(src, 'home', homeBlock());
   src = between(src, 'about', T.aboutHtml('/'));
   src = between(src, 'doc', '');
-  return src;
+  return onlyView(src, 'home');
 }
 // the page of an address: index.html with <base href="/">, its seo block and heading, no home blocks
 function pageHtml(src, p) {
@@ -78,6 +83,7 @@ function pageHtml(src, p) {
   out = between(out, 'doc', isDoc(p) ? T.DOCS[p.path] || '' : '');
   const v = p.spec.split(':')[0];
   if (H1[v] && p.spec.includes(':')) out = out.replace(`${H1[v][0]}${H1[v][1]}</h1>`, `${H1[v][0]}${esc(p.name)}</h1>`);
+  out = onlyView(out, p.spec.split(':')[0]);
   return out.replace('<!doctype html>\n', `<!doctype html>\n${STAMP}\n`);
 }
 function sitemap() {
