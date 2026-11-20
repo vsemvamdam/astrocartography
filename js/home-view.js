@@ -35,6 +35,8 @@
     ['tools', '⚹', 'Инструменты', 'Лунные дни, эфемериды, жребии, профекции, циклы жизни, нумерология и другое.'],
     ['sport', '♂', 'Спорт', 'Прогноз матчей по Фроули и база игр, на которой проверяются правила.'],
   ];
+  // the page of a section (js/routes.js): a real link, so search engines and a new tab can follow it
+  const href = (spec) => (window.ROUTES ? ROUTES.path(spec) : `#${spec.split(':')[0]}`);
 
   // longitudes now and a day later (for retrograde motion)
   function skyNow(ms) {
@@ -87,22 +89,22 @@
       const [y, m, dd] = st.date.split('-').map(Number);
       me = `<div class="hm-me"><span class="muted">${st.example ? 'Сейчас' : 'Ваша карта'}</span> <b>${dd} ${MONTHS_GEN[m - 1]} ${y}, ${esc(st.time)}, ${esc(st.place.name || '')}</b>
         <span class="hm-big3"><span><i style="color:${B.Sun.color}">${g(B.Sun.glyph)}</i> ${sg(ps('Sun').sign)}</span><span><i style="color:${B.Moon.color}">${g(B.Moon.glyph)}</i> ${sg(ps('Moon').sign)}</span><span><i class="hm-asc">ASC</i> ${sg(Math.floor(n360(nat.asc) / 30))}</span></span>
-        <a href="#natal" data-go="edit" class="hm-link">${st.example ? 'Ввести свои данные рождения' : 'Изменить данные рождения'}</a></div>`;
+        <a href="${href('natal')}" data-go="edit" class="hm-link">${st.example ? 'Ввести свои данные рождения' : 'Изменить данные рождения'}</a></div>`;
     }
     const tb = Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(...st.date.split('-').map((v, i) => (i === 1 ? +v - 1 : +v)))) / 86400000);
     const cyc = [['Физ.', 23, '#F2A541'], ['Эмоц.', 28, '#4FB3BF'], ['Интел.', 33, '#A88BEB']];
     const tiles = [
-      `<div class="hm-tile"><span class="hm-tk">Луна</span><b><i style="color:${B.Moon.color}">${g(B.Moon.glyph)}</i> ${inSign(Math.floor(moon.lon / 30))}</b><span class="muted">${phase}, освещена на ${illum}%</span><a href="#tools" data-go="tools:lunar" class="hm-link">Лунные дни →</a></div>`,
-      `<div class="hm-tile"><span class="hm-tk">Солнце</span><b><i style="color:${B.Sun.color}">${g(B.Sun.glyph)}</i> ${inSign(Math.floor(sun.lon / 30))}</b><span class="muted">${Math.floor(sun.lon % 30)}° знака</span><a href="#tools" data-go="tools:hours" class="hm-link">Управители дня и часа →</a></div>`,
-      `<div class="hm-tile"><span class="hm-tk">Ретроградные</span><b>${retro.length ? retro.map((x) => `<i style="color:${B[x.id].color}" title="${PL_GEN[x.id]}">${g(B[x.id].glyph)}</i>`).join(' ') : 'нет'}</b><span class="muted">${retro.length ? retro.map((x) => PL_GEN[x.id]).join(', ') : 'все планеты идут прямо'}</span><a href="#tools" data-go="tools:eph" class="hm-link">Эфемериды →</a></div>`,
-      tb >= 0 && !st.example ? `<div class="hm-tile"><span class="hm-tk">Ваши биоритмы сегодня</span><b class="hm-bio">${cyc.map(([ru, per, col]) => { const t = tb % per, crit = Math.ceil(t / (per / 2) - 1e-9) * (per / 2) < t + 1 - 1e-9; return `<span style="color:${col}"${crit ? ' class="crit"' : ''}>${ru} ${pct(bio(tb, per))}</span>`; }).join('')}</b><span class="muted">по дате рождения из карты</span><a href="#tools" data-go="tools:bio" class="hm-link">Биоритмы →</a></div>` : '',
+      `<div class="hm-tile"><span class="hm-tk">Луна</span><b><i style="color:${B.Moon.color}">${g(B.Moon.glyph)}</i> ${inSign(Math.floor(moon.lon / 30))}</b><span class="muted">${phase}, освещена на ${illum}%</span><a href="${href('tools:lunar')}" data-go="tools:lunar" class="hm-link">Лунные дни →</a></div>`,
+      `<div class="hm-tile"><span class="hm-tk">Солнце</span><b><i style="color:${B.Sun.color}">${g(B.Sun.glyph)}</i> ${inSign(Math.floor(sun.lon / 30))}</b><span class="muted">${Math.floor(sun.lon % 30)}° знака</span><a href="${href('tools:hours')}" data-go="tools:hours" class="hm-link">Управители дня и часа →</a></div>`,
+      `<div class="hm-tile"><span class="hm-tk">Ретроградные</span><b>${retro.length ? retro.map((x) => `<i style="color:${B[x.id].color}" title="${PL_GEN[x.id]}">${g(B[x.id].glyph)}</i>`).join(' ') : 'нет'}</b><span class="muted">${retro.length ? retro.map((x) => PL_GEN[x.id]).join(', ') : 'все планеты идут прямо'}</span><a href="${href('tools:eph')}" data-go="tools:eph" class="hm-link">Эфемериды →</a></div>`,
+      tb >= 0 && !st.example ? `<div class="hm-tile"><span class="hm-tk">Ваши биоритмы сегодня</span><b class="hm-bio">${cyc.map(([ru, per, col]) => { const t = tb % per, crit = Math.ceil(t / (per / 2) - 1e-9) * (per / 2) < t + 1 - 1e-9; return `<span style="color:${col}"${crit ? ' class="crit"' : ''}>${ru} ${pct(bio(tb, per))}</span>`; }).join('')}</b><span class="muted">по дате рождения из карты</span><a href="${href('tools:bio')}" data-go="tools:bio" class="hm-link">Биоритмы →</a></div>` : '',
     ].join('');
     $('homeOut').innerHTML = `
       <div class="hm-hero">
         <div class="hm-copy">
           <h1 class="hm-h1" id="homeH">Астрология по вашей карте</h1>
           <p class="hm-lead">Натальная карта и её расшифровка, линии планет на карте мира, соляры и лунары, совместимость и инструменты для всей семьи — по дате, времени и месту рождения.</p>
-          <div class="hm-cta"><a class="hm-btn primary" href="#natal" data-go="natal:natal">Открыть мою карту</a><a class="hm-btn" href="#map" data-go="map">Карта мира</a></div>
+          <div class="hm-cta"><a class="hm-btn primary" href="${href('natal:natal')}" data-go="natal:natal">Открыть мою карту</a><a class="hm-btn" href="${href('map')}" data-go="map">Карта мира</a></div>
           ${me}
         </div>
         <figure class="hm-sky">${wheel(sky)}<figcaption>Небо сейчас · ${d.getDate()} ${MONTHS_GEN[d.getMonth()]}, ${pad(d.getHours())}:${pad(d.getMinutes())}</figcaption></figure>
@@ -113,7 +115,7 @@
       </div>
       <div class="hm-tiles">${tiles}</div>
       <h2 class="hm-h">Разделы</h2>
-      <div class="hm-grid">${CARDS.map(([go, ic, t, txt]) => `<a class="hm-card" href="#${go.split(':')[0]}" data-go="${go}"><span class="hm-ic">${g(ic)}</span><b>${t}</b><span>${txt}</span><span class="hm-more">Открыть →</span></a>`).join('')}</div>
+      <div class="hm-grid">${CARDS.map(([go, ic, t, txt]) => `<a class="hm-card" href="${href(go)}" data-go="${go}"><span class="hm-ic">${g(ic)}</span><b>${t}</b><span>${txt}</span><span class="hm-more">Открыть →</span></a>`).join('')}</div>
       <p class="hm-foot">Положения планет считаются по Astronomy Engine, дома по умолчанию — Плацидус. Данные знаменитостей — Astro-Databank. Все ваши данные хранятся в этом браузере, а с аккаунтом — ещё и в облаке.</p>`;
   }
 
@@ -132,7 +134,8 @@
       else st.tools.tool = sub;
     }
     app.save();
-    location.hash = `#${view === 'edit' ? 'natal' : view}`;
+    const to = view === 'edit' ? 'natal' : view;
+    if (window.ROUTES && ROUTES.go) ROUTES.go(to); else location.hash = `#${to}`;
     window.scrollTo(0, 0);
     if (view === 'edit') setTimeout(() => { const i = $('bDate'); if (i) { i.scrollIntoView({ behavior: 'smooth', block: 'center' }); i.focus({ preventScroll: true }); } }, 120);
   }
@@ -148,7 +151,7 @@
       app = a;
       setInterval(refreshIfStale, 10000);
       document.addEventListener('visibilitychange', refreshIfStale);
-      $('homeOut').addEventListener('click', (e) => { const a2 = e.target.closest('[data-go]'); if (!a2) return; e.preventDefault(); go(a2.dataset.go); });
+      $('homeOut').addEventListener('click', (e) => { const a2 = e.target.closest('[data-go]'); if (!a2 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go(a2.dataset.go); });
     },
     update() {
       if (!app || $('homeView').hidden) return;

@@ -1340,7 +1340,7 @@
   $('bestList').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const li = e.target.closest('li[data-i]'); if (li) focusCity(BEST[+li.dataset.i].city); } });
   // fly the map to a city and show the lines around it
   function focusCity(c) {
-    if (location.hash !== '#map') location.hash = '#map';
+    if (document.body.dataset.view !== 'map') go('map');
     const v = view;
     const s1 = Math.max(v.s, (v.w / 360) * 5);
     v.s = s1; v.tx = v.w / 2 - c.lon * s1; v.ty = (v.headH + v.h) / 2 + millerY(c.lat) * s1;
@@ -1516,9 +1516,8 @@
     else if (v === 'sport') { if (window.SportView) SportView.update(); }
     else if (v === 'home') { if (window.HomeView) HomeView.update(); window.scrollTo(0, 0); }
     else requestAnimationFrame(() => { resize(); if (!view.ready) return; measureHead(); requestDraw(); });
+    window.dispatchEvent(new CustomEvent('astrosky:view', { detail: v }));   // js/telegram.js, js/sky.js
   }
-  const viewFromHash = () => (location.hash || '#home').slice(1);
-  window.addEventListener('hashchange', () => setView(viewFromHash()));
   if (window.NatalView) NatalView.init(APP);
   if (window.ToolsView) ToolsView.init(APP);
   if (window.CityView) CityView.init(APP);
@@ -1526,10 +1525,90 @@
   if (window.HomeView) HomeView.init(APP);
   if (window.Account) Account.init(APP);
 
+  /* ------------------------------- addresses ------------------------------- */
+  // Every section, and every mode of the natal chart and of the tools, has its own address (/natalnaya-karta/,
+  // /solyar/, /lunnye-dni/ …, the list is in js/routes.js), so search engines can find each page. Moving around the
+  // site changes the address without a reload; old #section links still open their section. Opened as a file or from
+  // a sub-folder (the page has no <base href="/">) the site keeps #section links instead.
+  const R = window.ROUTES;
+  const pathMode = !!(R && document.querySelector('base') && /^https?:$/.test(location.protocol));
+  let routing = false;   // the router is switching the screen: the views leave the address alone meanwhile
+  // what's on screen as a spec: the natal chart and the tools are addressed by their mode
+  function specOf(v) {
+    if (v === 'natal') return `natal:${(state.natal && state.natal.mode) || 'natal'}`;
+    if (v === 'tools') return `tools:${(state.tools && state.tools.tool) || 'hours'}`;
+    return v;
+  }
+  function specFromAddress() {
+    const h = location.hash.slice(1).split(/[?&]/)[0];
+    if (VIEWS.includes(h)) return h;   // #natal, #map …: old links, Telegram's start, the file version
+    const page = pathMode && R.pageOfPath(location.pathname);
+    return page ? page.spec : 'home';
+  }
+  // a mode of the natal chart or a tool, switched the way their own buttons do it
+  function applyMode(v, mode) {
+    if (!mode) return;
+    if (v === 'natal') {
+      const b = document.querySelector(`#natMode button[data-m="${mode}"]`);
+      if (b && b.getAttribute('aria-pressed') !== 'true') b.click();
+    } else if (v === 'tools' && R && R.pageOf(`tools:${mode}`).spec === `tools:${mode}`) {
+      const t = state.tools || (state.tools = {});
+      if (t.tool !== mode) { t.tool = mode; saveState(); }
+    }
+  }
+  // the address, the tab's title and the canonical link follow the screen;
+  // how: 'push' adds a step to the history, 'replace' rewrites the current one, null only updates the title
+  function syncAddress(how) {
+    const page = R && R.pageOf(specOf(document.body.dataset.view));
+    if (!page) return;
+    document.title = page.title;
+    if (!pathMode) return;
+    const can = document.querySelector('link[rel="canonical"]');
+    if (can) can.href = R.SITE + page.path;
+    if (!how || (location.pathname === page.path && !location.hash)) return;
+    history[how === 'push' ? 'pushState' : 'replaceState'](null, '', page.path + location.search);
+  }
+  function show(spec, how) {
+    const [v, mode] = String(spec).split(':');
+    routing = true;
+    try { applyMode(v, mode); setView(v); } finally { routing = false; }
+    syncAddress(how);
+  }
+  // a link, a card or a tab: open a section, and a mode in it ("natal:solar", "tools:lunar")
+  function go(spec) {
+    const v = String(spec).split(':')[0];
+    if (pathMode || location.hash === '#' + v) { show(spec, 'push'); return; }
+    routing = true;
+    try { applyMode(v, String(spec).split(':')[1]); } finally { routing = false; }
+    location.hash = '#' + v;   // the file version: hashchange shows it
+  }
+  if (R) {
+    R.go = go;
+    R.sync = () => { if (!routing) syncAddress('push'); };   // the natal chart's mode or the tool changed
+  }
+  // links to section pages open without a reload; a new tab or window (Ctrl, ⌘, middle button) loads the page itself
+  document.addEventListener('click', (e) => {
+    if (!R || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target.closest && e.target.closest('a[href]');
+    if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
+    const href = a.getAttribute('href') || '';
+    const page = !a.dataset.view && /^\/(?!\/)/.test(href) ? R.pageOfPath(href.split(/[?#]/)[0]) : null;
+    const spec = a.dataset.view || (page && page.spec);
+    if (!spec) return;
+    e.preventDefault();
+    go(spec);
+  });
+  window.addEventListener('popstate', () => { if (pathMode) show(specFromAddress(), null); });
+  window.addEventListener('hashchange', () => {
+    const h = location.hash.slice(1).split(/[?&]/)[0];
+    if (pathMode) { if (VIEWS.includes(h)) show(h, 'replace'); return; }   // an old #link typed into the address
+    show(VIEWS.includes(h) ? h : 'home', null);
+  });
+
   /* --------------------------------- boot --------------------------------- */
   const ro = new ResizeObserver(() => resize());
   ro.observe(wrap);
-  setView(viewFromHash());
+  show(specFromAddress(), 'replace');
   resize();
   recompute();
   if (view.w >= 60) { measureHead(); fitWorld(); requestDraw(); }

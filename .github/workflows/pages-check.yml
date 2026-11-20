@@ -1,0 +1,20 @@
+# Section pages (solyar.html …), sitemap.xml and the home blocks of index.html must match js/routes.js, and index.html
+# must not contain "{{" or "{%" (GitHub Pages' Jekyll would break on them). See tools/build_pages.js.
+name: Section pages
+
+on:
+  push:
+    branches: [main]
+    paths: ['index.html', 'js/routes.js', 'tools/build_pages.js', '*.html', 'sitemap.xml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: node tools/build_pages.js --check

@@ -1,0 +1,17 @@
+---
+# Written by tools/build_pages.js from js/routes.js: don't edit. GitHub Pages (Jekyll) makes it the page /tridcatigradusnik/
+permalink: /tridcatigradusnik/
+layout: null
+---
+{%- capture src -%}{% include_relative index.html %}{%- endcapture -%}
+{%- assign a = src | split: '<!--base-->' -%}{%- assign b = a[1] | split: '<!--/base-->' -%}
+{%- assign c = b[1] | split: '<!--seo-->' -%}{%- assign d = c[1] | split: '<!--/seo-->' -%}
+{%- assign e = d[1] | split: '<!--home-->' -%}{%- assign f = e[1] | split: '<!--/home-->' -%}
+{{ a[0] }}<base href="/">{{ c[0] }}<!--seo-->
+<title>Тридцатиградусник натальной карты — AstroSky</title>
+<meta name="description" content="Все планеты и углы натальной карты на одной шкале от 0 до 30 градусов: видно, какие точки стоят на близких градусах разных знаков.">
+<link rel="canonical" href="https://astrosky.pro/tridcatigradusnik/">
+<meta property="og:url" content="https://astrosky.pro/tridcatigradusnik/">
+<meta property="og:title" content="Тридцатиградусник натальной карты — AstroSky">
+<meta property="og:description" content="Все планеты и углы натальной карты на одной шкале от 0 до 30 градусов: видно, какие точки стоят на близких градусах разных знаков.">
+<!--/seo-->{{ e[0] }}<!--home--><!--/home-->{{ f[1] | replace_first: '<h1 id="toolTitle">Инструменты</h1>', '<h1 id="toolTitle">Тридцатиградусник</h1>' }}

@@ -135,7 +135,7 @@
   let rt = 0;
   window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(build, 150); });
   document.addEventListener('scroll', onScroll, { capture: true, passive: true });
-  window.addEventListener('hashchange', () => setTimeout(resetScroll, 0));
+  window.addEventListener('astrosky:view', () => setTimeout(resetScroll, 0));   // js/app.js: a section was opened
   document.addEventListener('visibilitychange', () => {
     if (still) return;
     if (document.hidden) { cancelAnimationFrame(raf); raf = 0; } else if (!raf) raf = requestAnimationFrame(loop);

@@ -1,0 +1,17 @@
+---
+# Written by tools/build_pages.js from js/routes.js: don't edit. GitHub Pages (Jekyll) makes it the page /goroskop-rebenka/
+permalink: /goroskop-rebenka/
+layout: null
+---
+{%- capture src -%}{% include_relative index.html %}{%- endcapture -%}
+{%- assign a = src | split: '<!--base-->' -%}{%- assign b = a[1] | split: '<!--/base-->' -%}
+{%- assign c = b[1] | split: '<!--seo-->' -%}{%- assign d = c[1] | split: '<!--/seo-->' -%}
+{%- assign e = d[1] | split: '<!--home-->' -%}{%- assign f = e[1] | split: '<!--/home-->' -%}
+{{ a[0] }}<base href="/">{{ c[0] }}<!--seo-->
+<title>Гороскоп ребёнка по дате рождения — AstroSky</title>
+<meta name="description" content="Натальная карта ребёнка: характер, чувства, учёба и таланты, подсказки родителям и совместимость родителя с ребёнком.">
+<link rel="canonical" href="https://astrosky.pro/goroskop-rebenka/">
+<meta property="og:url" content="https://astrosky.pro/goroskop-rebenka/">
+<meta property="og:title" content="Гороскоп ребёнка по дате рождения — AstroSky">
+<meta property="og:description" content="Натальная карта ребёнка: характер, чувства, учёба и таланты, подсказки родителям и совместимость родителя с ребёнком.">
+<!--/seo-->{{ e[0] }}<!--home--><!--/home-->{{ f[1] | replace_first: '<h1 id="natH">Натальная карта</h1>', '<h1 id="natH">Гороскоп ребёнка</h1>' }}

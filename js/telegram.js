@@ -1,6 +1,6 @@
 /* AstroSky as a Telegram Mini App. Loaded only inside Telegram (see the inline script at the top of
    index.html), after Telegram's SDK (js/vendor/telegram-web-app.js) and before the site's own scripts.
-   - The router reads the hash, so Telegram's launch parameters (#tgWebAppData=…) are replaced with #home.
+   - Telegram's launch parameters (#tgWebAppData=…) are replaced with #home; the router then moves to the home page.
    - The night-sky colours for Telegram's header and background; vertical swipes don't close the app,
      so the map and the wheel can be dragged.
    - Telegram's Back button follows the site's sections and closes open dialogs.
@@ -28,7 +28,7 @@
   } catch (e) { /* older clients */ }
 
   /* ------------------------------ Back button ------------------------------ */
-  const view = () => (location.hash || '#home').slice(1).split(/[?&]/)[0] || 'home';
+  const view = () => (document.body && document.body.dataset.view) || 'home';   // loaded in <head>: no body yet
   const openDialog = () => document.querySelector('dialog[open]');
   function syncBack() {
     if (!at('6.1')) return;
@@ -38,13 +38,13 @@
     tg.BackButton.onClick(() => {
       const d = openDialog();
       if (d) { d.close(); syncBack(); return; }
-      if (history.length > 1) history.back(); else location.hash = '#home';
+      if (history.length > 1) history.back(); else if (window.ROUTES && ROUTES.go) ROUTES.go('home'); else location.hash = '#home';
     });
-    window.addEventListener('hashchange', () => {
+    window.addEventListener('astrosky:view', () => {   // js/app.js: a section was opened
       syncBack();
       try { tg.HapticFeedback.selectionChanged(); } catch (e) { /* no haptics */ }
     });
-    // dialogs (account, help) open and close without a hash change
+    // dialogs (account, help) open and close without a change of section
     new MutationObserver(syncBack).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['open'] });
     syncBack();
   }

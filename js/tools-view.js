@@ -846,6 +846,7 @@
     if (document.activeElement !== $('toolPlace')) $('toolPlace').value = app.placeLabel(place());
     const st = app.state, [y, m, d] = st.date.split('-').map(Number);
     $('toolTitle').textContent = tool.ru;
+    if (window.ROUTES && ROUTES.sync) ROUTES.sync();   // each tool has its own address (/lunnye-dni/, /efemeridy/ …)
     const live = st.example && ['natal', 'birth', 'bio'].includes(tool.kind) ? '. Сейчас взят текущий момент — введите свои данные рождения во вкладке «Натал».' : '';
     $('toolSub').textContent = (tool.kind === 'natal' ? `По натальной карте: ${d} ${MONTHS[m - 1]} ${y}, ${st.time}, ${st.place.name}`
       : tool.kind === 'birth' ? `По дате рождения: ${d} ${MONTHS[m - 1]} ${y}`

@@ -239,7 +239,7 @@
       else if (a === 'asPartner' && c) {
         app.setPartner({ name: c.name, date: c.date, time: c.time, place: c.place, manualOffset: c.manualOffset == null ? null : c.manualOffset });
         app.state.natal = Object.assign({}, app.state.natal, { mode: 'synastry' }); app.save();
-        dlg.close(); location.hash = '#natal'; if (window.NatalView) NatalView.update();
+        dlg.close(); if (window.ROUTES && ROUTES.go) ROUTES.go('natal'); else location.hash = '#natal'; if (window.NatalView) NatalView.update();
       }
       else if (a === 'del' && c) { if (confirm(`Удалить карту «${c.name}»?`)) await chartsRef().doc(c.id).delete(); }
       else if (a === 'savePartner') {

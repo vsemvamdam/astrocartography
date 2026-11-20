@@ -1,0 +1,17 @@
+---
+# Written by tools/build_pages.js from js/routes.js: don't edit. GitHub Pages (Jekyll) makes it the page /astrokartografiya/
+permalink: /astrokartografiya/
+layout: null
+---
+{%- capture src -%}{% include_relative index.html %}{%- endcapture -%}
+{%- assign a = src | split: '<!--base-->' -%}{%- assign b = a[1] | split: '<!--/base-->' -%}
+{%- assign c = b[1] | split: '<!--seo-->' -%}{%- assign d = c[1] | split: '<!--/seo-->' -%}
+{%- assign e = d[1] | split: '<!--home-->' -%}{%- assign f = e[1] | split: '<!--/home-->' -%}
+{{ a[0] }}<base href="/">{{ c[0] }}<!--seo-->
+<title>Астрокартография онлайн: линии планет на карте мира — AstroSky</title>
+<meta name="description" content="Линии MC, IC, ASC и DSC всех планет на карте мира по вашей натальной карте, аспектные линии, параны и лучшие города для любви, карьеры и денег.">
+<link rel="canonical" href="https://astrosky.pro/astrokartografiya/">
+<meta property="og:url" content="https://astrosky.pro/astrokartografiya/">
+<meta property="og:title" content="Астрокартография онлайн: линии планет на карте мира — AstroSky">
+<meta property="og:description" content="Линии MC, IC, ASC и DSC всех планет на карте мира по вашей натальной карте, аспектные линии, параны и лучшие города для любви, карьеры и денег.">
+<!--/seo-->{{ e[0] }}<!--home--><!--/home-->{{ f[1] }}

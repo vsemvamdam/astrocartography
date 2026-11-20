@@ -1,0 +1,17 @@
+---
+# Written by tools/build_pages.js from js/routes.js: don't edit. GitHub Pages (Jekyll) makes it the page /tranzity/
+permalink: /tranzity/
+layout: null
+---
+{%- capture src -%}{% include_relative index.html %}{%- endcapture -%}
+{%- assign a = src | split: '<!--base-->' -%}{%- assign b = a[1] | split: '<!--/base-->' -%}
+{%- assign c = b[1] | split: '<!--seo-->' -%}{%- assign d = c[1] | split: '<!--/seo-->' -%}
+{%- assign e = d[1] | split: '<!--home-->' -%}{%- assign f = e[1] | split: '<!--/home-->' -%}
+{{ a[0] }}<base href="/">{{ c[0] }}<!--seo-->
+<title>Календарь транзитов по натальной карте — AstroSky</title>
+<meta name="description" content="Транзиты Юпитера, Сатурна, Урана, Нептуна и Плутона к вашей натальной карте на год: даты точных аспектов.">
+<link rel="canonical" href="https://astrosky.pro/tranzity/">
+<meta property="og:url" content="https://astrosky.pro/tranzity/">
+<meta property="og:title" content="Календарь транзитов по натальной карте — AstroSky">
+<meta property="og:description" content="Транзиты Юпитера, Сатурна, Урана, Нептуна и Плутона к вашей натальной карте на год: даты точных аспектов.">
+<!--/seo-->{{ e[0] }}<!--home--><!--/home-->{{ f[1] | replace_first: '<h1 id="toolTitle">Инструменты</h1>', '<h1 id="toolTitle">Календарь транзитов</h1>' }}

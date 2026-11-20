@@ -1009,6 +1009,7 @@
     $('natHouse').value = q.mode === 'lunar' ? 'P' : q.house;
     $('natHouse').title = q.mode === 'lunar' ? 'Лунар считается в домах Плацидуса' : '';
     document.body.dataset.natmode = q.mode;
+    if (window.ROUTES && ROUTES.sync) ROUTES.sync();   // each mode has its own address (/solyar/, /sovmestimost/ …)
   }
   function initControls() {
     initZoom();   // before the wheel's click handler: a drag's closing click is swallowed first

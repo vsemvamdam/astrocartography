@@ -1,0 +1,17 @@
+---
+# Written by tools/build_pages.js from js/routes.js: don't edit. GitHub Pages (Jekyll) makes it the page /efemeridy/
+permalink: /efemeridy/
+layout: null
+---
+{%- capture src -%}{% include_relative index.html %}{%- endcapture -%}
+{%- assign a = src | split: '<!--base-->' -%}{%- assign b = a[1] | split: '<!--/base-->' -%}
+{%- assign c = b[1] | split: '<!--seo-->' -%}{%- assign d = c[1] | split: '<!--/seo-->' -%}
+{%- assign e = d[1] | split: '<!--home-->' -%}{%- assign f = e[1] | split: '<!--/home-->' -%}
+{{ a[0] }}<base href="/">{{ c[0] }}<!--seo-->
+<title>Эфемериды планет на месяц — AstroSky</title>
+<meta name="description" content="Таблица эфемерид на месяц: положения Солнца, Луны, планет, лунного узла и Хирона по знакам и градусам на каждый день.">
+<link rel="canonical" href="https://astrosky.pro/efemeridy/">
+<meta property="og:url" content="https://astrosky.pro/efemeridy/">
+<meta property="og:title" content="Эфемериды планет на месяц — AstroSky">
+<meta property="og:description" content="Таблица эфемерид на месяц: положения Солнца, Луны, планет, лунного узла и Хирона по знакам и градусам на каждый день.">
+<!--/seo-->{{ e[0] }}<!--home--><!--/home-->{{ f[1] | replace_first: '<h1 id="toolTitle">Инструменты</h1>', '<h1 id="toolTitle">Эфемериды</h1>' }}
