@@ -1494,7 +1494,7 @@
     current: () => ({ date: state.date, time: state.time, place: state.place, manualOffset: state.manualOffset }),
   };
   window.ACG_APP = APP;
-  const VIEWS = ['home', 'map', 'natal', 'city', 'tools', 'sport'];
+  const VIEWS = ['home', 'map', 'natal', 'city', 'tools', 'sport', 'doc'];
   function setView(v) {
     if (!VIEWS.includes(v)) v = 'home';
     document.body.dataset.view = v;
@@ -1504,6 +1504,7 @@
     $('cityView').hidden = v !== 'city';
     $('sportView').hidden = v !== 'sport';
     $('homeView').hidden = v !== 'home';
+    $('docView').hidden = v !== 'doc';
     // the city map lives inside the Map section: its tab stays lit for both
     const tabView = v === 'city' ? 'map' : v;
     document.querySelectorAll('.tab').forEach((t) => {
@@ -1515,6 +1516,7 @@
     else if (v === 'city') { if (window.CityView) CityView.update(); window.scrollTo(0, 0); }
     else if (v === 'sport') { if (window.SportView) SportView.update(); }
     else if (v === 'home') { if (window.HomeView) HomeView.update(); window.scrollTo(0, 0); }
+    else if (v === 'doc') { window.scrollTo(0, 0); $('docView').scrollTop = 0; }
     else requestAnimationFrame(() => { resize(); if (!view.ready) return; measureHead(); requestDraw(); });
     window.dispatchEvent(new CustomEvent('astrosky:view', { detail: v }));   // js/telegram.js, js/sky.js
   }
@@ -1533,10 +1535,12 @@
   const R = window.ROUTES;
   const pathMode = !!(R && document.querySelector('base') && /^https?:$/.test(location.protocol));
   let routing = false;   // the router is switching the screen: the views leave the address alone meanwhile
+  let docPage = 'about'; // the open document: about, faq, privacy, consent, cookies (js/page-texts.js)
   // what's on screen as a spec: the natal chart and the tools are addressed by their mode
   function specOf(v) {
     if (v === 'natal') return `natal:${(state.natal && state.natal.mode) || 'natal'}`;
     if (v === 'tools') return `tools:${(state.tools && state.tools.tool) || 'hours'}`;
+    if (v === 'doc') return `doc:${docPage}`;
     return v;
   }
   function specFromAddress() {
@@ -1551,6 +1555,8 @@
     if (v === 'natal') {
       const b = document.querySelector(`#natMode button[data-m="${mode}"]`);
       if (b && b.getAttribute('aria-pressed') !== 'true') b.click();
+    } else if (v === 'doc' && R && R.pageOf(`doc:${mode}`).spec === `doc:${mode}`) {
+      docPage = mode;
     } else if (v === 'tools' && R && R.pageOf(`tools:${mode}`).spec === `tools:${mode}`) {
       const t = state.tools || (state.tools = {});
       if (t.tool !== mode) { t.tool = mode; saveState(); }
@@ -1562,11 +1568,12 @@
     const page = R && R.pageOf(specOf(document.body.dataset.view));
     if (!page) return;
     document.title = page.title;
-    if (!pathMode) return;
-    const can = document.querySelector('link[rel="canonical"]');
-    if (can) can.href = R.SITE + page.path;
-    if (!how || (location.pathname === page.path && !location.hash)) return;
-    history[how === 'push' ? 'pushState' : 'replaceState'](null, '', page.path + location.search);
+    if (pathMode) {
+      const can = document.querySelector('link[rel="canonical"]');
+      if (can) can.href = R.SITE + page.path;
+      if (how && (location.pathname !== page.path || location.hash)) history[how === 'push' ? 'pushState' : 'replaceState'](null, '', page.path + location.search);
+    }
+    window.dispatchEvent(new CustomEvent('astrosky:route', { detail: page }));   // js/pages.js: the page's text, Metrica
   }
   function show(spec, how) {
     const [v, mode] = String(spec).split(':');

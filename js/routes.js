@@ -60,10 +60,22 @@
 
     ['/sport/', 'sport', 'Астропрогноз матчей по Фроули — AstroSky',
       'Ближайшие матчи АПЛ, Ла Лиги, Лиги 1, еврокубков и НХЛ: карта начала матча и прогноз по методу Джона Фроули.', 'Спорт'],
+
+    // documents (texts in js/page-texts.js)
+    ['/o-sajte/', 'doc:about', 'О сайте — AstroSky',
+      'AstroSky — астрологический сайт: как считаются карты, на какие школы опираются толкования и как с нами связаться.', 'О сайте'],
+    ['/voprosy/', 'doc:faq', 'Частые вопросы — AstroSky',
+      'Ответы на частые вопросы: что делать без времени рождения, какую систему домов выбрать, насколько точны расчёты, как сохранить карту и удалить аккаунт.', 'Частые вопросы'],
+    ['/politika-konfidencialnosti/', 'doc:privacy', 'Политика конфиденциальности — AstroSky',
+      'Какие персональные данные обрабатывает AstroSky, зачем, где они хранятся и как их удалить.', 'Политика конфиденциальности'],
+    ['/soglasie-na-obrabotku/', 'doc:consent', 'Согласие на обработку персональных данных — AstroSky',
+      'Согласие на обработку персональных данных при регистрации на сайте AstroSky.', 'Согласие на обработку данных'],
+    ['/cookies/', 'doc:cookies', 'Cookies и Яндекс Метрика — AstroSky',
+      'Что AstroSky хранит в браузере, как работает Яндекс Метрика и как изменить своё решение о cookies.', 'Cookies'],
   ].map(([path, spec, title, desc, name]) => ({ path, spec, title, desc, name }));
 
   // a section opened without a mode shows its first page
-  const DEFAULT_MODE = { natal: 'natal', tools: 'hours' };
+  const DEFAULT_MODE = { natal: 'natal', tools: 'hours', doc: 'about' };
   const ALIAS = { 'tools:family': 'tools:bio' };   // the family biorhythms are a view of the biorhythms page
   const byPath = new Map(PAGES.map((p) => [p.path, p]));
   const bySpec = new Map(PAGES.map((p) => [p.spec, p]));

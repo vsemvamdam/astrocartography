@@ -124,6 +124,8 @@
   const head = (title) => `<div class="acc-head"><h2 id="accTitle">${title}</h2><button type="button" class="icon-btn" data-act="close" aria-label="Закрыть"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 5l10 10M15 5L5 15"/></svg></button></div>`;
   const noteHtml = () => note ? `<div class="acc-msg${note.ok ? ' ok' : ''}" role="status">${esc(note.t)}</div>` : '';
   const googleBtn = () => `<div class="acc-or"><span>или</span></div><button type="button" class="btn-line btn-google" data-act="google">Войти через Google</button>`;
+  // 152-ФЗ: consent is a document of its own (js/page-texts.js, /soglasie-na-obrabotku/)
+  const googleFine = () => `<p class="acc-fine">Входя через Google впервые, вы даёте <a href="/soglasie-na-obrabotku/" target="_blank" rel="noopener">согласие на обработку персональных данных</a> и принимаете <a href="/politika-konfidencialnosti/" target="_blank" rel="noopener">политику конфиденциальности</a>.</p>`;
   const btn = (text) => `<button type="submit" class="btn-main"${busy ? ' disabled' : ''}>${busy ? 'Подождите…' : text}</button>`;
 
   function render() {
@@ -138,6 +140,7 @@
           ${btn('Войти')}
         </form>
         ${googleBtn()}
+        ${googleFine()}
         <div class="acc-links"><button type="button" class="link-btn" data-act="reset">Забыли пароль?</button><button type="button" class="link-btn" data-act="register">Зарегистрироваться</button></div>
       </div>`;
     } else if (screen === 'register') {
@@ -148,9 +151,11 @@
           ${field('accPass', 'Придумайте пароль', 'password', 'autocomplete="new-password" minlength="6" required')}
           ${field('accPass2', 'Повторите пароль', 'password', 'autocomplete="new-password" minlength="6" required')}
           <p class="muted">Пароль — не короче 6 символов. После регистрации придёт письмо со ссылкой для подтверждения почты.</p>
+          <label class="acc-consent"><input type="checkbox" id="accConsent" required> <span>Даю <a href="/soglasie-na-obrabotku/" target="_blank" rel="noopener">согласие на обработку персональных данных</a> и принимаю <a href="/politika-konfidencialnosti/" target="_blank" rel="noopener">политику конфиденциальности</a></span></label>
           ${btn('Создать аккаунт')}
         </form>
         ${googleBtn()}
+        ${googleFine()}
         <div class="acc-links"><button type="button" class="link-btn" data-act="login">Уже есть аккаунт? Войти</button></div>
       </div>`;
     } else if (screen === 'reset') {
@@ -253,8 +258,10 @@
     const v = (id) => { const el = form.querySelector('#' + id); return el ? el.value.trim() : ''; };
     const raw = (id) => { const el = form.querySelector('#' + id); return el ? el.value : ''; };
     note = null;
-    const keep = { email: v('accEmail'), name: v('accName') };
+    const box = form.querySelector('#accConsent');
+    const keep = { email: v('accEmail'), name: v('accName'), consent: !!(box && box.checked) };
     const fail = (t) => { note = { t }; render(); refill(keep); };
+    if (kind === 'register' && !keep.consent) return fail('Чтобы создать аккаунт, отметьте согласие на обработку персональных данных.');
     if (kind === 'register' || kind === 'password') {
       if (raw('accPass').length < 6) return fail('Пароль должен быть не короче 6 символов.');
       if (raw('accPass') !== raw('accPass2')) return fail('Пароли не совпадают.');
@@ -298,6 +305,8 @@
     const e = dlg.querySelector('#accEmail'), n = dlg.querySelector('#accName');
     if (e && keep.email) e.value = keep.email;
     if (n && keep.name) n.value = keep.name;
+    const c = dlg.querySelector('#accConsent');
+    if (c && keep.consent) c.checked = true;
   }
 
   window.Account = {

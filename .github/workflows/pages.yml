@@ -6,7 +6,7 @@ name: Section pages
 on:
   push:
     branches: [main]
-    paths: ['index.html', 'js/routes.js', 'tools/build_pages.js', '*/index.html', 'sitemap.xml']
+    paths: ['index.html', 'js/routes.js', 'js/page-texts.js', 'tools/build_pages.js', '*/index.html', 'sitemap.xml']
   workflow_dispatch:
 
 permissions:

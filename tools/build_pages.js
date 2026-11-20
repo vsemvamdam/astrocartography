@@ -2,8 +2,9 @@
 /* Section pages for search engines. Every entry of js/routes.js gets its own address (/solyar/, /lunnye-dni/ …):
    a folder with a copy of index.html that has <base href="/">, that page's title, description and canonical link,
    and the heading of its section. The host serves files as they are, so the copies are written here and committed.
-   The script also writes the sitemap and, in index.html itself, the home page's block between <!--seo--> and
-   <!--/seo--> and the list of sections between <!--home--> and <!--/home--> (for search engines without scripts).
+   The script also writes the sitemap and the blocks between marks in index.html and the copies: <!--seo--> (title,
+   description), <!--home--> (the list of sections, for search engines without scripts), <!--about--> (the text under
+   the section, js/page-texts.js) and <!--doc--> (a document: about the site, questions, privacy policy …).
 
      node tools/build_pages.js            write everything (after any change to index.html or js/routes.js)
      node tools/build_pages.js --check    fail if something is out of date
@@ -15,6 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const R = require('../js/routes.js');
+const T = require('../js/page-texts.js');
 
 const ROOT = path.join(__dirname, '..');
 const INDEX = path.join(ROOT, 'index.html');
@@ -28,6 +30,7 @@ const HOME_LEAD = 'Натальная карта и её расшифровка,
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const dir = (p) => p.path.replace(/^\/|\/$/g, '');
+const isDoc = (p) => p.spec.startsWith('doc:');
 
 function seoBlock(p) {
   const url = R.SITE + p.path;
@@ -42,7 +45,7 @@ function seoBlock(p) {
 }
 // the home page as plain HTML, for search engines that don't run scripts: js/home-view.js draws over it
 function homeBlock() {
-  const links = R.PAGES.filter((p) => p.path !== '/').map((p) => `<li><a href="${p.path}">${esc(p.name)}</a></li>`).join('');
+  const links = R.PAGES.filter((p) => p.path !== '/' && !isDoc(p)).map((p) => `<li><a href="${p.path}">${esc(p.name)}</a></li>`).join('');
   return `<h1 class="hm-h1">${esc(HOME_H1)}</h1><p class="hm-lead">${esc(HOME_LEAD)}</p><h2 class="hm-h">Разделы</h2><ul class="hm-links">${links}</ul>`;
 }
 function find(src, name) {
@@ -61,6 +64,8 @@ function indexHtml() {
   find(src, 'base');
   src = between(src, 'seo', '\n' + seoBlock(R.PAGES[0]) + '\n');
   src = between(src, 'home', homeBlock());
+  src = between(src, 'about', T.aboutHtml('/'));
+  src = between(src, 'doc', '');
   return src;
 }
 // the page of an address: index.html with <base href="/">, its seo block and heading, no home blocks
@@ -69,6 +74,8 @@ function pageHtml(src, p) {
   let out = replaced(src, 'base', '<base href="/">');
   out = between(out, 'seo', '\n' + seoBlock(p) + '\n');
   out = between(out, 'home', '');
+  out = between(out, 'about', isDoc(p) ? '' : T.aboutHtml(p.path));
+  out = between(out, 'doc', isDoc(p) ? T.DOCS[p.path] || '' : '');
   const v = p.spec.split(':')[0];
   if (H1[v] && p.spec.includes(':')) out = out.replace(`${H1[v][0]}${H1[v][1]}</h1>`, `${H1[v][0]}${esc(p.name)}</h1>`);
   return out.replace('<!doctype html>\n', `<!doctype html>\n${STAMP}\n`);
