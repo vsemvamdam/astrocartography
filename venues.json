@@ -30,6 +30,7 @@
 "banja luka|bosnia and herzegovina": {"name":"Banja Luka","lat":44.7788,"lon":17.2063,"tz":"Europe/Sarajevo","src":"geonames","gid":"3204541"},
 "barcelona|spain": {"name":"Barcelona","lat":41.3888,"lon":2.159,"tz":"Europe/Madrid","src":"geonames","gid":"3128760"},
 "basel|switzerland": {"name":"Basel","lat":47.5584,"lon":7.5733,"tz":"Europe/Zurich","src":"geonames","gid":"2661604"},
+"batumi|georgia": {"name":"Batumi","lat":41.6408,"lon":41.6306,"tz":"Asia/Tbilisi","src":"geonames","gid":"615532"},
 "be er sheva|israel": {"name":"Be'er Sheva","lat":31.2518,"lon":34.7913,"tz":"Asia/Jerusalem","src":"geonames","gid":"295530"},
 "belfast|northern ireland": {"name":"Belfast","lat":54.5968,"lon":-5.9254,"tz":"Europe/London","src":"geonames","gid":"2655984"},
 "belgrade|serbia": {"name":"Belgrade","lat":44.804,"lon":20.4651,"tz":"Europe/Belgrade","src":"geonames","gid":"792680"},
