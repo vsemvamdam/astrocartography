@@ -37,6 +37,30 @@ function onlyView(src, view) {
   return src.replace(/(<section class="natal[^"]*" id="(\w+)View")( hidden)?/g, (m, head, v) => (v === view ? head : head + ' hidden'));
 }
 
+// structured data (JSON-LD) for search engines: the site and its organization on the home page, breadcrumbs and a free
+// web application on the section pages, breadcrumbs on the documents, questions and answers on /voprosy/
+const LD_LOGO = R.SITE + '/assets/icon-192.png';
+function ldGraph(p) {
+  const site = { '@id': R.SITE + '/#site' };
+  if (p.path === '/') return [
+    { '@type': 'WebSite', '@id': R.SITE + '/#site', url: R.SITE + '/', name: 'AstroSky', inLanguage: 'ru', publisher: { '@id': R.SITE + '/#org' } },
+    { '@type': 'Organization', '@id': R.SITE + '/#org', url: R.SITE + '/', name: 'AstroSky', logo: LD_LOGO },
+  ];
+  const home = R.PAGES[0], url = R.SITE + p.path;
+  const g = [{ '@type': 'BreadcrumbList', itemListElement: [
+    { '@type': 'ListItem', position: 1, name: home.name, item: R.SITE + '/' },
+    { '@type': 'ListItem', position: 2, name: p.name, item: url },
+  ] }];
+  if (!isDoc(p)) g.push({ '@type': 'WebApplication', name: p.name, url, description: p.desc, applicationCategory: 'LifestyleApplication', operatingSystem: 'Any', browserRequirements: 'Requires JavaScript', inLanguage: 'ru', isAccessibleForFree: true, offers: { '@type': 'Offer', price: '0', priceCurrency: 'RUB' }, isPartOf: site });
+  if (p.path === '/voprosy/') {
+    const strip = (s) => s.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+    const qa = [...(T.DOCS[p.path] || '').matchAll(/<h2>(.*?)<\/h2>\s*<p>(.*?)<\/p>/gs)].map((m) => ({ '@type': 'Question', name: strip(m[1]), acceptedAnswer: { '@type': 'Answer', text: strip(m[2]) } }));
+    if (qa.length) g.push({ '@type': 'FAQPage', mainEntity: qa });
+  }
+  return g;
+}
+const ldBlock = (p) => `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': ldGraph(p) }).replace(/</g, '\\u003c')}</script>`;
+
 function seoBlock(p) {
   const url = R.SITE + p.path;
   return [
@@ -46,6 +70,7 @@ function seoBlock(p) {
     `<meta property="og:url" content="${url}">`,
     `<meta property="og:title" content="${esc(p.title)}">`,
     `<meta property="og:description" content="${esc(p.desc)}">`,
+    ldBlock(p),
   ].join('\n');
 }
 // the home page as plain HTML, for search engines that don't run scripts: js/home-view.js draws over it
