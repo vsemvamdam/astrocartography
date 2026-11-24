@@ -8,7 +8,7 @@
    Loaded before js/app.js so it hears the first page. */
 (function () {
   'use strict';
-  const METRIKA_ID = 0;                  // Yandex Metrica counter (metrika.yandex.ru → the counter's number); 0: off
+  const METRIKA_ID = 114639698;          // Yandex Metrica counter (metrika.yandex.ru → the counter's number); 0: off
   const CHOICE = 'astrosky.cookies';     // localStorage: 'yes' or 'no'
   const T = window.PAGE_TEXTS || { SECTIONS: {}, DOCS: {}, aboutHtml: () => '' };
   const $ = (id) => document.getElementById(id);
