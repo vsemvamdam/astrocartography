@@ -50,25 +50,33 @@
   // only when the user zooms past the detail threshold. They were 615 KB gzip of the
   // 905 KB data.js and cost ~900 KB of polyline to decode at startup -- all of it unused
   // until s >= 22. The coarse layers (land110/land50/borders50) stay in the boot payload.
-  let hiLoaded = false, hiLoading = null;
+  let hiLoaded = false, hiLoading = null, hiTries = 0;
   const HI = {};
+  const HI_MAX_TRIES = 3;
   function loadHi() {
-    if (hiLoading) return hiLoading;
+    if (hiLoaded || hiLoading) return hiLoading;
+    if (hiTries >= HI_MAX_TRIES) return Promise.resolve(false);
+    hiTries++;
     hiLoading = new Promise((resolve) => {
       const el = document.createElement('script');
-      el.src = 'js/map-hi.js?v=20261126lazy';
+      el.src = 'js/map-hi.js?v=20261126lazymap';
       el.async = true;
       el.onload = () => {
         const m = window.ACG_DATA_HI || {};
         for (const k of Object.keys(m)) HI[k] = m[k];
         hiLoaded = Object.keys(m).length > 0;
+        hiLoading = null;
         if (!hiLoaded) console.warn('map-hi.js loaded but ACG_DATA_HI is empty; staying on coarse layers');
         else requestDraw();   // repaint so the detailed contours appear without waiting for input
         resolve(hiLoaded);
       };
       el.onerror = () => {
-        // Never break the map: the coarse layers remain, we just log the reason.
-        console.warn('map-hi.js failed to load; detailed contours unavailable at deep zoom');
+        // Never break the map: the coarse layers remain and we log the reason. Clearing
+        // hiLoading lets a later crossing of the threshold try again -- a single transient
+        // failure (a flaky mobile moment, a blip while panning) used to strand the user on
+        // the coarse layers for the rest of the visit, with no way back but a reload.
+        console.warn('map-hi.js failed to load (attempt ' + hiTries + '); detailed contours unavailable at deep zoom');
+        hiLoading = null;
         resolve(false);
       };
       document.head.appendChild(el);
