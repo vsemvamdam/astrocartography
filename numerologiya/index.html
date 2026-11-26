@@ -2537,7 +2537,21 @@ body[data-view="doc"] .panel { display: none !important; }
 </div>
 
 <script src="js/sky.js?v=20261120route"></script>
-<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+<script src="js/vendor/astronomy.browser.min.js?v=20261126local"></script>
+<script>/* The engine above is the only source of every calculation. If it did not load (a broken
+   deploy, a file removed by a proxy), say so in a strip ABOVE the site and leave the page
+   itself alone: the navigation, the texts and all the sections must stay readable.
+   Never touch document.body here — rewriting it throws away the whole page. */
+if (typeof Astronomy === 'undefined') {
+  addEventListener('DOMContentLoaded', function () {
+    var n = document.createElement('div');
+    n.setAttribute('role', 'alert');
+    n.style.cssText = 'position:relative;z-index:90;margin:0 0 10px;padding:12px 16px;border-radius:10px;background:#3A1D22;border:1px solid #6B3A42;color:#F5BEC7;font:14px/1.45 system-ui,sans-serif';
+    n.textContent = 'Астрономический движок не загрузился, поэтому карты не считаются. Обновите страницу (Ctrl+F5). Остальные разделы сайта работают.';
+    document.body.insertBefore(n, document.body.firstChild);
+  });
+}
+</script>
 <script src="js/data.js?v=20261104u"></script>
 <script src="js/country-labels.js?v=20261104u"></script>
 <script src="js/chiron-data.js?v=20261107qa"></script>
