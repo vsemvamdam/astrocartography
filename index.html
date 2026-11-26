@@ -2001,6 +2001,30 @@ body[data-view="doc"] .panel { display: none !important; }
 </style>
 </head>
 <body>
+<script>/* Set body[data-view] before the first paint.
+   The stylesheet hides a section with `body:not([data-view="…"])` / `body[data-view="…"]`, and
+   js/app.js only sets that attribute once it starts. Until it does, those rules do not match, so
+   sections meant to be hidden are laid out and then vanish when the script runs. Measured: a 0.266
+   layout shift (the birth form moves 19 px, the map controls 669 px) -- about 99% of the page's CLS.
+   Setting the attribute here makes the first paint already correct; js/app.js keeps it up to date.
+   The view is resolved from the address exactly as js/routes.js does. */
+(function () {
+  var R = window.ROUTES, VIEWS = ['home', 'map', 'natal', 'city', 'tools', 'sport', 'doc'];
+  var v = 'home';
+  try {
+    if (R) {
+      var h = location.hash.slice(1).split(/[?&]/)[0];
+      if (VIEWS.indexOf(h) >= 0) v = h;
+      else {
+        var p = R.pageOfPath(location.pathname);
+        if (p) v = String(p.spec).split(':')[0];
+      }
+    }
+  } catch (e) { /* js/app.js sets it anyway; never block the page */ }
+  if (VIEWS.indexOf(v) < 0) v = 'home';
+  document.body.dataset.view = v;
+})();
+</script>
 <div class="sky" id="sky" aria-hidden="true">
   <canvas id="skyStars"></canvas>
   <div class="sky-cloud l"><img src="assets/sky-clouds-left.webp" alt="" decoding="async"></div>
