@@ -109,17 +109,24 @@
 | `tools/celebs.tsv`, `tools/build_celebs.js` | проверенный вручную список людей с источниками; сборка `js/celebs-data.js` |
 | `js/interpret.js` | тексты расшифровки натала, соляра, лунара, синастрии и композита |
 | `js/country-labels.js` | подписи стран на карте (`tools/build_country_labels.py`) |
-| `js/data.js` | контуры суши и границ, озёра, города с часовыми поясами |
-| `tools/build_data.py` | пересборка `js/data.js` из Natural Earth |
+| `js/data.js` | контуры суши и границ, озёра, города с часовыми поясами — всё, что нужно к первой отрисовке |
+| `js/map-hi.js` | детальные контуры (`land10`, `borders10`) для сильного зума: грузятся по требованию, в стартовую загрузку не входят |
+| `tools/build_data.py` | пересборка `js/data.js` **и** `js/map-hi.js` из Natural Earth |
 | `js/tz-history.js` | история часовых поясов до 1970 года, которой нет в браузерах, и годы местного среднего времени (`tools/build_tz_history.js`, из tzdata с backzone, например Ubuntu `/usr/share/zoneinfo`) |
 | `tools/test-core.js` | проверка расчёта линий |
 
-Пересобрать данные карты:
+Пересобрать данные карты (обе части — одной командой, иначе стартовая загрузка вырастет обратно на 615 КБ):
 
 ```
 git clone --depth 1 https://github.com/nvkelso/natural-earth-vector.git
-python3 tools/build_data.py natural-earth-vector/geojson js/data.js
+python3 tools/build_data.py natural-earth-vector/geojson js/data.js js/map-hi.js
 ```
+
+Почему два файла: детальные слои нужны только при зуме `s >= 22`, а это 615 КБ gzip из
+905 КБ. `js/app.js` подгружает `js/map-hi.js` сам, когда карта доходит до `s >= 16`.
+Если запустить сборку без второго пути, скрипт остановится с подсказкой — писать все слои
+в `js/data.js` он отказывается намеренно: ошибка была бы невидимой, сайт продолжил бы
+работать, а стартовая загрузка тихо вернулась бы к прежнему размеру.
 
 ## Копия данных ESPN
 

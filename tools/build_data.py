@@ -1,13 +1,23 @@
 """Builds compact map + city data for the astrocartography page.
 
-Output: data.js defining window.ACG_DATA = {land110, land50, land10, borders50,
-borders10, lakes, cities, countries, tzs}.
+Output: TWO files, because they are loaded at different times.
+
+  data.js     window.ACG_DATA    = {land110, land50, borders50, lakes, cities, countries, tzs}
+              the boot payload — everything needed for the first paint
+  map-hi.js   window.ACG_DATA_HI = {land10, borders10}
+              fetched on demand by js/app.js once the map reaches s >= 16, and used from
+              s >= 22; it is 615 KB gzip of what used to be a single 905 KB payload
+
 Rings/lines are Google-polyline encoded (lat,lon) and joined by spaces.
+
+Usage: python3 tools/build_data.py <natural-earth-vector/geojson> js/data.js js/map-hi.js
 """
-import json, sys, math
+import json, os, sys, math
 
 NE = sys.argv[1]  # path to natural-earth-vector/geojson
 OUT = sys.argv[2]
+# second output: the on-demand bundle with the deep-zoom layers (see the note before writing)
+OUT_HI = sys.argv[3] if len(sys.argv) > 3 else None
 
 
 def load(name):
@@ -267,11 +277,58 @@ res["countries"] = countries
 res["tzs"] = tzs
 stats["cities"] = (len(rows), len(res["cities"]))
 
-with open(OUT, "w", encoding="utf-8") as f:
-    f.write("window.ACG_DATA=")
-    f.write(json.dumps(res, ensure_ascii=False, separators=(",", ":")))
-    f.write(";\n")
+# The build writes TWO files on purpose. land10 and borders10 are only used at deep zoom
+# (s >= 22 in js/app.js) and are 615 KB gzip of the 905 KB this data used to be in one
+# payload; js/app.js fetches them on demand as window.ACG_DATA_HI. Writing everything into
+# js/data.js again would silently undo the split -- the site keeps working (HI wins once it
+# loads), so the only symptom is the boot payload growing back, with nothing failing.
+# Keeping the split here means the documented rebuild cannot regress it.
+HI_KEYS = ("land10", "borders10")
+core = {k: v for k, v in res.items() if k not in HI_KEYS}
+hi = {k: v for k, v in res.items() if k in HI_KEYS}
+
+if OUT_HI is None:
+    raise SystemExit(
+        "refusing to write every layer into %s: land10/borders10 belong in the on-demand "
+        "bundle. Pass a second path, e.g.\n"
+        "  python3 tools/build_data.py natural-earth-vector/geojson js/data.js js/map-hi.js" % OUT
+    )
+
+if os.path.abspath(OUT) == os.path.abspath(OUT_HI):
+    # Passing one path twice is the easy slip when editing a copy-pasted command, and it
+    # used to be destructive: the second write won, js/data.js ended up holding only the
+    # hi payload, and every core layer (land, borders, lakes, cities, timezones) vanished
+    # with exit 0 and no warning. A guard that misses the adjacent case is not a guard.
+    raise SystemExit(
+        "refusing to write both payloads to the same file (%s): the second write would "
+        "replace the core layers with the on-demand ones.\n"
+        "  python3 tools/build_data.py natural-earth-vector/geojson js/data.js js/map-hi.js"
+        % OUT
+    )
+
+# Write both payloads, then move them into place, so a failure part-way through cannot
+# leave a new js/data.js paired with a stale or missing js/map-hi.js.
+staged = []
+try:
+    for path, payload, var in ((OUT, core, "ACG_DATA"), (OUT_HI, hi, "ACG_DATA_HI")):
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+            f.write("window.%s=" % var)
+            f.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+            f.write(";\n")
+        staged.append((tmp, path))
+except Exception:
+    for tmp, _ in staged:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+    raise
+
+for tmp, path in staged:
+    os.replace(tmp, path)
 
 for k, v in stats.items():
-    print(f"{k:10s} pts={v[0]:7d} chars={v[1]:8d}")
+    where = "map-hi" if k in HI_KEYS else "core"
+    print(f"{k:10s} pts={v[0]:7d} chars={v[1]:8d}  [{where}]")
 print("tzs", len(tzs), "countries", len(countries))

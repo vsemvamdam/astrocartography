@@ -46,11 +46,80 @@
     borders50: [100, false], borders10: [1000, false], lakes: [100, true],
   };
   const paths = {};
+  // The high-detail map layers (land10, borders10) live in js/map-hi.js and are fetched
+  // only when the user zooms past the detail threshold. They were 615 KB gzip of the
+  // 905 KB data.js and cost ~900 KB of polyline to decode at startup -- all of it unused
+  // until s >= 22. The coarse layers (land110/land50/borders50) stay in the boot payload.
+  let hiLoaded = false, hiLoading = null, hiTries = 0, hiNextTryAt = 0;
+  const HI = {};
+  // Five spread-out attempts rather than three: the browser test showed three attempts
+  // consumed in 8 s at a 4 s spacing, so a three-attempt budget with a 30 s spacing covers
+  // only 60 s. A lift, a tunnel or a sleeping tab outlasts that, and once the budget is
+  // gone no gesture, resize or view switch ever retries -- the coarse layers are permanent
+  // for that visit. Five attempts on screen plus the reset below covers the realistic case.
+  const HI_MAX_TRIES = 5;
+  const HI_RETRY_AFTER_MS = 30000;   // a failed attempt waits before the next one
+  function loadHi() {
+    if (hiLoaded || hiLoading) return hiLoading;
+    if (hiTries >= HI_MAX_TRIES) return Promise.resolve(false);
+    // Independent review, measured in a browser: without this, all three attempts fired
+    // inside one gesture ~125 ms apart, because each draw() after the error called loadHi
+    // again. A 2-3 s blip (a mobile moment, a CDN hiccup) therefore burned the whole budget
+    // before connectivity returned, and after that no gesture, resize or view switch ever
+    // retried -- the user stayed on the coarse layers for the life of the page. Spacing the
+    // attempts out across time is the point; three tries in 125 ms is effectively one.
+    if (Date.now() < hiNextTryAt) return Promise.resolve(false);
+    hiTries++;
+    hiNextTryAt = Date.now() + HI_RETRY_AFTER_MS;
+    hiLoading = new Promise((resolve) => {
+      const el = document.createElement('script');
+      el.src = 'js/map-hi.js?v=20261126lazymap';
+      el.async = true;
+      el.onload = () => {
+        const m = window.ACG_DATA_HI || {};
+        for (const k of Object.keys(m)) HI[k] = m[k];
+        hiLoaded = Object.keys(m).length > 0;
+        hiLoading = null;
+        if (!hiLoaded) console.warn('map-hi.js loaded but ACG_DATA_HI is empty; staying on coarse layers');
+        else requestDraw();   // repaint so the detailed contours appear without waiting for input
+        resolve(hiLoaded);
+      };
+      el.onerror = () => {
+        // Never break the map: the coarse layers remain and we log the reason. Clearing
+        // hiLoading lets a later attempt through, but a retry cannot depend on draw()
+        // alone: on a stationary deep-zoom view draw runs ZERO times (measured by the
+        // reviewer), so nothing would ever call loadHi again. Schedule the retry here,
+        // and paint when it succeeds.
+        console.warn('map-hi.js failed to load (attempt ' + hiTries + ' of ' + HI_MAX_TRIES + '); detailed contours unavailable at deep zoom');
+        hiLoading = null;
+        if (hiTries < HI_MAX_TRIES) {
+          setTimeout(() => { if (!hiLoaded && loadHi()) { /* resolved later */ } }, HI_RETRY_AFTER_MS);
+        }
+        resolve(false);
+      };
+      document.head.appendChild(el);
+    });
+    return hiLoading;
+  }
+  // A tab can sleep through the whole retry window: the browser test showed all attempts
+  // consumed while the page was throttled/backgrounded, and after that the coarse layers
+  // stayed for good. When the tab becomes visible again, give the bundle one more chance --
+  // that is exactly the moment connectivity is most likely to be back.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden || hiLoaded || hiLoading) return;
+    if (hiTries >= HI_MAX_TRIES) { hiTries = HI_MAX_TRIES - 1; hiNextTryAt = 0; loadHi(); }
+    else hiNextTryAt = 0;
+  });
+  const srcFor = (key) => (HI[key] !== undefined ? HI[key] : D[key]);
   function layer(key) {
     if (paths[key]) return paths[key];
+    // Guard against caching an empty path when the data for this key has not arrived yet:
+    // a cached empty Path2D would make `paths.land10` truthy and lock the map onto a
+    // blank layer forever. Returning a throw-away path keeps the coarse layer drawing.
+    if (srcFor(key) === undefined) return new Path2D();
     const [q, closed] = LAYERS[key];
     const p = new Path2D();
-    for (const r of decode(D[key], q)) {
+    for (const r of decode(srcFor(key), q)) {
       p.moveTo(r[0], -millerY(r[1]));
       for (let i = 2; i < r.length; i += 2) p.lineTo(r[i], -millerY(r[i + 1]));
       if (closed) p.closePath();
@@ -443,9 +512,12 @@
 
     drawGraticule(lonL, lonR, yTop, yBot);
 
-    const hi = s >= 22 && !interacting && paths.land10;
+    const hi = s >= 22 && !interacting && (hiLoaded || paths.land10);
     const landKey = hi ? 'land10' : (s < 2.4 ? 'land110' : 'land50');
     const borderKey = hi ? 'borders10' : 'borders50';
+    // Approaching the detail threshold: fetch the high-detail bundle now so the switch
+    // to it is instant. Never awaited here -- the coarse layer keeps drawing until it lands.
+    if (!hiLoaded && !hiLoading && s >= 16) loadHi();
     const land = layer(landKey), lakes = layer('lakes'), borders = layer(borderKey);
     for (let k = kmin; k <= kmax; k++) {
       ctx.setTransform(s * dpr, 0, 0, s * dpr, (v.tx + k * 360 * s) * dpr, v.ty * dpr);
@@ -1620,5 +1692,7 @@
   recompute();
   if (view.w >= 60) { measureHead(); fitWorld(); requestDraw(); }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { textW.clear(); requestDraw(); });
-  setTimeout(() => { layer('land50'); setTimeout(() => { layer('land10'); layer('borders10'); requestDraw(); }, 300); }, 700);
+  // Only the coarse layers are decoded at boot. land10/borders10 arrive with js/map-hi.js
+  // on demand (see loadHi) -- pre-loading them here was the 615 KB gzip we removed.
+  setTimeout(() => { layer('land50'); requestDraw(); }, 700);
 })();

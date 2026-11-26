@@ -47,7 +47,8 @@ GitHub Pages. Механизм публикации на Timeweb в репози
 | `js/features.js` | лучшие города, соляр, лунар, синастрия, композит, инструменты |
 | `js/horary.js` | хорар по Фроули (достоинства Лилли, перфекции, запрет, рефранация) |
 | `js/interpret.js` | тексты расшифровок (176 KB) |
-| `js/data.js` | контуры суши, города, часовые пояса (1.44 MB raw / 561 KB gzip) |
+| `js/data.js` | контуры суши, города, часовые пояса — стартовая загрузка (477 KB raw / 283 KB gzip) |
+| `js/map-hi.js` | детальные контуры `land10`/`borders10` для сильного зума — грузятся по требованию (873 KB raw / 587 KB gzip) |
 | `js/app.js` | карта на canvas, жесты, панель (92 KB) |
 | `js/natal-view.js` | колесо гороскопа и таблицы (98 KB) |
 | `js/tools-view.js` | вкладка «Инструменты» (97 KB) |
@@ -168,7 +169,8 @@ GitHub Pages. Механизм публикации на Timeweb в репози
 
 | Файл | raw | gzip |
 |---|---|---|
-| `js/data.js` | 983 KB | 561 KB |
+| `js/data.js` | 477 KB | 283 KB |
+| `js/map-hi.js` | 873 KB | 587 KB |
 | `js/asteroids-extra-data.js` | 529 KB | **529 KB (не сжимается!)** |
 | `js/interpret.js` | 175 KB | 50 KB |
 | `js/natal-view.js` | 98 KB | 33 KB |
