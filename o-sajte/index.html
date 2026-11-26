@@ -2549,16 +2549,20 @@ body[data-view="doc"] .panel { display: none !important; }
 <script>/* The engine above is the only source of every calculation. If it did not load (a broken
    deploy, a file removed by a proxy), say so in a strip ABOVE the site and leave the page
    itself alone: the navigation, the texts and all the sections must stay readable.
-   Never touch document.body here — rewriting it throws away the whole page. */
-if (typeof Astronomy === 'undefined') {
-  addEventListener('DOMContentLoaded', function () {
-    var n = document.createElement('div');
-    n.setAttribute('role', 'alert');
-    n.style.cssText = 'position:relative;z-index:90;margin:0 0 10px;padding:12px 16px;border-radius:10px;background:#3A1D22;border:1px solid #6B3A42;color:#F5BEC7;font:14px/1.45 system-ui,sans-serif';
-    n.textContent = 'Астрономический движок не загрузился, поэтому карты не считаются. Обновите страницу (Ctrl+F5). Остальные разделы сайта работают.';
-    document.body.insertBefore(n, document.body.firstChild);
-  });
-}
+   Never touch document.body here — rewriting it throws away the whole page.
+
+   The check MUST live inside DOMContentLoaded, not around it: another branch loads every
+   script with `defer`, and at parse time `Astronomy` is still undefined then, so an outside
+   check would fire the warning on a perfectly healthy page. Inside the handler every
+   deferred script has run, so this form is correct with and without `defer`. */
+addEventListener('DOMContentLoaded', function () {
+  if (typeof Astronomy !== 'undefined') return;
+  var n = document.createElement('div');
+  n.setAttribute('role', 'alert');
+  n.style.cssText = 'position:relative;z-index:90;margin:0 0 10px;padding:12px 16px;border-radius:10px;background:#3A1D22;border:1px solid #6B3A42;color:#F5BEC7;font:14px/1.45 system-ui,sans-serif';
+  n.textContent = 'Астрономический движок не загрузился, поэтому карты не считаются. Обновите страницу (Ctrl+F5). Остальные разделы сайта работают.';
+  document.body.insertBefore(n, document.body.firstChild);
+});
 </script>
 <script src="js/data.js?v=20261104u"></script>
 <script src="js/country-labels.js?v=20261104u"></script>
