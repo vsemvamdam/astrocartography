@@ -57,7 +57,7 @@ STALE_MIN = int(os.environ.get("ASTROSKY_DATA_STALE_MIN", "30"))
 ALERT_MIN = int(os.environ.get("ASTROSKY_DATA_ALERT_MIN", "180"))
 
 # gh on Windows may not be on PATH for a non-shell subprocess
-GH = shutil.which("gh") or r"C:\Program Files\GitHub CLI\gh.exe"
+GH = os.environ.get("ASTROSKY_GH") or shutil.which("gh") or r"C:\Program Files\GitHub CLI\gh.exe"
 
 # `gh workflow run` shells out to git, and fails with "unable to find git
 # executable in PATH" when git is not on PATH — measured on this host. Under a
@@ -147,6 +147,10 @@ def last_dispatch_ok():
     return r.get("conclusion") or r.get("status")
 
 
+# Workflow run states that mean "still working, not a failure yet"
+RUNNING_STATES = {"queued", "in_progress", "requested", "waiting", "pending"}
+
+
 def main():
     age, detail = data_age_min()
     if age is None:
@@ -159,16 +163,28 @@ def main():
     ok, why = dispatch()
     if ok:
         print("ESPN keeper: data was %.0f min old -- mirror dispatched" % age)
+    else:
+        print("ESPN keeper: data is %.0f min old and the dispatch FAILED: %s" % (age, why))
+
+    # Accepting a dispatch is not success, and this branch must be reachable either way.
+    # GitHub can queue or throttle the run, and sport-mirror.yml turns an ESPN outage into
+    # a `::warning::` and publishes nothing. Before this was fixed the function returned 0
+    # on "dispatched" and never reached here, so a copy could stay stale for days while
+    # every 15-minute tick reported success -- the same silent failure this file exists to
+    # kill. The age is the ground truth; the dispatch code only says we asked.
+    if age < ALERT_MIN:
+        return 2 if not ok else 0
+
+    last = last_dispatch_ok()
+    if ok and last in RUNNING_STATES:
+        # We just asked and the run has not finished: give it time rather than cry wolf.
+        print("ESPN keeper: %.0f min stale, run is %s -- waiting" % (age, last))
         return 0
 
-    # A failed dispatch is a real failure and must not be reported as success:
-    # the job's status is what everyone reads, and for five hours it said "ok"
-    # while the copy went 141 minutes stale. Return non-zero so it shows up.
-    print("ESPN keeper: data is %.0f min old and the dispatch FAILED: %s" % (age, why))
-    if age >= ALERT_MIN:
-        last = last_dispatch_ok()
-        print("ESPN keeper: still stale after %.0f min (last run: %s)" % (age, last))
-    return 2
+    # A finished run that did not refresh the copy is exactly the silent case: the run
+    # shows green, the workflow published nothing, and only the age reveals it.
+    print("ESPN keeper: still stale after %.0f min (last run: %s)" % (age, last))
+    return 2 if not ok else 4
 
 
 if __name__ == "__main__":
@@ -177,3 +193,5 @@ if __name__ == "__main__":
     except Exception as e:  # noqa: BLE001 - report, never die silently
         print("ESPN keeper CRASH: %s" % e)
         sys.exit(3)
+
+
