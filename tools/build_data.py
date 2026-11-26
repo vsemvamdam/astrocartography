@@ -1,13 +1,23 @@
 """Builds compact map + city data for the astrocartography page.
 
-Output: data.js defining window.ACG_DATA = {land110, land50, land10, borders50,
-borders10, lakes, cities, countries, tzs}.
+Output: TWO files, because they are loaded at different times.
+
+  data.js     window.ACG_DATA    = {land110, land50, borders50, lakes, cities, countries, tzs}
+              the boot payload — everything needed for the first paint
+  map-hi.js   window.ACG_DATA_HI = {land10, borders10}
+              fetched on demand by js/app.js once the map reaches s >= 16, and used from
+              s >= 22; it is 615 KB gzip of what used to be a single 905 KB payload
+
 Rings/lines are Google-polyline encoded (lat,lon) and joined by spaces.
+
+Usage: python3 tools/build_data.py <natural-earth-vector/geojson> js/data.js js/map-hi.js
 """
 import json, sys, math
 
 NE = sys.argv[1]  # path to natural-earth-vector/geojson
 OUT = sys.argv[2]
+# second output: the on-demand bundle with the deep-zoom layers (see the note before writing)
+OUT_HI = sys.argv[3] if len(sys.argv) > 3 else None
 
 
 def load(name):
@@ -267,11 +277,30 @@ res["countries"] = countries
 res["tzs"] = tzs
 stats["cities"] = (len(rows), len(res["cities"]))
 
-with open(OUT, "w", encoding="utf-8") as f:
-    f.write("window.ACG_DATA=")
-    f.write(json.dumps(res, ensure_ascii=False, separators=(",", ":")))
-    f.write(";\n")
+# The build writes TWO files on purpose. land10 and borders10 are only used at deep zoom
+# (s >= 22 in js/app.js) and are 615 KB gzip of the 905 KB this data used to be in one
+# payload; js/app.js fetches them on demand as window.ACG_DATA_HI. Writing everything into
+# js/data.js again would silently undo the split -- the site keeps working (HI wins once it
+# loads), so the only symptom is the boot payload growing back, with nothing failing.
+# Keeping the split here means the documented rebuild cannot regress it.
+HI_KEYS = ("land10", "borders10")
+core = {k: v for k, v in res.items() if k not in HI_KEYS}
+hi = {k: v for k, v in res.items() if k in HI_KEYS}
+
+if OUT_HI is None:
+    raise SystemExit(
+        "refusing to write every layer into %s: land10/borders10 belong in the on-demand "
+        "bundle. Pass a second path, e.g.\n"
+        "  python3 tools/build_data.py natural-earth-vector/geojson js/data.js js/map-hi.js" % OUT
+    )
+
+for path, payload, var in ((OUT, core, "ACG_DATA"), (OUT_HI, hi, "ACG_DATA_HI")):
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write("window.%s=" % var)
+        f.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+        f.write(";\n")
 
 for k, v in stats.items():
-    print(f"{k:10s} pts={v[0]:7d} chars={v[1]:8d}")
+    where = "map-hi" if k in HI_KEYS else "core"
+    print(f"{k:10s} pts={v[0]:7d} chars={v[1]:8d}  [{where}]")
 print("tzs", len(tzs), "countries", len(countries))
