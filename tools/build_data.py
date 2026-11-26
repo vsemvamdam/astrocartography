@@ -12,7 +12,7 @@ Rings/lines are Google-polyline encoded (lat,lon) and joined by spaces.
 
 Usage: python3 tools/build_data.py <natural-earth-vector/geojson> js/data.js js/map-hi.js
 """
-import json, sys, math
+import json, os, sys, math
 
 NE = sys.argv[1]  # path to natural-earth-vector/geojson
 OUT = sys.argv[2]
@@ -294,11 +294,39 @@ if OUT_HI is None:
         "  python3 tools/build_data.py natural-earth-vector/geojson js/data.js js/map-hi.js" % OUT
     )
 
-for path, payload, var in ((OUT, core, "ACG_DATA"), (OUT_HI, hi, "ACG_DATA_HI")):
-    with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write("window.%s=" % var)
-        f.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
-        f.write(";\n")
+if os.path.abspath(OUT) == os.path.abspath(OUT_HI):
+    # Passing one path twice is the easy slip when editing a copy-pasted command, and it
+    # used to be destructive: the second write won, js/data.js ended up holding only the
+    # hi payload, and every core layer (land, borders, lakes, cities, timezones) vanished
+    # with exit 0 and no warning. A guard that misses the adjacent case is not a guard.
+    raise SystemExit(
+        "refusing to write both payloads to the same file (%s): the second write would "
+        "replace the core layers with the on-demand ones.\n"
+        "  python3 tools/build_data.py natural-earth-vector/geojson js/data.js js/map-hi.js"
+        % OUT
+    )
+
+# Write both payloads, then move them into place, so a failure part-way through cannot
+# leave a new js/data.js paired with a stale or missing js/map-hi.js.
+staged = []
+try:
+    for path, payload, var in ((OUT, core, "ACG_DATA"), (OUT_HI, hi, "ACG_DATA_HI")):
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+            f.write("window.%s=" % var)
+            f.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+            f.write(";\n")
+        staged.append((tmp, path))
+except Exception:
+    for tmp, _ in staged:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+    raise
+
+for tmp, path in staged:
+    os.replace(tmp, path)
 
 for k, v in stats.items():
     where = "map-hi" if k in HI_KEYS else "core"

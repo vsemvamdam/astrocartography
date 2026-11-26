@@ -2001,28 +2001,41 @@ body[data-view="doc"] .panel { display: none !important; }
 </style>
 </head>
 <body>
-<script>/* Set body[data-view] before the first paint.
-   The stylesheet hides a section with `body:not([data-view="…"])` / `body[data-view="…"]`, and
-   js/app.js only sets that attribute once it starts. Until it does, those rules do not match, so
-   sections meant to be hidden are laid out and then vanish when the script runs. Measured: a 0.266
-   layout shift (the birth form moves 19 px, the map controls 669 px) -- about 99% of the page's CLS.
-   Setting the attribute here makes the first paint already correct; js/app.js keeps it up to date.
-   The view is resolved from the address exactly as js/routes.js does. */
+<script>/* Set body[data-view] (and data-natmode) before the first paint.
+   The stylesheet hides blocks with `body:not([data-view="…"])`, `body[data-view="…"]` and
+   `body[data-natmode="…"]`, but js/app.js only sets those attributes once it starts
+   (js/natal-view.js sets natmode at :1011, even later). Until then the rules do not match, so
+   blocks meant to be hidden are laid out and then vanish when the script runs. Setting both
+   here makes the first paint already correct; the scripts keep them up to date afterwards.
+
+   Without data-natmode this made the natal section pages WORSE than shipping nothing: they
+   painted with data-view="natal" but no natmode, so the mode-gated blocks still appeared and
+   then vanished. Measured (median CLS, 10 runs per address, branch vs the same tree with this
+   block stripped): /solyar/ 0.2500 vs 0.2232, /lunar/ 0.2455 vs 0.2188,
+   /goroskop-rebenka/ 0.1634 vs 0.1258 — all worse, while / improved 0.3059 -> 0.0022.
+
+   The view and mode are resolved from the address exactly as js/routes.js and js/app.js do,
+   including the pathMode gate: the pathname is only consulted when a <base href> is present
+   over http(s), the same condition as js/app.js specFromAddress. */
 (function () {
   var R = window.ROUTES, VIEWS = ['home', 'map', 'natal', 'city', 'tools', 'sport', 'doc'];
-  var v = 'home';
+  var v = 'home', mode = null;
   try {
     if (R) {
       var h = location.hash.slice(1).split(/[?&]/)[0];
       if (VIEWS.indexOf(h) >= 0) v = h;
       else {
-        var p = R.pageOfPath(location.pathname);
-        if (p) v = String(p.spec).split(':')[0];
+        // same gate as js/app.js: without <base> over http(s) the site uses #section links
+        var pathMode = !!(document.querySelector('base') && /^https?:$/.test(location.protocol));
+        var p = pathMode ? R.pageOfPath(location.pathname) : null;
+        if (p) { var parts = String(p.spec).split(':'); v = parts[0]; mode = parts[1] || null; }
       }
     }
-  } catch (e) { /* js/app.js sets it anyway; never block the page */ }
+  } catch (e) { /* the scripts set these anyway; never block the page */ }
   if (VIEWS.indexOf(v) < 0) v = 'home';
   document.body.dataset.view = v;
+  // the mode the stylesheet gates on; only natal has one today
+  if (v === 'natal' && mode) document.body.dataset.natmode = mode;
 })();
 </script>
 <div class="sky" id="sky" aria-hidden="true">
