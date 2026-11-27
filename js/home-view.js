@@ -51,7 +51,6 @@
       <div class="hm-hero">
         <div class="hm-copy">
           <h1 class="hm-h1" id="homeH">Астрология по вашей карте</h1>
-          <p class="hm-lead">Натальная карта и её расшифровка, линии планет на карте мира, соляры и лунары, совместимость и инструменты для всей семьи — по дате, времени и месту рождения.</p>
           <div class="hm-cta"><a class="hm-btn primary" href="${href('natal:natal')}" data-go="natal:natal">Открыть мою карту</a><a class="hm-btn" href="${href('diary')}" data-go="diary">${assistantName}</a></div>
           <div class="hm-me" id="homeOwner">
             <span class="muted">Ваша карта</span>
