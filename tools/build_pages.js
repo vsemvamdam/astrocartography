@@ -17,6 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const R = require('../js/routes.js');
 const T = require('../js/page-texts.js');
+const homeMarkup = require('../js/home-view.js');
 
 const ROOT = path.join(__dirname, '..');
 const INDEX = path.join(ROOT, 'index.html');
@@ -25,8 +26,6 @@ const MARK = (name) => [`<!--${name}-->`, `<!--/${name}-->`];
 // the section headings a mode page replaces: the natal chart's and the tools' (js/natal-view.js and js/tools-view.js
 // set the same text when the mode changes)
 const H1 = { natal: ['<h1 id="natH">', 'Натальная карта'], tools: ['<h1 id="toolTitle">', 'Инструменты'] };
-const HOME_H1 = 'Астрология по вашей карте';
-const HOME_LEAD = 'Натальная карта и её расшифровка, линии планет на карте мира, соляры и лунары, совместимость и инструменты для всей семьи — по дате, времени и месту рождения.';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const dir = (p) => p.path.replace(/^\/|\/$/g, '');
@@ -77,11 +76,6 @@ function seoBlock(p) {
     ldBlock(p),
   ].join('\n');
 }
-// the home page as plain HTML, for search engines that don't run scripts: js/home-view.js draws over it
-function homeBlock() {
-  const links = R.PAGES.filter((p) => p.path !== '/' && !isDoc(p)).map((p) => `<li><a href="${p.path}">${esc(p.name)}</a></li>`).join('');
-  return `<h1 class="hm-h1">${esc(HOME_H1)}</h1><p class="hm-lead">${esc(HOME_LEAD)}</p><h2 class="hm-h">Разделы</h2><ul class="hm-links">${links}</ul>`;
-}
 function find(src, name) {
   const [a, b] = MARK(name), i = src.indexOf(a), j = src.indexOf(b);
   if (i < 0 || j < i || src.indexOf(a, i + 1) >= 0 || src.indexOf(b, j + 1) >= 0) throw new Error(`index.html: need exactly one ${a} … ${b}`);
@@ -97,7 +91,7 @@ function indexHtml() {
   if (!src.startsWith('<!doctype html>\n')) throw new Error('index.html must start with "<!doctype html>" and a new line');
   find(src, 'base');
   src = between(src, 'seo', '\n' + seoBlock(R.PAGES[0]) + '\n');
-  src = between(src, 'home', homeBlock());
+  src = between(src, 'home', homeMarkup());
   src = between(src, 'about', T.aboutHtml('/'));
   src = between(src, 'doc', '');
   return initialView(src, 'home');

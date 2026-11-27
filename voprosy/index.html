@@ -514,7 +514,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .hm-btn { display: inline-flex; align-items: center; min-height: 46px; padding: 0 20px; border-radius: 999px; border: 1px solid #24344F; color: var(--fg); text-decoration: none; font-size: 14.5px; font-weight: 500; }
 .hm-btn:hover { border-color: var(--press); }
 .hm-btn.primary { background: var(--press); border-color: var(--press); color: var(--brass-ink); font-weight: 600; }
-.hm-me { margin-top: 22px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 14px; background: var(--panel); display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; font-size: 14px; }
+.hm-me { margin-top: 22px; padding: 14px 16px; min-block-size: 102px; box-sizing: border-box; border: 1px solid var(--rule); border-radius: 14px; background: var(--panel); display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; font-size: 14px; }
 .hm-me b { font-weight: 600; }
 .hm-big3 { display: flex; flex-wrap: wrap; gap: 4px 14px; flex-basis: 100%; color: var(--fg); }
 .hm-big3 i { font-style: normal; font-family: var(--f-glyph); margin-right: 3px; }
@@ -537,7 +537,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .hm-when i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--press); animation: hm-live 2.4s ease-out infinite; }
 @keyframes hm-live { from { box-shadow: 0 0 0 0 rgba(var(--press-rgb), .55); } 70%, to { box-shadow: 0 0 0 7px rgba(var(--press-rgb), 0); } }
 .hm-tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 44vw), 1fr)); }
-.hm-tile { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 14px; background: var(--raise); }
+.hm-tile { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px; min-block-size: 126px; box-sizing: border-box; border: 1px solid var(--rule); border-radius: 14px; background: var(--raise); }
 .hm-tk { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
 .hm-tile b { font-size: 17px; font-weight: 600; }
 .hm-tile b i { font-style: normal; font-family: var(--f-glyph); font-weight: 400; }
@@ -553,6 +553,9 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .hm-card > span:not(.hm-ic):not(.hm-more) { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
 .hm-ic { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 4px; border-radius: 50%; border: 1px solid rgba(216,164,166,.45); background: rgba(216,164,166,.08); color: var(--brass); font-family: var(--f-glyph); font-size: 22px; line-height: 1; }
 .hm-more { margin-top: auto; padding-top: 6px; font-size: 13px; color: var(--brass); }
+.hm-all-tools summary { width: fit-content; cursor: pointer; }
+.hm-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 4px 12px; list-style: none; margin: 12px 0 0; padding: 0; }
+.hm-links a { display: inline-flex; align-items: center; min-height: 44px; }
 .hm-foot { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--faint); max-width: 90ch; }
 @media (max-width: 759.98px) {
   .hm-hero { grid-template-columns: 1fr; gap: 20px; padding-top: 6px; }
@@ -2678,7 +2681,7 @@ addEventListener('DOMContentLoaded', function () {
 <script src="js/sport-view.js?v=20261107qa"></script>
 <script src="js/firebase-config.js?v=20261104u"></script>
 <script src="js/account.js?v=20261120del"></script>
-<script src="js/home-view.js?v=20261127diary"></script>
+<script src="js/home-view.js?v=20261127home"></script>
 <script src="js/page-texts.js?v=20261127diary"></script>
 <script src="js/pages.js?v=20261120docs"></script>
 <script src="js/app.js?v=20261127cls"></script>
