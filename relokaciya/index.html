@@ -29,7 +29,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=20261113">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png?v=20261113">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20261113">
-<script src="js/routes.js?v=20261127assistant"></script>
+<script src="js/routes.js?v=20261127ascendent"></script>
 <script>
 /* Telegram Mini App. Telegram opens the site with its launch parameters in the hash (#tgWebAppData=…):
    only then (and on reloads inside Telegram) its SDK and js/telegram.js load, before the router reads the hash.
@@ -265,7 +265,7 @@ body:not([data-view="map"]) .for-map, body:not([data-view="natal"]) .for-natal,
 body[data-view="tools"] .for-partner, body[data-view="city"] .for-partner, body[data-view="natal"]:not([data-natmode="synastry"]) .for-partner,
 body:not([data-natmode="solar"]) .for-solar, body:not([data-natmode="lunar"]) .for-lunar, body:not([data-natmode="stars"]) .for-stars, body:not([data-natmode="horary"]) .for-horary, body[data-view="tools"] .not-tools { display: none !important; }
 body[data-view="map"] .for-partner { order: 5; }
-body[data-view="sport"] .panel, body[data-view="home"] .panel { display: none !important; }
+body:is([data-view="sport"], [data-view="home"], [data-view="ascendent"]) .panel { display: none !important; }
 body[data-natmode="horary"] .for-natal { display: none !important; }
 .panel .notes { order: 10; }
 @media (max-width: 599.98px) {
@@ -950,6 +950,29 @@ body:is([data-natmode="natal"], [data-natmode="solar"], [data-natmode="lunar"]) 
 .bl-score b { font-family: var(--f-mono); font-weight: 500; font-size: 13.5px; }
 .bl-score i { display: block; height: 3px; border-radius: 2px; background: var(--brass); }
 .wide-row { grid-column: 1 / -1; margin: 0; }
+
+/* ------------------------ ascendant and Moon sign ------------------------- */
+.ascendent .natal-inner { max-width: 760px; gap: 16px; }
+.asc-intro { color: var(--muted); margin: 8px 0 0; line-height: 1.55; }
+.asc-form { min-width: 0; border: 0; margin: 0; padding: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.asc-place, .asc-submit { grid-column: 1 / -1; }
+.asc-place .suggest { position: static; max-height: 190px; margin-top: 4px; }
+.asc-form .asc-submit { justify-self: start; min-height: 44px; padding-inline: 18px; background: var(--press); border-color: var(--press); color: var(--brass-ink); font-weight: 600; }
+.asc-form:disabled .asc-submit { opacity: .55; }
+.asc-result { scroll-margin-top: 90px; }
+.asc-cards { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.asc-cards h2 { margin: 0; color: var(--muted); font-size: 14px; font-weight: 500; }
+.asc-sign { display: block; margin-top: 6px; font: clamp(24px, 6.7vw, 30px)/1.12 var(--f-display); overflow-wrap: anywhere; }
+.asc-degree { display: block; margin-top: 4px; color: var(--muted); font: 14px/1.4 var(--f-mono); }
+.asc-meta { margin: 10px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.asc-next { display: inline-flex; align-items: center; min-height: 44px; margin-top: 6px; color: var(--press); }
+@media (min-width: 640px) {
+  .asc-form { grid-template-columns: minmax(0, 1fr) minmax(0, .85fr) minmax(0, 1.5fr); }
+  .asc-place { grid-column: auto; }
+}
+@media (min-width: 900px) {
+  body[data-view="ascendent"] .page-about { max-width: 696px; margin-inline: auto; }
+}
 
 /* ---------------------------------- tools --------------------------------- */
 .tool-nav { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -2262,6 +2285,36 @@ body[data-view="doc"] .panel { display: none !important; }
     </div>
   </section>
 
+  <section class="natal ascendent" id="ascendentView" hidden aria-labelledby="ascTitle">
+    <div class="natal-inner">
+      <header class="natal-head">
+        <h1 id="ascTitle">Асцендент и знак Луны</h1>
+        <p class="asc-intro">Введите дату, точное местное время и место рождения.</p>
+      </header>
+      <form id="ascBirthForm" class="nat-card" autocomplete="off">
+        <fieldset id="ascFields" class="form asc-form" disabled>
+          <div class="field"><label for="ascDate">Дата рождения</label><input class="inp" id="ascDate" type="date" min="1800-01-01" max="2100-12-31" required></div>
+          <div class="field"><label for="ascTime">Местное время</label><input class="inp" id="ascTime" type="time" required></div>
+          <div class="field asc-place"><label for="ascPlace">Место рождения</label>
+            <div class="place-box"><input class="inp" id="ascPlace" type="text" placeholder="Город, например Казань" spellcheck="false" autocapitalize="words" required><ul class="suggest" id="ascSuggest" role="listbox" hidden></ul></div>
+          </div>
+          <button class="pill asc-submit" type="submit">Рассчитать</button>
+          <p class="status" id="ascError" role="alert" hidden></p>
+        </fieldset>
+        <noscript><p class="asc-meta">Для расчёта включите JavaScript в браузере.</p></noscript>
+      </form>
+      <div class="asc-result" id="ascResult" tabindex="-1" role="region" aria-label="Результат расчёта" hidden>
+        <div class="asc-cards">
+          <section class="nat-card"><h2>Асцендент</h2><strong class="asc-sign" id="ascSign"></strong><span class="asc-degree" id="ascDegree"></span></section>
+          <section class="nat-card"><h2>Знак Луны</h2><strong class="asc-sign" id="ascMoonSign"></strong><span class="asc-degree" id="ascMoonDegree"></span></section>
+        </div>
+        <p class="asc-meta" id="ascZone"></p>
+        <p class="asc-meta" id="ascZoneNote" hidden></p>
+        <a class="asc-next" href="/natalnaya-karta/">Открыть полную натальную карту →</a>
+      </div>
+    </div>
+  </section>
+
   <section class="natal city" id="cityView" aria-labelledby="cityH">
     <div class="natal-inner">
       <nav class="subnav" aria-label="Карта: мир или город"><a href="/astrokartografiya/">Карта мира</a><a href="/relokaciya/" aria-current="page">Город</a></nav>
@@ -2587,6 +2640,7 @@ body[data-view="doc"] .panel { display: none !important; }
   <footer class="site-foot">
     <nav aria-label="Разделы"><h2>Разделы</h2><ul>
       <li><a href="/natalnaya-karta/">Натальная карта</a></li>
+      <li><a href="/ascendent/">Асцендент и знак Луны</a></li>
       <li><a href="/astrokartografiya/">Астрокартография</a></li>
       <li><a href="/solyar/">Соляр</a></li>
       <li><a href="/lunar/">Лунар</a></li>
@@ -2652,6 +2706,7 @@ addEventListener('DOMContentLoaded', function () {
 <script src="js/pdf-export.js?v=20261118tg"></script>
 <script src="js/child.js?v=20261118b"></script>
 <script src="js/natal-view.js?v=20261127cls"></script>
+<script src="js/ascendent-view.js?v=20261127ascendent"></script>
 <script src="js/cycles.js?v=20261113psy2"></script>
 <script src="js/tools-view.js?v=20261127diary"></script>
 <script src="js/diary.js?v=20261127diary"></script>
@@ -2662,8 +2717,8 @@ addEventListener('DOMContentLoaded', function () {
 <script src="js/firebase-config.js?v=20261104u"></script>
 <script src="js/account.js?v=20261120del"></script>
 <script src="js/home-view.js?v=20261127herointro"></script>
-<script src="js/page-texts.js?v=20261127assistant"></script>
+<script src="js/page-texts.js?v=20261127ascendent"></script>
 <script src="js/pages.js?v=20261120docs"></script>
-<script src="js/app.js?v=20261127cls"></script>
+<script src="js/app.js?v=20261127ascendent"></script>
 </body>
 </html>
