@@ -29,7 +29,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=20261113">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png?v=20261113">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20261113">
-<script src="js/routes.js?v=20261127diary"></script>
+<script src="js/routes.js?v=20261127assistant"></script>
 <script>
 /* Telegram Mini App. Telegram opens the site with its launch parameters in the hash (#tgWebAppData=…):
    only then (and on reloads inside Telegram) its SDK and js/telegram.js load, before the router reads the hash.
@@ -224,6 +224,10 @@ a, button { -webkit-tap-highlight-color: rgba(var(--press-rgb), .28); }
 .tab:hover { color: var(--fg); }
 .tab[aria-current="page"] { background: var(--press); color: var(--brass-ink); }
 .tab .s { display: none; }
+@media (max-width: 1023.98px) {
+  .tab[data-view="diary"] .l { display: none; }
+  .tab[data-view="diary"] .s { display: inline; }
+}
 /* the Map section: the world map and the city map */
 .subnav { display: inline-flex; align-self: flex-start; gap: 2px; padding: 3px; border-radius: 999px; background: var(--panel); border: 1px solid var(--rule); }
 .subnav a { padding: 6px 14px; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: 13.5px; font-weight: 500; white-space: nowrap; }
@@ -561,7 +565,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
   .hm-hero { grid-template-columns: 1fr; gap: 20px; padding-top: 6px; }
   .hm-wheel { max-width: 300px; }
   .hm-lead { font-size: 15px; }
-  .hm-cta .hm-btn { flex: 1 1 auto; justify-content: center; }
+  .hm-cta .hm-btn { flex: 1 1 0; min-width: 0; padding-inline: clamp(8px, 3vw, 14px); justify-content: center; text-align: center; line-height: 1.25; }
   .hm-grid { grid-template-columns: 1fr; gap: 8px; }
   .hm-card { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 14px; row-gap: 2px; align-items: start; padding: 14px; }
   .hm-card .hm-ic { grid-row: span 2; margin: 0; }
@@ -2038,7 +2042,7 @@ body[data-view="doc"] .panel { display: none !important; }
       <a class="tab" href="/astrokartografiya/" data-view="map"><span class="l">Карта мира</span><span class="s">Карта</span></a>
       <a class="tab" href="/natalnaya-karta/" data-view="natal"><span class="l">Натальная карта</span><span class="s">Натал</span></a>
       <a class="tab" href="/planetarnye-chasy/" data-view="tools">Инструменты</a>
-      <a class="tab" href="/ezhednevnik/" data-view="diary">Ежедневник</a>
+      <a class="tab" href="/ezhednevnik/" data-view="diary" aria-label="Личный помощник"><span class="l">Личный помощник</span><span class="s">Помощник</span></a>
       <a class="tab" href="/sport/" data-view="sport">Спорт</a>
     </nav>
     <button type="button" class="acc-btn" id="accBtn" hidden aria-haspopup="dialog">
@@ -2356,7 +2360,7 @@ body[data-view="doc"] .panel { display: none !important; }
   <section class="natal diary" id="diaryView" hidden aria-labelledby="diaryTitle">
     <div class="natal-inner diary-inner">
       <header class="diary-header">
-        <div><h1 id="diaryTitle">Персональный ежедневник</h1>
+        <div><h1 id="diaryTitle">Личный помощник</h1>
           <p data-diary-copy="intro">Астрологические подсказки для планов на каждый день.</p></div>
         <span class="diary-free" data-diary-copy="free">Бесплатный доступ</span>
       </header>
@@ -2367,7 +2371,7 @@ body[data-view="doc"] .panel { display: none !important; }
       <div class="diary-birth" id="diaryBirthSlot" hidden>
         <button type="button" class="diary-button diary-primary" id="diaryBirthDone" data-diary-copy="done">Показать прогноз</button>
       </div>
-      <noscript><p>Для расчёта ежедневника включите JavaScript.</p></noscript>
+      <noscript><p>Включите JavaScript, чтобы получить персональный прогноз.</p></noscript>
       <div class="diary-layout" id="diaryLayout" hidden>
         <section class="diary-calendar" aria-labelledby="diaryMonth">
           <header class="diary-calendar-head">
@@ -2592,7 +2596,7 @@ body[data-view="doc"] .panel { display: none !important; }
       <li><a href="/goroskop-rebenka/">Гороскоп ребёнка</a></li>
       <li><a href="/lunnye-dni/">Лунные дни</a></li>
       <li><a href="/planetarnye-chasy/" data-view="tools">Инструменты</a></li>
-      <li><a href="/ezhednevnik/">Персональный ежедневник</a></li>
+      <li><a href="/ezhednevnik/">Личный помощник</a></li>
       <li><a href="/sport/">Спорт</a></li>
     </ul></nav>
     <nav aria-label="Информация"><h2>Инфо</h2><ul>
@@ -2653,14 +2657,14 @@ addEventListener('DOMContentLoaded', function () {
 <script src="js/cycles.js?v=20261113psy2"></script>
 <script src="js/tools-view.js?v=20261127diary"></script>
 <script src="js/diary.js?v=20261127diary"></script>
-<script src="js/diary-view.js?v=20261127diary"></script>
+<script src="js/diary-view.js?v=20261127assistant"></script>
 <script src="js/city-view.js?v=20261119pick"></script>
 <script src="js/sport.js?v=20261107qa"></script>
 <script src="js/sport-view.js?v=20261107qa"></script>
 <script src="js/firebase-config.js?v=20261104u"></script>
 <script src="js/account.js?v=20261120del"></script>
-<script src="js/home-view.js?v=20261127home"></script>
-<script src="js/page-texts.js?v=20261127diary"></script>
+<script src="js/home-view.js?v=20261127assistant"></script>
+<script src="js/page-texts.js?v=20261127assistant"></script>
 <script src="js/pages.js?v=20261120docs"></script>
 <script src="js/app.js?v=20261127cls"></script>
 </body>

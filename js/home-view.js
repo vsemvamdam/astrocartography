@@ -22,9 +22,10 @@
   const PL_GEN = { Mercury: 'Меркурий', Venus: 'Венера', Mars: 'Марс', Jupiter: 'Юпитер', Saturn: 'Сатурн', Uranus: 'Уран', Neptune: 'Нептун', Pluto: 'Плутон' };
   let app = null, shownMinute = 0;
   const minuteNow = () => Math.floor(Date.now() / 60000);
+  const assistantName = 'Личный помощник';
 
   const CARDS = [
-    ['diary', '▦', 'Персональный ежедневник', 'Календарь на месяц с подсказками, чем заняться и где не торопиться по вашей карте.'],
+    ['diary', '▦', assistantName, 'Календарь на месяц с подсказками, чем заняться и где не торопиться по вашей карте.'],
     ['natal:natal', '☉', 'Натальная карта', 'Характер, планеты в знаках и домах, аспекты и подробная расшифровка карты.'],
     ['map', '⊕', 'Карта мира', 'Линии планет по всему миру: где легче с любовью, деньгами, карьерой и отдыхом.'],
     ['city', '⌂', 'Город', 'Как меняется ваша карта в любом городе: дома, лучи и сильные стороны места.'],
@@ -51,7 +52,7 @@
         <div class="hm-copy">
           <h1 class="hm-h1" id="homeH">Астрология по вашей карте</h1>
           <p class="hm-lead">Натальная карта и её расшифровка, линии планет на карте мира, соляры и лунары, совместимость и инструменты для всей семьи — по дате, времени и месту рождения.</p>
-          <div class="hm-cta"><a class="hm-btn primary" href="${href('natal:natal')}" data-go="natal:natal">Открыть мою карту</a><a class="hm-btn" href="${href('map')}" data-go="map">Карта мира</a></div>
+          <div class="hm-cta"><a class="hm-btn primary" href="${href('natal:natal')}" data-go="natal:natal">Открыть мою карту</a><a class="hm-btn" href="${href('diary')}" data-go="diary">${assistantName}</a></div>
           <div class="hm-me" id="homeOwner">
             <span class="muted">Ваша карта</span>
             <span class="hm-big3">Солнце, Луна и Асцендент</span>
