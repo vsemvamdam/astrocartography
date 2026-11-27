@@ -1179,7 +1179,7 @@
   }
 
   // City search with suggestions, reused by every place field on the page
-  function makePlaceSearch(input, list, current, onChoose) {
+  function makePlaceSearch(input, list, current, onChoose, { autoPick = true } = {}) {
     let items = [], idx = -1;
     const label = () => (current() ? placeLabel(current()) : '');
     const opt = (i) => `${input.id}-o${i}`;
@@ -1228,8 +1228,9 @@
     input.addEventListener('blur', () => setTimeout(() => {
       if (document.activeElement === input) return;
       const typed = input.value.trim();
-      if (typed && typed !== label() && items.length) { pick(0); return; }
-      list.hidden = true; input.setAttribute('aria-expanded', 'false'); input.value = label();
+      if (autoPick && typed && typed !== label() && items.length) { pick(0); return; }
+      list.hidden = true; input.setAttribute('aria-expanded', 'false');
+      if (autoPick) input.value = label();
     }, 150));
     input.value = label();
   }
@@ -1513,9 +1514,7 @@
     const utcStr = `${pad(u.getUTCDate())}.${pad(u.getUTCMonth() + 1)}.${u.getUTCFullYear()} ${pad(u.getUTCHours())}:${pad(u.getUTCMinutes())}`;
     $('tzName').textContent = state.manualOffset != null ? 'вручную' : P.tz;
     $('tzOffset').textContent = fmtOffset(conv.offset);
-    const tzNote = conv.source === 'lmt' ? 'Поясного времени тогда ещё не было: взято местное среднее время места рождения, по его долготе (4 минуты на градус). Если в документах время другого города, задайте смещение вручную.'
-      : conv.gap ? 'В этот день часы переводили вперёд, и такого времени на часах не было. Оно взято по смещению до перевода; если в документах другое, задайте смещение вручную.'
-      : conv.ambiguous ? 'В этот день часы переводили назад, и такое время было дважды. Взято первое, по смещению до перевода; если имелось в виду второе, задайте смещение вручную.' : '';
+    const tzNote = timeZoneNote(conv);
     $('tzNote').textContent = tzNote; $('tzNote').hidden = !tzNote;
     $('utcOut').textContent = `${utcStr} UTC`;
     const dmS = (v) => { const a = Math.abs(v), d = Math.floor(a); let m = Math.round((a - d) * 60); return m === 60 ? `${d + 1}°00′` : `${d}°${pad(m)}′`; };
@@ -1533,6 +1532,7 @@
     measureHead();
     requestDraw();
     if (window.NatalView) NatalView.update();
+    if (window.AscendentView) AscendentView.update();
     if (window.ToolsView) ToolsView.update();
     if (window.CityView) CityView.update();
     if (window.HomeView) HomeView.update();
@@ -1540,6 +1540,11 @@
   }
 
   /* --------------------------------- views -------------------------------- */
+  function timeZoneNote(conv) {
+    return conv.source === 'lmt' ? 'Поясного времени тогда ещё не было: взято местное среднее время места рождения, по его долготе (4 минуты на градус). Если в документах время другого города, задайте смещение вручную.'
+      : conv.gap ? 'В этот день часы переводили вперёд, и такого времени на часах не было. Оно взято по смещению до перевода; если в документах другое, задайте смещение вручную.'
+      : conv.ambiguous ? 'В этот день часы переводили назад, и такое время было дважды. Взято первое, по смещению до перевода; если имелось в виду второе, задайте смещение вручную.' : '';
+  }
   // load a saved chart into the form (from the personal account)
   function loadChart(d) {
     state.date = d.date; state.time = d.time; state.place = d.place; state.manualOffset = d.manualOffset == null ? null : d.manualOffset;
@@ -1553,6 +1558,7 @@
     save: saveState,
     get chart() { return chart; },
     get conv() { return lastConv; },
+    get timeZoneNote() { return lastConv ? timeZoneNote(lastConv) : ''; },
     get partnerChart() { return partnerChart; },
     get partnerConv() { return partnerConv; },
     recompute: () => recompute(),
@@ -1563,12 +1569,14 @@
     current: () => ({ date: state.date, time: state.time, place: state.place, manualOffset: state.manualOffset }),
   };
   window.ACG_APP = APP;
-  const VIEWS = ['home', 'map', 'natal', 'city', 'tools', 'sport', 'diary', 'doc'];
+  const VIEWS = ['home', 'map', 'natal', 'ascendent', 'city', 'tools', 'sport', 'diary', 'doc'];
   function setView(v) {
     if (!VIEWS.includes(v)) v = 'home';
     document.body.dataset.view = v;
     wrap.hidden = v !== 'map';
     $('natalView').hidden = v !== 'natal';
+    const ascendentView = $('ascendentView');
+    if (ascendentView) ascendentView.hidden = v !== 'ascendent';
     $('toolsView').hidden = v !== 'tools';
     $('cityView').hidden = v !== 'city';
     $('sportView').hidden = v !== 'sport';
@@ -1576,13 +1584,13 @@
     $('docView').hidden = v !== 'doc';
     $('diaryView').hidden = v !== 'diary';
     if (window.DiaryView) DiaryView.activate(v === 'diary');
-    // the city map lives inside the Map section: its tab stays lit for both
-    const tabView = v === 'city' ? 'map' : v;
+    const tabView = v === 'city' ? 'map' : v === 'ascendent' ? 'natal' : v;
     document.querySelectorAll('.tab').forEach((t) => {
       if (t.dataset.view === tabView) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
     });
     if (v !== 'map' && $('app').classList.contains('map-only')) $('expand').click();
     if (v === 'natal') NatalView.update();
+    else if (v === 'ascendent') { if (window.AscendentView) AscendentView.update(); window.scrollTo(0, 0); }
     else if (v === 'tools') ToolsView.update();
     else if (v === 'city') { if (window.CityView) CityView.update(); window.scrollTo(0, 0); }
     else if (v === 'sport') { if (window.SportView) SportView.update(); }
@@ -1593,6 +1601,7 @@
     window.dispatchEvent(new CustomEvent('astrosky:view', { detail: v }));   // js/telegram.js, js/sky.js
   }
   if (window.NatalView) NatalView.init(APP);
+  if (window.AscendentView) AscendentView.init(APP);
   if (window.ToolsView) ToolsView.init(APP);
   if (window.CityView) CityView.init(APP);
   if (window.SportView) SportView.init(APP);
