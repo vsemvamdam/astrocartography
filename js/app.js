@@ -1540,6 +1540,7 @@
     if (window.ToolsView) ToolsView.update();
     if (window.CityView) CityView.update();
     if (window.HomeView) HomeView.update();
+    if (window.DiaryView) DiaryView.update();
   }
 
   /* --------------------------------- views -------------------------------- */
@@ -1566,7 +1567,7 @@
     current: () => ({ date: state.date, time: state.time, place: state.place, manualOffset: state.manualOffset }),
   };
   window.ACG_APP = APP;
-  const VIEWS = ['home', 'map', 'natal', 'city', 'tools', 'sport', 'doc'];
+  const VIEWS = ['home', 'map', 'natal', 'city', 'tools', 'sport', 'diary', 'doc'];
   function setView(v) {
     if (!VIEWS.includes(v)) v = 'home';
     document.body.dataset.view = v;
@@ -1577,6 +1578,8 @@
     $('sportView').hidden = v !== 'sport';
     $('homeView').hidden = v !== 'home';
     $('docView').hidden = v !== 'doc';
+    $('diaryView').hidden = v !== 'diary';
+    if (window.DiaryView) DiaryView.activate(v === 'diary');
     // the city map lives inside the Map section: its tab stays lit for both
     const tabView = v === 'city' ? 'map' : v;
     document.querySelectorAll('.tab').forEach((t) => {
@@ -1587,6 +1590,7 @@
     else if (v === 'tools') ToolsView.update();
     else if (v === 'city') { if (window.CityView) CityView.update(); window.scrollTo(0, 0); }
     else if (v === 'sport') { if (window.SportView) SportView.update(); }
+    else if (v === 'diary') { if (window.DiaryView) DiaryView.update(); window.scrollTo(0, 0); }
     else if (v === 'home') { if (window.HomeView) HomeView.update(); window.scrollTo(0, 0); }
     else if (v === 'doc') { window.scrollTo(0, 0); $('docView').scrollTop = 0; }
     else requestAnimationFrame(() => { resize(); if (!view.ready) return; measureHead(); requestDraw(); });
@@ -1597,6 +1601,7 @@
   if (window.CityView) CityView.init(APP);
   if (window.SportView) SportView.init(APP);
   if (window.HomeView) HomeView.init(APP);
+  if (window.DiaryView) DiaryView.init(APP);
   if (window.Account) Account.init(APP);
 
   /* ------------------------------- addresses ------------------------------- */

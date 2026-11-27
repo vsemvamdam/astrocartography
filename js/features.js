@@ -475,11 +475,19 @@
     return rows;
   }
 
+  const biorhythmValue = (age, period) => Math.sin(2 * Math.PI * age / period);
+  // A crossing at a half-cycle boundary belongs to the civil day that contains it.
+  function biorhythmCrossesZero(age, period) {
+    const half = period / 2, next = Math.ceil(age / half - 1e-9) * half;
+    return next < age + 1 - 1e-9;
+  }
+
   root.FEAT = {
     GOALS, INFLUENCE_KM, scoreCities, angleDist,
     solarReturnUtc, scoreSolarPlace, rankSolarCities, lunarReturnUtc, nextLunarReturnUtc,
     crossAspects, composite, midpoint,
     CHALDEAN, planetaryHours, voidOfCourse, lunarDays, STARS, starLongitudes, starContacts, lots,
     dignityTable, degreeRulers, dispositors, ephemeris, termRuler, faceRuler,
+    biorhythmValue, biorhythmCrossesZero,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -29,7 +29,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=20261113">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png?v=20261113">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20261113">
-<script src="js/routes.js?v=20261120docs"></script>
+<script src="js/routes.js?v=20261127diary"></script>
 <script>
 /* Telegram Mini App. Telegram opens the site with its launch parameters in the hash (#tgWebAppData=…):
    only then (and on reloads inside Telegram) its SDK and js/telegram.js load, before the router reads the hash.
@@ -1495,7 +1495,7 @@ button.psy-c:hover { background: rgba(var(--press-rgb), .07); }
 .leaflet-control {
 	position: relative;
 	z-index: 800;
-	pointer-events: visiblePainted; 
+	pointer-events: visiblePainted;
 	pointer-events: auto;
 	}
 .leaflet-top,
@@ -1601,7 +1601,7 @@ svg.leaflet-zoom-animated {
 .leaflet-image-layer.leaflet-interactive,
 .leaflet-pane > svg path.leaflet-interactive,
 svg.leaflet-image-layer.leaflet-interactive path {
-	pointer-events: visiblePainted; 
+	pointer-events: visiblePainted;
 	pointer-events: auto;
 	}
 .leaflet-container {
@@ -1998,6 +1998,7 @@ body[data-view="doc"] .panel { display: none !important; }
 .btn-main.danger { width: 100%; background: var(--danger); color: #2A0E0A; }
 .acc-fine a { color: var(--brass); }
 </style>
+<link rel="stylesheet" href="assets/diary.css?v=20261127diary">
 </head>
 <body>
 
@@ -2015,6 +2016,7 @@ body[data-view="doc"] .panel { display: none !important; }
       <a class="tab" href="/astrokartografiya/" data-view="map"><span class="l">Карта мира</span><span class="s">Карта</span></a>
       <a class="tab" href="/natalnaya-karta/" data-view="natal"><span class="l">Натальная карта</span><span class="s">Натал</span></a>
       <a class="tab" href="/planetarnye-chasy/" data-view="tools">Инструменты</a>
+      <a class="tab" href="/ezhednevnik/" data-view="diary">Ежедневник</a>
       <a class="tab" href="/sport/" data-view="sport">Спорт</a>
     </nav>
     <button type="button" class="acc-btn" id="accBtn" hidden aria-haspopup="dialog">
@@ -2366,6 +2368,54 @@ body[data-view="doc"] .panel { display: none !important; }
     </div>
   </section>
 
+  <section class="natal diary" id="diaryView" hidden aria-labelledby="diaryTitle">
+    <div class="natal-inner diary-inner">
+      <header class="diary-header">
+        <div><h1 id="diaryTitle">Персональный ежедневник</h1>
+          <p data-diary-copy="intro">Астрологические подсказки для планов на каждый день.</p></div>
+        <span class="diary-free" data-diary-copy="free">Бесплатный доступ</span>
+      </header>
+      <div class="diary-profile">
+        <p id="diaryProfile" data-diary-copy="noProfile">Добавьте дату, время и место рождения для персонального прогноза.</p>
+        <button type="button" class="diary-button" id="diaryBirthEdit" aria-controls="diaryBirthSlot" aria-expanded="false" data-diary-copy="edit">Данные рождения</button>
+      </div>
+      <div class="diary-birth" id="diaryBirthSlot" hidden>
+        <button type="button" class="diary-button diary-primary" id="diaryBirthDone" data-diary-copy="done">Показать прогноз</button>
+      </div>
+      <noscript><p>Для расчёта ежедневника включите JavaScript.</p></noscript>
+      <div class="diary-layout" id="diaryLayout" hidden>
+        <section class="diary-calendar" aria-labelledby="diaryMonth">
+          <header class="diary-calendar-head">
+            <h2 id="diaryMonth" aria-live="polite"></h2>
+            <div class="diary-controls">
+              <button type="button" class="diary-button diary-icon" id="diaryPrev" aria-label="Предыдущий месяц">‹</button>
+              <button type="button" class="diary-button" id="diaryToday" data-diary-copy="today">Сегодня</button>
+              <button type="button" class="diary-button diary-icon" id="diaryNext" aria-label="Следующий месяц">›</button>
+            </div>
+          </header>
+          <div class="diary-week" id="diaryWeek" aria-hidden="true"></div>
+          <div class="diary-days" id="diaryDays" role="group" aria-labelledby="diaryMonth"></div>
+        </section>
+        <article class="diary-reading" id="diaryReading" aria-labelledby="diaryDate">
+          <header class="diary-reading-head">
+            <h2 id="diaryDate" tabindex="-1" aria-live="polite"></h2>
+            <p id="diaryFocus"></p>
+          </header>
+          <p class="diary-empty" id="diaryMessage" role="status"></p>
+          <div id="diaryForecast" hidden>
+            <div class="diary-plan">
+              <section><h3 data-diary-copy="do">Взять в план</h3><ul id="diaryDo"></ul></section>
+              <section><h3 data-diary-copy="slow">Действовать осторожнее</h3><ul id="diarySlow"></ul></section>
+            </div>
+            <h3 class="diary-sources-title" data-diary-copy="why">Прогнозы на день</h3>
+            <div class="diary-sources" id="diarySources"></div>
+            <p class="diary-note" data-diary-copy="method">Транзиты рассчитаны на полдень по часовому поясу устройства. Подсказки основаны на астрологической интерпретации и теории биоритмов.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
   <aside class="panel" id="panel">
 
     <section aria-labelledby="hBirth">
@@ -2552,6 +2602,7 @@ body[data-view="doc"] .panel { display: none !important; }
       <li><a href="/goroskop-rebenka/">Гороскоп ребёнка</a></li>
       <li><a href="/lunnye-dni/">Лунные дни</a></li>
       <li><a href="/planetarnye-chasy/" data-view="tools">Инструменты</a></li>
+      <li><a href="/ezhednevnik/">Персональный ежедневник</a></li>
       <li><a href="/sport/">Спорт</a></li>
     </ul></nav>
     <nav aria-label="Информация"><h2>Инфо</h2><ul>
@@ -2602,7 +2653,7 @@ addEventListener('DOMContentLoaded', function () {
 <script src="js/acg-core.js?v=20261107qa"></script>
 <script src="js/meanings.js?v=20261104u"></script>
 <script src="js/natal.js?v=20261107qa"></script>
-<script src="js/features.js?v=20261107qa"></script>
+<script src="js/features.js?v=20261127diary"></script>
 <script src="js/horary.js?v=20261107qa"></script>
 <script src="js/interpret.js?v=20261118plain"></script>
 <script src="js/celebs.js?v=20261104u"></script>
@@ -2610,15 +2661,17 @@ addEventListener('DOMContentLoaded', function () {
 <script src="js/child.js?v=20261118b"></script>
 <script src="js/natal-view.js?v=20261120route"></script>
 <script src="js/cycles.js?v=20261113psy2"></script>
-<script src="js/tools-view.js?v=20261120route"></script>
+<script src="js/tools-view.js?v=20261127diary"></script>
+<script src="js/diary.js?v=20261127diary"></script>
+<script src="js/diary-view.js?v=20261127diary"></script>
 <script src="js/city-view.js?v=20261119pick"></script>
 <script src="js/sport.js?v=20261107qa"></script>
 <script src="js/sport-view.js?v=20261107qa"></script>
 <script src="js/firebase-config.js?v=20261104u"></script>
 <script src="js/account.js?v=20261120del"></script>
-<script src="js/home-view.js?v=20261120route"></script>
-<script src="js/page-texts.js?v=20261120op"></script>
+<script src="js/home-view.js?v=20261127diary"></script>
+<script src="js/page-texts.js?v=20261127diary"></script>
 <script src="js/pages.js?v=20261120docs"></script>
-<script src="js/app.js?v=20261126retry3"></script>
+<script src="js/app.js?v=20261127diary"></script>
 </body>
 </html>

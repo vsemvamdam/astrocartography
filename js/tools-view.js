@@ -448,9 +448,7 @@
   const bioList = (r) => `<div class="bio-dd"><div class="ok"><h5>Можно</h5><ul>${r.ok.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div><div class="no"><h5>Лучше воздержаться</h5><ul>${r.no.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div></div>`;
   const isoDay = (iso) => { const [y, m, d] = iso.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 86400000); };
   const dayIso = (n) => new Date(n * 86400000).toISOString().slice(0, 10);
-  const bioVal = (t, per) => Math.sin(2 * Math.PI * t / per);
-  // a crossing of zero at t = k·per/2 falls inside day t when t ≤ k·per/2 < t + 1
-  const bioCrit = (t, per) => { const h = per / 2, k = Math.ceil(t / h - 1e-9); return k * h < t + 1 - 1e-9; };
+  const { biorhythmValue: bioVal, biorhythmCrossesZero: bioCrit } = F;
   const bioModeSeg = (m) => `<div class="seg bio-mode" id="bioMode" role="group" aria-label="Для кого">${[['one', 'Один человек'], ['family', 'Семья']].map(([k, ru]) => `<button type="button" data-m="${k}" aria-pressed="${k === m}">${ru}</button>`).join('')}</div>`;
   function renderBio() {
     const o = opts();
