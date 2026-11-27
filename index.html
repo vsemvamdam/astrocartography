@@ -515,7 +515,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .hm-btn { display: inline-flex; align-items: center; min-height: 46px; padding: 0 20px; border-radius: 999px; border: 1px solid #24344F; color: var(--fg); text-decoration: none; font-size: 14.5px; font-weight: 500; }
 .hm-btn:hover { border-color: var(--press); }
 .hm-btn.primary { background: var(--press); border-color: var(--press); color: var(--brass-ink); font-weight: 600; }
-.hm-me { margin-top: 22px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 14px; background: var(--panel); display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; font-size: 14px; }
+.hm-me { margin-top: 22px; padding: 14px 16px; min-block-size: 102px; box-sizing: border-box; border: 1px solid var(--rule); border-radius: 14px; background: var(--panel); display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; font-size: 14px; }
 .hm-me b { font-weight: 600; }
 .hm-big3 { display: flex; flex-wrap: wrap; gap: 4px 14px; flex-basis: 100%; color: var(--fg); }
 .hm-big3 i { font-style: normal; font-family: var(--f-glyph); margin-right: 3px; }
@@ -538,7 +538,7 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .hm-when i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--press); animation: hm-live 2.4s ease-out infinite; }
 @keyframes hm-live { from { box-shadow: 0 0 0 0 rgba(var(--press-rgb), .55); } 70%, to { box-shadow: 0 0 0 7px rgba(var(--press-rgb), 0); } }
 .hm-tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 44vw), 1fr)); }
-.hm-tile { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 14px; background: var(--raise); }
+.hm-tile { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px; min-block-size: 126px; box-sizing: border-box; border: 1px solid var(--rule); border-radius: 14px; background: var(--raise); }
 .hm-tk { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
 .hm-tile b { font-size: 17px; font-weight: 600; }
 .hm-tile b i { font-style: normal; font-family: var(--f-glyph); font-weight: 400; }
@@ -554,6 +554,9 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .hm-card > span:not(.hm-ic):not(.hm-more) { font-size: 13.5px; line-height: 1.5; color: var(--muted); }
 .hm-ic { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 4px; border-radius: 50%; border: 1px solid rgba(216,164,166,.45); background: rgba(216,164,166,.08); color: var(--brass); font-family: var(--f-glyph); font-size: 22px; line-height: 1; }
 .hm-more { margin-top: auto; padding-top: 6px; font-size: 13px; color: var(--brass); }
+.hm-all-tools summary { width: fit-content; cursor: pointer; }
+.hm-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 4px 12px; list-style: none; margin: 12px 0 0; padding: 0; }
+.hm-links a { display: inline-flex; align-items: center; min-height: 44px; }
 .hm-foot { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--faint); max-width: 90ch; }
 @media (max-width: 759.98px) {
   .hm-hero { grid-template-columns: 1fr; gap: 20px; padding-top: 6px; }
@@ -2098,7 +2101,32 @@ body[data-view="doc"] .panel { display: none !important; }
     </div>
   </section>
 
-  <section class="natal home" id="homeView" aria-labelledby="homeH"><div class="natal-inner home-inner" id="homeOut"><!--home--><h1 class="hm-h1">Астрология по вашей карте</h1><p class="hm-lead">Натальная карта и её расшифровка, линии планет на карте мира, соляры и лунары, совместимость и инструменты для всей семьи — по дате, времени и месту рождения.</p><h2 class="hm-h">Разделы</h2><ul class="hm-links"><li><a href="/natalnaya-karta/">Натальная карта</a></li><li><a href="/solyar/">Соляр</a></li><li><a href="/lunar/">Лунар</a></li><li><a href="/sovmestimost/">Совместимость</a></li><li><a href="/goroskop-rebenka/">Гороскоп ребёнка</a></li><li><a href="/horar/">Хорар</a></li><li><a href="/zvezdy/">Звёзды</a></li><li><a href="/astrokartografiya/">Астрокартография</a></li><li><a href="/relokaciya/">Релокация</a></li><li><a href="/planetarnye-chasy/">Управители дня и часа</a></li><li><a href="/luna-bez-kursa/">Луна без курса</a></li><li><a href="/lunnye-dni/">Лунные дни</a></li><li><a href="/efemeridy/">Эфемериды</a></li><li><a href="/bioritmy/">Биоритмы</a></li><li><a href="/numerologiya/">Нумерология</a></li><li><a href="/tridcatigradusnik/">Тридцатиградусник</a></li><li><a href="/profekcii/">Профекции</a></li><li><a href="/tranzity/">Календарь транзитов</a></li><li><a href="/cikly-zhizni/">Циклы жизни</a></li><li><a href="/arabskie-zhrebii/">Арабские жребии</a></li><li><a href="/dispozitory/">Диспозиторы</a></li><li><a href="/ezhednevnik/">Персональный ежедневник</a></li><li><a href="/sport/">Спорт</a></li></ul><!--/home--></div></section>
+  <section class="natal home" id="homeView" aria-labelledby="homeH"><div class="natal-inner home-inner" id="homeOut"><!--home-->
+      <div class="hm-hero">
+        <div class="hm-copy">
+          <h1 class="hm-h1" id="homeH">Астрология по вашей карте</h1>
+          <p class="hm-lead">Натальная карта и её расшифровка, линии планет на карте мира, соляры и лунары, совместимость и инструменты для всей семьи — по дате, времени и месту рождения.</p>
+          <div class="hm-cta"><a class="hm-btn primary" href="/natalnaya-karta/" data-go="natal:natal">Открыть мою карту</a><a class="hm-btn" href="/astrokartografiya/" data-go="map">Карта мира</a></div>
+          <div class="hm-me" id="homeOwner">
+            <span class="muted">Ваша карта</span>
+            <span class="hm-big3">Солнце, Луна и Асцендент</span>
+            <a href="/natalnaya-karta/" data-go="edit" class="hm-link">Ввести свои данные рождения</a>
+          </div>
+        </div>
+        <figure class="hm-sky">
+          <svg class="hm-wheel" id="homeSkyWheel" viewBox="0 0 300 300" role="img" aria-label="Положение планет в небе сейчас" aria-hidden="true"><circle cx="150" cy="150" r="142" class="hs-ring"/><circle cx="150" cy="150" r="112" class="hs-ring"/><circle cx="150" cy="150" r="34" class="hs-core"/><line x1="38.0" y1="150.0" x2="8.0" y2="150.0" class="hs-tick"/><text x="27.3" y="188.9" class="hs-sign" style="fill:#F0805E">♈︎</text><line x1="53.0" y1="206.0" x2="27.0" y2="221.0" class="hs-tick"/><text x="60.2" y="245.8" class="hs-sign" style="fill:#9CC77A">♉︎</text><line x1="94.0" y1="247.0" x2="79.0" y2="273.0" class="hs-tick"/><text x="117.1" y="278.7" class="hs-sign" style="fill:#E6CB72">♊︎</text><line x1="150.0" y1="262.0" x2="150.0" y2="292.0" class="hs-tick"/><text x="182.9" y="278.7" class="hs-sign" style="fill:#62A9EF">♋︎</text><line x1="206.0" y1="247.0" x2="221.0" y2="273.0" class="hs-tick"/><text x="239.8" y="245.8" class="hs-sign" style="fill:#F0805E">♌︎</text><line x1="247.0" y1="206.0" x2="273.0" y2="221.0" class="hs-tick"/><text x="272.7" y="188.9" class="hs-sign" style="fill:#9CC77A">♍︎</text><line x1="262.0" y1="150.0" x2="292.0" y2="150.0" class="hs-tick"/><text x="272.7" y="123.1" class="hs-sign" style="fill:#E6CB72">♎︎</text><line x1="247.0" y1="94.0" x2="273.0" y2="79.0" class="hs-tick"/><text x="239.8" y="66.2" class="hs-sign" style="fill:#62A9EF">♏︎</text><line x1="206.0" y1="53.0" x2="221.0" y2="27.0" class="hs-tick"/><text x="182.9" y="33.3" class="hs-sign" style="fill:#F0805E">♐︎</text><line x1="150.0" y1="38.0" x2="150.0" y2="8.0" class="hs-tick"/><text x="117.1" y="33.3" class="hs-sign" style="fill:#9CC77A">♑︎</text><line x1="94.0" y1="53.0" x2="79.0" y2="27.0" class="hs-tick"/><text x="60.2" y="66.2" class="hs-sign" style="fill:#E6CB72">♒︎</text><line x1="53.0" y1="94.0" x2="27.0" y2="79.0" class="hs-tick"/><text x="27.3" y="123.1" class="hs-sign" style="fill:#62A9EF">♓︎</text><text x="150" y="156" class="hs-mid">⊕︎</text></svg>
+          <figcaption id="homeSkyCaption">Карта неба</figcaption>
+        </figure>
+      </div>
+      <div class="hm-now">
+        <h2 class="hm-h">Сейчас на небе</h2>
+        <p class="hm-when" id="homeClock" hidden><i aria-hidden="true"></i><time id="homeWhen"></time></p>
+      </div>
+      <div class="hm-tiles" id="homeTiles"><div class="hm-tile"><span class="hm-tk">Луна</span><a href="/lunnye-dni/" data-go="tools:lunar" class="hm-link">Лунные дни</a></div><div class="hm-tile"><span class="hm-tk">Солнце</span><a href="/planetarnye-chasy/" data-go="tools:hours" class="hm-link">Управители дня и часа</a></div><div class="hm-tile"><span class="hm-tk">Планеты</span><a href="/efemeridy/" data-go="tools:eph" class="hm-link">Эфемериды</a></div></div>
+      <h2 class="hm-h">Разделы</h2>
+      <div class="hm-grid"><a class="hm-card" href="/ezhednevnik/" data-go="diary"><span class="hm-ic">▦︎</span><b>Персональный ежедневник</b><span>Календарь на месяц с подсказками, чем заняться и где не торопиться по вашей карте.</span><span class="hm-more">Открыть →</span></a><a class="hm-card" href="/natalnaya-karta/" data-go="natal:natal"><span class="hm-ic">☉︎</span><b>Натальная карта</b><span>Характер, планеты в знаках и домах, аспекты и подробная расшифровка карты.</span><span class="hm-more">Открыть →</span></a><a class="hm-card" href="/astrokartografiya/" data-go="map"><span class="hm-ic">⊕︎</span><b>Карта мира</b><span>Линии планет по всему миру: где легче с любовью, деньгами, карьерой и отдыхом.</span><span class="hm-more">Открыть →</span></a><a class="hm-card" href="/relokaciya/" data-go="city"><span class="hm-ic">⌂︎</span><b>Город</b><span>Как меняется ваша карта в любом городе: дома, лучи и сильные стороны места.</span><span class="hm-more">Открыть →</span></a><a class="hm-card" href="/solyar/" data-go="natal:solar"><span class="hm-ic">☼︎</span><b>Соляр</b><span>Прогноз на год от дня рождения: главные темы, дома и лучшие города для соляра.</span><span class="hm-more">Открыть →</span></a><a class="hm-card" href="/lunar/" data-go="natal:lunar"><span class="hm-ic">☽︎</span><b>Лунар</b><span>Прогноз на месяц: важные точки и все двенадцать домов с силой каждой планеты.</span><span class="hm-more">Открыть →</span></a><a class="hm-card" href="/goroskop-rebenka/" data-go="natal:child"><span class="hm-ic">☺︎</span><b>Гороскоп ребёнка</b><span>Характер, чувства, учёба и таланты ребёнка, подсказки родителям и ваша совместимость.</span><span class="hm-more">Открыть →</span></a><a class="hm-card" href="/sovmestimost/" data-go="natal:synastry"><span class="hm-ic">⚭︎</span><b>Совместимость</b><span>Синастрия и композит: как ваша карта взаимодействует с картой партнёра.</span><span class="hm-more">Открыть →</span></a><a class="hm-card" href="/zvezdy/" data-go="natal:stars"><span class="hm-ic">★︎</span><b>Звёзды</b><span>На кого из знаменитостей похожа ваша карта — и чем именно.</span><span class="hm-more">Открыть →</span></a><a class="hm-card" href="/horar/" data-go="natal:horary"><span class="hm-ic">☿︎</span><b>Хорар</b><span>Ответ на конкретный вопрос по карте момента, по правилам Лилли и Фроули.</span><span class="hm-more">Открыть →</span></a><a class="hm-card" href="/bioritmy/" data-go="tools:family"><span class="hm-ic">∿︎</span><b>Биоритмы семьи</b><span>Физический, эмоциональный и интеллектуальный циклы всей семьи и PDF на месяц.</span><span class="hm-more">Открыть →</span></a><a class="hm-card" href="/planetarnye-chasy/" data-go="tools"><span class="hm-ic">⚹︎</span><b>Инструменты</b><span>Лунные дни, эфемериды, жребии, профекции, циклы жизни, нумерология и другое.</span><span class="hm-more">Открыть →</span></a><a class="hm-card" href="/sport/" data-go="sport"><span class="hm-ic">♂︎</span><b>Спорт</b><span>Прогноз матчей по Фроули и база игр, на которой проверяются правила.</span><span class="hm-more">Открыть →</span></a></div>
+      <details class="hm-all-tools"><summary class="hm-btn">Все инструменты</summary><ul class="hm-links"><li><a class="hm-link" href="/luna-bez-kursa/">Луна без курса</a></li><li><a class="hm-link" href="/lunnye-dni/">Лунные дни</a></li><li><a class="hm-link" href="/efemeridy/">Эфемериды</a></li><li><a class="hm-link" href="/numerologiya/">Нумерология</a></li><li><a class="hm-link" href="/tridcatigradusnik/">Тридцатиградусник</a></li><li><a class="hm-link" href="/profekcii/">Профекции</a></li><li><a class="hm-link" href="/tranzity/">Календарь транзитов</a></li><li><a class="hm-link" href="/cikly-zhizni/">Циклы жизни</a></li><li><a class="hm-link" href="/arabskie-zhrebii/">Арабские жребии</a></li><li><a class="hm-link" href="/dispozitory/">Диспозиторы</a></li></ul></details>
+      <p class="hm-foot">Положения планет считаются по Astronomy Engine, дома по умолчанию — Плацидус. Данные знаменитостей — Astro-Databank. Все ваши данные хранятся в этом браузере, а с аккаунтом — ещё и в облаке.</p><!--/home--></div></section>
 
   <section class="natal nat-pending" id="natalView" hidden aria-labelledby="natH">
     <div class="natal-inner">
@@ -2657,7 +2685,7 @@ addEventListener('DOMContentLoaded', function () {
 <script src="js/sport-view.js?v=20261107qa"></script>
 <script src="js/firebase-config.js?v=20261104u"></script>
 <script src="js/account.js?v=20261120del"></script>
-<script src="js/home-view.js?v=20261127diary"></script>
+<script src="js/home-view.js?v=20261127home"></script>
 <script src="js/page-texts.js?v=20261127diary"></script>
 <script src="js/pages.js?v=20261120docs"></script>
 <script src="js/app.js?v=20261127cls"></script>
