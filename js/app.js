@@ -1237,16 +1237,12 @@
   $('birthForm').addEventListener('submit', (e) => e.preventDefault());
 
   /* ------------------------------ angle chips ----------------------------- */
-  const CHIP_SVG = {
-    MC: '<line x1="1" y1="4" x2="27" y2="4" stroke="currentColor" stroke-width="1.8"/>',
-    IC: '<line x1="2" y1="4" x2="27" y2="4" stroke="currentColor" stroke-width="2.2" stroke-dasharray="0.1 4.4" stroke-linecap="round"/>',
-    ASC: '<line x1="1" y1="4" x2="27" y2="4" stroke="currentColor" stroke-width="1.8" stroke-dasharray="7 4"/>',
-    DSC: '<line x1="1" y1="4" x2="27" y2="4" stroke="currentColor" stroke-width="1.8" stroke-dasharray="7 3 1.6 3"/>',
-  };
-  const ANGLE_SHORT = { MC: 'зенит · карьера', IC: 'надир · дом', ASC: 'восход · личность', DSC: 'заход · партнёры' };
-  $('angles').innerHTML = ANG.map((a) =>
-    `<button type="button" class="chip" data-a="${a}" aria-pressed="${!!state.angles[a]}"><svg viewBox="0 0 28 8">${CHIP_SVG[a]}</svg><span class="c-t"><b>${a}</b><small>${ANGLE_SHORT[a]}</small></span></button>`).join('');
-  $('angles').addEventListener('click', (e) => {
+  const angleControls = $('angles');
+  for (const button of angleControls.querySelectorAll('button[data-a]')) {
+    button.setAttribute('aria-pressed', String(!!state.angles[button.dataset.a]));
+    button.disabled = false;
+  }
+  angleControls.addEventListener('click', (e) => {
     const b = e.target.closest('.chip'); if (!b) return;
     const a = b.dataset.a;
     state.angles[a] = !state.angles[a];

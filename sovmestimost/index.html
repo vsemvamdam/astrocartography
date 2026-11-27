@@ -65,7 +65,7 @@ body { margin: 0; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Forum&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Forum&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=optional">
 <style>
 /* Layout: a night-chart instrument. The map is the hero and fills the screen;
    the ledger panel (birth data, lines, planets) sits beside it on wide screens
@@ -235,6 +235,11 @@ a, button { -webkit-tap-highlight-color: rgba(var(--press-rgb), .28); }
 .acc-btn svg { flex: none; }
 .acc-btn .acc-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acc-btn.in svg { color: var(--brass); }
+@media (min-width: 900px) {
+  .tb-inner { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+  .tb-brand { justify-self: start; }
+  .acc-btn { grid-column: 3; justify-self: end; }
+}
 @media (max-width: 899.98px) {
   .tab { padding: 7px 10px; font-size: 13.5px; }
 }
@@ -360,6 +365,7 @@ body[data-natmode="horary"] .for-natal { display: none !important; }
   font-size: 13px; color: #E9D7B2;
 }
 .example b { font-weight: 600; }
+#panel .example { min-block-size: 3lh; }
 
 .form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -561,6 +567,9 @@ select.inp { background-image: linear-gradient(45deg, transparent 50%, var(--mut
 .natal-head h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 30px; letter-spacing: .04em; line-height: 1.15; text-wrap: balance; }
 .natal-head .nt { margin: 4px 0 0; font-family: var(--f-display); font-size: 19px; letter-spacing: .06em; text-transform: uppercase; color: var(--heading); }
 .natal-head .ns { margin: 6px 0 0; font-family: var(--f-mono); font-size: 12px; color: var(--muted); line-height: 1.6; }
+.nat-pending .natal-head :is(.nt, .ns) { min-block-size: 1lh; }
+/* The empty plotting controls and tables become visible together with the calculated chart. */
+.nat-pending .natal-grid { visibility: hidden; }
 .nat-note { margin: 10px 0 0; padding: 8px 12px; border-radius: var(--r); border: 1px solid rgba(216,164,166,.3); background: rgba(216,164,166,.07); color: #E9D7B2; font-size: 13px; max-width: 70ch; }
 body[data-view="natal"][data-natmode="child"] section[aria-labelledby="hBirth"] { display: none; }
 #natalView.child-empty .natal-grid { display: none; }
@@ -702,6 +711,11 @@ body[data-view="natal"][data-natmode="child"] section[aria-labelledby="hBirth"] 
 /* ------------------------- natal modes and solar ------------------------- */
 .nat-modes { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
 .nat-modes .seg button { font-size: 14px; padding: 7px 15px; }
+/* Hold the action slots in the modes that can calculate a reading on first load. */
+body:is([data-natmode="natal"], [data-natmode="solar"], [data-natmode="lunar"]) .nat-pending :is(.rd-jump, .rd-pdf)[hidden] {
+  display: block !important;
+  visibility: hidden;
+}
 .sol-ctl { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; padding: 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--rule); }
 .sol-ctl .sol-year { flex: 0 0 120px; }
 .sol-ctl .sol-where { flex: 1 1 240px; }
@@ -1951,7 +1965,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
 /* ------------------- page tail: text about the page, footer ------------------- */
 /* js/pages.js moves the tail to the end of the open section (computer) or of the page (phone) */
 .page-tail { box-sizing: border-box; width: 100%; max-width: 1320px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
-@media (min-width: 900px) { .page-tail { padding: 0 32px; } .panel .page-tail { padding: 0; order: 20; } }
+@media (min-width: 900px) {
+  .page-tail { padding: 0 32px; }
+  /* Until the footer joins the active scroller, keep the app at its full desktop height. */
+  body > .page-tail { position: absolute; inset: 100% 0 auto; }
+  .panel .page-tail { padding: 0; order: 20; }
+}
 /* the same column as the section's own content */
 #homeView .page-tail { max-width: 1180px; }
 #docView .page-tail { max-width: 820px; }
@@ -1998,9 +2017,9 @@ body[data-view="doc"] .panel { display: none !important; }
 .btn-main.danger { width: 100%; background: var(--danger); color: #2A0E0A; }
 .acc-fine a { color: var(--brass); }
 </style>
-<link rel="stylesheet" href="assets/diary.css?v=20261127diary">
+<link rel="stylesheet" href="assets/diary.css?v=20261127cls">
 </head>
-<body>
+<body data-view="natal" data-natmode="synastry">
 
 <div class="sky" id="sky" aria-hidden="true">
   <canvas id="skyStars"></canvas>
@@ -2027,7 +2046,7 @@ body[data-view="doc"] .panel { display: none !important; }
 </header>
 
 <div class="app" id="app">
-  <section class="mapwrap" id="mapwrap" aria-label="Карта мира с линиями планет">
+  <section class="mapwrap" id="mapwrap" hidden aria-label="Карта мира с линиями планет">
     <canvas id="map" tabindex="0" aria-label="Карта астрокартографии. Перетаскивайте, чтобы двигать, сводите пальцы или крутите колесо, чтобы приблизить. Нажмите на точку, чтобы увидеть ближайшие линии."></canvas>
 
     <div class="map-shade" aria-hidden="true"></div>
@@ -2080,7 +2099,7 @@ body[data-view="doc"] .panel { display: none !important; }
 
   <section class="natal home" id="homeView" hidden aria-labelledby="homeH"><div class="natal-inner home-inner" id="homeOut"><!--home--><!--/home--></div></section>
 
-  <section class="natal" id="natalView" aria-labelledby="natH">
+  <section class="natal nat-pending" id="natalView" aria-labelledby="natH">
     <div class="natal-inner">
       <div class="nat-modes">
         <div class="seg" id="natMode" role="group" aria-label="Что показать">
@@ -2483,7 +2502,12 @@ body[data-view="doc"] .panel { display: none !important; }
 
     <section class="for-map" aria-labelledby="hAngles">
       <div class="sec-h"><h2 id="hAngles">Линии</h2><span class="aside">нажмите, чтобы скрыть</span></div>
-      <div class="angles" id="angles"></div>
+      <div class="angles" id="angles">
+        <button type="button" class="chip" data-a="MC" aria-pressed="true" disabled><svg viewBox="0 0 28 8" aria-hidden="true"><line x1="1" y1="4" x2="27" y2="4" stroke="currentColor" stroke-width="1.8"/></svg><span class="c-t"><b>MC</b><small>зенит · карьера</small></span></button>
+        <button type="button" class="chip" data-a="IC" aria-pressed="true" disabled><svg viewBox="0 0 28 8" aria-hidden="true"><line x1="2" y1="4" x2="27" y2="4" stroke="currentColor" stroke-width="2.2" stroke-dasharray="0.1 4.4" stroke-linecap="round"/></svg><span class="c-t"><b>IC</b><small>надир · дом</small></span></button>
+        <button type="button" class="chip" data-a="ASC" aria-pressed="true" disabled><svg viewBox="0 0 28 8" aria-hidden="true"><line x1="1" y1="4" x2="27" y2="4" stroke="currentColor" stroke-width="1.8" stroke-dasharray="7 4"/></svg><span class="c-t"><b>ASC</b><small>восход · личность</small></span></button>
+        <button type="button" class="chip" data-a="DSC" aria-pressed="true" disabled><svg viewBox="0 0 28 8" aria-hidden="true"><line x1="1" y1="4" x2="27" y2="4" stroke="currentColor" stroke-width="1.8" stroke-dasharray="7 3 1.6 3"/></svg><span class="c-t"><b>DSC</b><small>заход · партнёры</small></span></button>
+      </div>
     </section>
 
     <section class="for-map" aria-labelledby="hPlanets">
@@ -2622,7 +2646,7 @@ addEventListener('DOMContentLoaded', function () {
 <script src="js/celebs.js?v=20261104u"></script>
 <script src="js/pdf-export.js?v=20261118tg"></script>
 <script src="js/child.js?v=20261118b"></script>
-<script src="js/natal-view.js?v=20261120route"></script>
+<script src="js/natal-view.js?v=20261127cls"></script>
 <script src="js/cycles.js?v=20261113psy2"></script>
 <script src="js/tools-view.js?v=20261127diary"></script>
 <script src="js/diary.js?v=20261127diary"></script>
@@ -2635,6 +2659,6 @@ addEventListener('DOMContentLoaded', function () {
 <script src="js/home-view.js?v=20261127diary"></script>
 <script src="js/page-texts.js?v=20261127diary"></script>
 <script src="js/pages.js?v=20261120docs"></script>
-<script src="js/app.js?v=20261127diary"></script>
+<script src="js/app.js?v=20261127cls"></script>
 </body>
 </html>
