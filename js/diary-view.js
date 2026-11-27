@@ -213,7 +213,7 @@
       method: 'Transits are calculated at noon in the device’s time zone. The suggestions are based on astrological interpretation and biorhythm theory.',
     };
     if (eng) {
-      $('diaryTitle').textContent = 'Personal diary';
+      $('diaryTitle').textContent = 'Personal assistant';
       for (const el of $('diaryView').querySelectorAll('[data-diary-copy]')) el.textContent = text[el.dataset.diaryCopy];
       $('diaryPrev').setAttribute('aria-label', 'Previous month');
       $('diaryNext').setAttribute('aria-label', 'Next month');
