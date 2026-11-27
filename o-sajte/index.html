@@ -2045,7 +2045,7 @@ body[data-view="doc"] .panel { display: none !important; }
 .btn-main.danger { width: 100%; background: var(--danger); color: #2A0E0A; }
 .acc-fine a { color: var(--brass); }
 </style>
-<link rel="stylesheet" href="assets/diary.css?v=20261127cls">
+<link rel="stylesheet" href="assets/diary.css?v=20261127visuals">
 </head>
 <body data-view="doc">
 
@@ -2441,6 +2441,7 @@ body[data-view="doc"] .panel { display: none !important; }
               <button type="button" class="diary-button diary-icon" id="diaryNext" aria-label="Следующий месяц">›</button>
             </div>
           </header>
+          <p class="diary-calendar-note" id="diaryMoonKey" data-diary-copy="moonKey" hidden>Значки показывают знак Луны в полдень.</p>
           <div class="diary-week" id="diaryWeek" aria-hidden="true"></div>
           <div class="diary-days" id="diaryDays" role="group" aria-labelledby="diaryMonth"></div>
         </section>
@@ -2452,8 +2453,8 @@ body[data-view="doc"] .panel { display: none !important; }
           <p class="diary-empty" id="diaryMessage" role="status"></p>
           <div id="diaryForecast" hidden>
             <div class="diary-plan">
-              <section><h3 data-diary-copy="do">Взять в план</h3><ul id="diaryDo"></ul></section>
-              <section><h3 data-diary-copy="slow">Действовать осторожнее</h3><ul id="diarySlow"></ul></section>
+              <section><h3><span class="diary-plan-icon" aria-hidden="true">✓</span><span data-diary-copy="do">Взять в план</span></h3><ul id="diaryDo"></ul></section>
+              <section><h3><span class="diary-plan-icon" aria-hidden="true">!</span><span data-diary-copy="slow">Действовать осторожнее</span></h3><ul id="diarySlow"></ul></section>
             </div>
             <h3 class="diary-sources-title" data-diary-copy="why">Прогнозы на день</h3>
             <div class="diary-sources" id="diarySources"></div>
@@ -2717,8 +2718,8 @@ addEventListener('DOMContentLoaded', function () {
 <script src="js/ascendent-view.js?v=20261127ascendent"></script>
 <script src="js/cycles.js?v=20261113psy2"></script>
 <script src="js/tools-view.js?v=20261127diary"></script>
-<script src="js/diary.js?v=20261127diary"></script>
-<script src="js/diary-view.js?v=20261127assistant"></script>
+<script src="js/diary.js?v=20261127visuals"></script>
+<script src="js/diary-view.js?v=20261127visuals"></script>
 <script src="js/city-view.js?v=20261119pick"></script>
 <script src="js/sport.js?v=20261107qa"></script>
 <script src="js/sport-view.js?v=20261107qa"></script>
