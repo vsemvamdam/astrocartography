@@ -65,7 +65,7 @@ body { margin: 0; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Forum&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Forum&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=optional">
 <style>
 /* Layout: a night-chart instrument. The map is the hero and fills the screen;
    the ledger panel (birth data, lines, planets) sits beside it on wide screens
@@ -365,6 +365,7 @@ body[data-natmode="horary"] .for-natal { display: none !important; }
   font-size: 13px; color: #E9D7B2;
 }
 .example b { font-weight: 600; }
+#panel .example { min-block-size: 3lh; }
 
 .form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -2538,7 +2539,12 @@ body[data-view="doc"] .panel { display: none !important; }
 
     <section class="for-map" aria-labelledby="hAngles">
       <div class="sec-h"><h2 id="hAngles">Линии</h2><span class="aside">нажмите, чтобы скрыть</span></div>
-      <div class="angles" id="angles"></div>
+      <div class="angles" id="angles">
+        <button type="button" class="chip" data-a="MC" aria-pressed="true" disabled><svg viewBox="0 0 28 8" aria-hidden="true"><line x1="1" y1="4" x2="27" y2="4" stroke="currentColor" stroke-width="1.8"/></svg><span class="c-t"><b>MC</b><small>зенит · карьера</small></span></button>
+        <button type="button" class="chip" data-a="IC" aria-pressed="true" disabled><svg viewBox="0 0 28 8" aria-hidden="true"><line x1="2" y1="4" x2="27" y2="4" stroke="currentColor" stroke-width="2.2" stroke-dasharray="0.1 4.4" stroke-linecap="round"/></svg><span class="c-t"><b>IC</b><small>надир · дом</small></span></button>
+        <button type="button" class="chip" data-a="ASC" aria-pressed="true" disabled><svg viewBox="0 0 28 8" aria-hidden="true"><line x1="1" y1="4" x2="27" y2="4" stroke="currentColor" stroke-width="1.8" stroke-dasharray="7 4"/></svg><span class="c-t"><b>ASC</b><small>восход · личность</small></span></button>
+        <button type="button" class="chip" data-a="DSC" aria-pressed="true" disabled><svg viewBox="0 0 28 8" aria-hidden="true"><line x1="1" y1="4" x2="27" y2="4" stroke="currentColor" stroke-width="1.8" stroke-dasharray="7 3 1.6 3"/></svg><span class="c-t"><b>DSC</b><small>заход · партнёры</small></span></button>
+      </div>
     </section>
 
     <section class="for-map" aria-labelledby="hPlanets">
@@ -2690,6 +2696,6 @@ addEventListener('DOMContentLoaded', function () {
 <script src="js/home-view.js?v=20261127diary"></script>
 <script src="js/page-texts.js?v=20261127diary"></script>
 <script src="js/pages.js?v=20261120docs"></script>
-<script src="js/app.js?v=20261127diary"></script>
+<script src="js/app.js?v=20261127cls"></script>
 </body>
 </html>
