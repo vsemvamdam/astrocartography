@@ -18,9 +18,14 @@
   };
   const SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
   const ASPECTS = { conj: 'Conjunction', opp: 'Opposition', trine: 'Trine', sq: 'Square', sext: 'Sextile' };
-  const NAMES = { ...Object.fromEntries(ACG.BODIES.map((p) => [p.id, p.ru])), ASC: 'Асцендент', MC: 'Середина неба' };
-  const sign = (p) => t(ACG.SIGNS[p.sign][1], SIGNS[p.sign]);
-  const name = (id) => t(NAMES[id], id === 'ASC' ? 'Ascendant' : id === 'MC' ? 'Midheaven' : id);
+  const BODIES = Object.fromEntries(ACG.BODIES.map((p) => [p.id, p]));
+  const SOURCE_GLYPHS = { transits: '☌', rhythms: '∿', natal: '☉', solar: '☼', lunar: '☽' };
+  const RHYTHMS = [
+    ['physical', 'Физический', 'Physical'],
+    ['emotional', 'Эмоциональный', 'Emotional'],
+    ['intellectual', 'Интеллектуальный', 'Intellectual'],
+  ];
+  const signName = (i) => t(ACG.SIGNS[i][1], SIGNS[i]);
   const min = dayNumber('1800-01-01'), max = dayNumber('2100-12-31');
   const today = () => {
     const d = new Date();
@@ -32,14 +37,27 @@
   };
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const make = (tag, value) => Object.assign(document.createElement(tag), { textContent: value });
+  const piece = (tag, className, value = '') => Object.assign(make(tag, value), { className });
   let app, birth, selected, first, forecast, builtFor, error, calendarKey;
   let currentDay;
+
+  function glyph(symbol, className) {
+    const el = piece('span', `diary-glyph ${className}`, symbol + '\ufe0e');
+    el.setAttribute('aria-hidden', 'true');
+    return el;
+  }
+
+  function zodiac(i) {
+    const el = glyph(ACG.SIGNS[i][0], 'diary-zodiac');
+    el.dataset.element = i % 4;
+    return el;
+  }
 
   function pick(n, { focus = false, reveal = false } = {}) {
     selected = Math.max(min, Math.min(max, n));
     update();
     if (focus) $('diaryDays').querySelector('[aria-pressed="true"]')?.focus();
-    if (reveal && matchMedia('(max-width: 899px)').matches) {
+    if (reveal && matchMedia('(max-width: 1049.98px)').matches) {
       $('diaryDate').focus({ preventScroll: true });
       $('diaryReading').scrollIntoView({ block: 'start' });
     }
@@ -59,14 +77,19 @@
       for (let n = first; n < end; n++) {
         const day = forecast && forecast.days.get(n);
         const label = day ? titleOf(day.focus) : '';
+        const moonSign = Number.isInteger(day?.moonSign) ? day.moonSign : null;
         const b = make('button', '');
         b.type = 'button';
         b.className = 'diary-day';
         b.dataset.day = n;
-        b.setAttribute('aria-label', [DATE.format(n * DAY), label].filter(Boolean).join(', '));
+        const moon = moonSign == null ? '' : t(`Луна — ${signName(moonSign)}`, `Moon in ${signName(moonSign)}`);
+        b.setAttribute('aria-label', [DATE.format(n * DAY), label, moon].filter(Boolean).join(', '));
         if (n === currentDay) b.setAttribute('aria-current', 'date');
         if (day) b.dataset.topic = day.focus;
-        b.append(make('span', String(n - first + 1)));
+        const top = piece('span', 'diary-day-top');
+        top.append(piece('span', 'diary-day-number', String(n - first + 1)));
+        if (moonSign != null) top.append(zodiac(moonSign));
+        b.append(top);
         if (label) {
           const small = make('small', label);
           small.title = label;
@@ -80,6 +103,8 @@
       for (let i = 0; i < trailing; i++) cells.append(make('span', ''));
       grid.replaceChildren(cells);
     }
+    const moonKey = $('diaryMoonKey');
+    if (moonKey) moonKey.hidden = !grid.querySelector('.diary-zodiac');
     for (const b of grid.querySelectorAll('button')) {
       const active = +b.dataset.day === selected;
       b.setAttribute('aria-pressed', String(active));
@@ -89,13 +114,60 @@
     $('diaryNext').disabled = firstOf(first, 1) > max;
   }
 
+  function celestial(id) {
+    const planet = BODIES[id];
+    const label = id === 'ASC' ? t('Асцендент', 'Ascendant') : id === 'MC' ? t('Середина неба', 'Midheaven') : t(planet?.ru || id, id);
+    const el = piece('span', 'diary-celestial');
+    const icon = glyph(planet?.glyph || id, planet ? 'diary-planet' : 'diary-angle');
+    if (planet) icon.style.color = planet.color;
+    el.append(icon, make('span', label));
+    return el;
+  }
+
   function aspectLine(hit) {
     const aspect = t(hit.aspect.ru, ASPECTS[hit.aspect.id]);
     const orb = ORB.format(hit.orb);
     const reading = hit.aspect.kind === 'soft' ? t('поддерживающий аспект', 'supportive aspect')
       : hit.aspect.kind === 'hard' ? t('напряжённый аспект', 'challenging aspect') : t('акцент на теме', 'area of focus');
-    return t(`${name(hit.id)} → ${name(hit.p.id)}, ${aspect.toLowerCase()}, орбис ${orb}°. ${cap(reading)}.`,
-      `${name(hit.id)} → ${name(hit.p.id)}, ${aspect.toLowerCase()}, ${orb}° orb. ${cap(reading)}.`);
+    const row = piece('li', 'diary-aspect');
+    const pair = piece('div', 'diary-aspect-pair');
+    const arrow = piece('span', 'diary-aspect-arrow', '→');
+    arrow.setAttribute('aria-hidden', 'true');
+    pair.append(celestial(hit.id), arrow, celestial(hit.p.id));
+    const note = piece('div', 'diary-aspect-note');
+    note.append(make('span', t(`${cap(aspect)} · орбис ${orb}°`, `${cap(aspect)} · ${orb}° orb`)));
+    const tag = piece('span', 'diary-aspect-tag', cap(reading));
+    tag.dataset.kind = hit.aspect.kind;
+    note.append(tag);
+    row.append(pair, note);
+    return row;
+  }
+
+  function rhythmCards(rhythms) {
+    const list = piece('ul', 'diary-metrics');
+    rhythms.forEach(({ value, crossing }, i) => {
+      const [kind, ru, en] = RHYTHMS[i];
+      const card = piece('li', 'diary-metric');
+      card.dataset.rhythm = kind;
+      const phase = crossing ? t('Переход через ноль', 'Zero crossing')
+        : value > 0 ? t('Положительная фаза', 'Positive phase') : t('Отрицательная фаза', 'Negative phase');
+      const percent = value ? `${value > 0 ? '+' : '−'}${Math.abs(value)}%` : '0%';
+      card.append(piece('strong', 'diary-metric-value', percent), piece('span', 'diary-metric-label', t(ru, en)), piece('small', 'diary-metric-phase', phase));
+      list.append(card);
+    });
+    return list;
+  }
+
+  function natalCards(sun, moon, asc) {
+    const list = piece('ul', 'diary-natal-signs');
+    for (const [label, point] of [[t('Солнце', 'Sun'), sun], [t('Луна', 'Moon'), moon], [t('Асцендент', 'Ascendant'), asc]]) {
+      const card = piece('li', 'diary-natal-sign');
+      const value = piece('strong', 'diary-natal-value');
+      value.append(zodiac(point.sign), make('span', signName(point.sign)));
+      card.append(piece('span', 'diary-natal-label', label), value);
+      list.append(card);
+    }
+    return list;
   }
 
   function cycleLine(p, body) {
@@ -104,16 +176,23 @@
       `${body} in house ${p.house}. ${titleOf(p.topic)}. Return on ${date}, ${p.location.name}.`);
   }
 
-  function source(label, lines, spec) {
+  function source(kind, label, blocks, spec) {
     const details = document.createElement('details');
-    details.append(make('summary', label));
-    const body = document.createElement('div');
-    for (const line of lines) body.append(make('p', line));
-    const link = make('a', t('Открыть инструмент', 'Open the tool'));
+    details.dataset.source = kind;
+    const summary = document.createElement('summary');
+    const chevron = piece('span', 'diary-source-chevron');
+    chevron.setAttribute('aria-hidden', 'true');
+    summary.append(glyph(SOURCE_GLYPHS[kind], 'diary-source-icon'), make('span', label), chevron);
+    const body = piece('div', 'diary-source-body');
+    body.append(...blocks);
+    const link = piece('a', 'diary-source-link', t('Открыть инструмент', 'Open the tool'));
     link.href = ROUTES.path(spec);
     link.setAttribute('aria-label', `${link.textContent} «${label}»`);
+    const arrow = piece('span', 'diary-link-arrow', '→');
+    arrow.setAttribute('aria-hidden', 'true');
+    link.append(arrow);
     body.append(link);
-    details.append(body);
+    details.append(summary, body);
     return details;
   }
 
@@ -141,29 +220,24 @@
     $('diaryDo').replaceChildren(...[actionOf(day.focus, 1), second && actionOf(second, 1)].filter(Boolean).map((s) => make('li', s)));
     $('diarySlow').replaceChildren(...[actionOf(day.caution, 2), rhythmCaution].map((s) => make('li', s)));
 
-    const rhythmNames = t(['Физический', 'Эмоциональный', 'Интеллектуальный'], ['Physical', 'Emotional', 'Intellectual']);
-    const rhythms = day.rhythms.map(({ value, crossing }, i) => {
-      const phase = crossing ? t('переход через ноль', 'zero crossing')
-        : value > 0 ? t('положительная фаза', 'positive phase') : t('отрицательная фаза', 'negative phase');
-      return `${rhythmNames[i]} ${value > 0 ? '+' : ''}${value}% (${phase})`;
-    });
-    const transitLines = day.contacts.map(aspectLine);
-    if (!transitLines.length) transitLines.push(t('На полдень нет близких мажорных аспектов.', 'There are no close major aspects at noon.'));
+    const transits = piece('ul', 'diary-aspects');
+    transits.append(...day.contacts.map(aspectLine));
+    const transitBody = day.contacts.length ? transits : make('p', t('На полдень нет близких мажорных аспектов.', 'There are no close major aspects at noon.'));
     const previousOpen = [...$('diarySources').children].map((s) => s.open);
     const sources = [
-      source(t('Транзиты', 'Transits'), transitLines, 'tools:transits'),
-      source(t('Биоритмы', 'Biorhythms'), rhythms, 'tools:bio'),
-      source(t('Натальная карта', 'Natal chart'), [
-        t(`Солнце — ${sign(sun)}, Луна — ${sign(moon)}, Асцендент — ${sign(asc)}.`, `Sun in ${sign(sun)}, Moon in ${sign(moon)}, Ascendant in ${sign(asc)}.`),
-        t(`Транзитная Луна в натальном доме №${day.moonHouse}. Тема — ${titleOf(houses[day.moonHouse]).toLowerCase()}.`,
-          `Transiting Moon in natal house ${day.moonHouse}. Theme: ${titleOf(houses[day.moonHouse]).toLowerCase()}.`),
+      source('transits', t('Транзиты', 'Transits'), [transitBody], 'tools:transits'),
+      source('rhythms', t('Биоритмы', 'Biorhythms'), [rhythmCards(day.rhythms)], 'tools:bio'),
+      source('natal', t('Натальная карта', 'Natal chart'), [
+        natalCards(sun, moon, asc),
+        make('p', t(`Транзитная Луна в натальном доме №${day.moonHouse}. Тема — ${titleOf(houses[day.moonHouse]).toLowerCase()}.`,
+          `Transiting Moon in natal house ${day.moonHouse}. Theme: ${titleOf(houses[day.moonHouse]).toLowerCase()}.`)),
       ], 'natal:natal'),
-      source(t('Соляр', 'Solar return'), [cycleLine(day.solar, t('Солнце', 'Sun')),
-        t('Тема года. ', 'Theme for the year. ') + actionOf(day.solar.topic, 1)], 'natal:solar'),
-      source(t('Лунар', 'Lunar return'), [cycleLine(day.lunar, t('Луна', 'Moon')),
-        t('Тема текущего лунного цикла. ', 'Theme for the current lunar cycle. ') + actionOf(day.lunar.topic, 1)], 'natal:lunar'),
+      source('solar', t('Соляр', 'Solar return'), [make('p', cycleLine(day.solar, t('Солнце', 'Sun'))),
+        make('p', t('Тема года. ', 'Theme for the year. ') + actionOf(day.solar.topic, 1))], 'natal:solar'),
+      source('lunar', t('Лунар', 'Lunar return'), [make('p', cycleLine(day.lunar, t('Луна', 'Moon'))),
+        make('p', t('Тема текущего лунного цикла. ', 'Theme for the current lunar cycle. ') + actionOf(day.lunar.topic, 1))], 'natal:lunar'),
     ];
-    sources.forEach((s, i) => { s.open = previousOpen[i] ?? i === 0; });
+    sources.forEach((s, i) => { s.open = previousOpen[i] ?? i < 2; });
     $('diarySources').replaceChildren(...sources);
   }
 
@@ -210,6 +284,7 @@
       intro: 'Astrological insights for planning each day.', free: 'Free access',
       noProfile: 'Enter your date, time and place of birth to see a personal forecast.', edit: 'Birth details', done: 'Show forecast',
       today: 'Today', do: 'Make time for', slow: 'Proceed with care', why: 'Daily readings',
+      moonKey: 'Each symbol shows the Moon sign at noon.',
       method: 'Transits are calculated at noon in the device’s time zone. The suggestions are based on astrological interpretation and biorhythm theory.',
     };
     if (eng) {

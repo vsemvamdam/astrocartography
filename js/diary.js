@@ -99,7 +99,7 @@
       const caution = hard ? themes[hard.p.id] : houses[moonHouse];
       const rhythms = [23, 28, 33].map((p) => ({ value: Math.round(100 * F.biorhythmValue(n - birth, p)), crossing: F.biorhythmCrossesZero(n - birth, p) }));
       days.set(n, {
-        focus, caution, moonHouse, solar, lunar, rhythms,
+        focus, caution, moonHouse, moonSign: Math.floor(A.norm360(sky.moon) / 30), solar, lunar, rhythms,
         contacts: [...new Set([good, hard, ...sky.hits].filter(Boolean))].slice(0, 3),
       });
     }
