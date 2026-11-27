@@ -1172,6 +1172,7 @@
     $('natalView').classList.toggle('child-empty', o.mode === 'child' && !childInfo);
     if (K) renderChild();
     renderHead(); renderWheel(); renderPlanets(); renderHouses(); renderAspects(); if (!outer) renderBalance(); renderSolarCard(); renderLunarCard(); renderStarsCtl(); renderStarCard(); renderLikeCard(); renderHoraryCard(); renderReading();
+    $('natalView').classList.remove('nat-pending');
   }
 
   window.NatalView = {
